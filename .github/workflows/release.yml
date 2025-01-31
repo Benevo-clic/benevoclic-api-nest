@@ -1,0 +1,49 @@
+name: Create Release
+
+on:
+  workflow_run:
+    workflows: ["Main CI/CD"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  create-release:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Get version from package.json
+      id: package-version
+      run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+    - name: Get commit messages
+      id: get-commits
+      run: |
+        COMMITS=$(git log $(git describe --tags --abbrev=0 2>/dev/null || echo HEAD^)..HEAD --pretty=format:"- %s")
+        echo "commits<<ENDOFCOMMITS" >> $GITHUB_OUTPUT
+        echo "$COMMITS" >> $GITHUB_OUTPUT
+        echo "ENDOFCOMMITS" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.package-version.outputs.version }}
+        name: Release v${{ steps.package-version.outputs.version }}
+        body: |
+          ## What's Changed
+          ${{ steps.get-commits.outputs.commits }}
+          
+          ## Docker Images
+          - Latest: `${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:latest`
+          - Version: `${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:${{ steps.package-version.outputs.version }}`
+          - Commit: `${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:${{ github.sha }}`
+        draft: false
+        prerelease: false
+        token: ${{ secrets.TOKEN_GITHUB }} 

@@ -1,12 +1,18 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
+import { InjectConnection } from '@nestjs/mongoose';
+import { Connection } from 'mongoose';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(@InjectConnection() private connection: Connection) {}
 
   @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  async getHello(): Promise<string> {
+    try {
+      const isConnected = this.connection.readyState === 1;
+      return isConnected ? 'Connexion à MongoDB réussie !' : 'Connexion à MongoDB échouée';
+    } catch (error) {
+      return `Erreur de connexion: ${error.message}`;
+    }
   }
 }
