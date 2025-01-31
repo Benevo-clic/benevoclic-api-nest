@@ -1,38 +1,42 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
-import { MongooseModule } from '@nestjs/mongoose';
+import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
-import { mongoConfig } from './config/mongo.config';
-import { getConnectionToken } from '@nestjs/mongoose';
+import { DatabaseModule } from './database/database.module';
 
 describe('AppController', () => {
-  let appController: AppController;
+  let controller: AppController;
   let moduleRef: TestingModule;
+  let appService: AppService;
 
   beforeEach(async () => {
     moduleRef = await Test.createTestingModule({
       imports: [
-        ConfigModule.forRoot(),
-        MongooseModule.forRoot(mongoConfig.mongoConfig(), {
-          dbName: mongoConfig.database(),
+        ConfigModule.forRoot({
+          isGlobal: true,
         }),
+        DatabaseModule,
       ],
       controllers: [AppController],
+      providers: [AppService],
     }).compile();
 
-    appController = moduleRef.get<AppController>(AppController);
+    controller = moduleRef.get<AppController>(AppController);
+    appService = moduleRef.get<AppService>(AppService);
   });
 
   afterEach(async () => {
-    const connection = moduleRef.get(getConnectionToken());
-    await connection.close();
+    await appService.onApplicationShutdown();
+  });
+
+  afterAll(async () => {
     await moduleRef.close();
   });
 
   describe('root', () => {
-    it('should return MongoDB connection status', async () => {
-      const result = await appController.getHello();
-      expect(result).toContain('Connexion à MongoDB');
+    it('should confirm MongoDB connection', async () => {
+      const result = await controller.getHello();
+      expect(result).toBe('Connexion MongoDB OK!');
     });
   });
 });
