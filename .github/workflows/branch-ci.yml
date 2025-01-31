@@ -22,10 +22,10 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '20'
         cache: 'npm'
@@ -56,5 +56,5 @@ jobs:
     - name: Run tests
       run: npm run test:ci
 
-    - name: Generate coverage report
-      run: npm run test:cov 
+    # - name: Generate coverage report
+    #   run: npm run test:cov 
