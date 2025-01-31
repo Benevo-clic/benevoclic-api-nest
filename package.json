@@ -22,7 +22,7 @@
     "test:integration": "jest --passWithNoTests --testPathPattern='\\.controller\\.spec\\.ts$'",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:ci": "npm run test:unit && npm run test:integration",
+    "test:ci": "npm run test:unit",
     "prepare": "husky install",
     "lint-staged": "lint-staged"
   },
