@@ -41,9 +41,9 @@ jobs:
           ${{ steps.get-commits.outputs.commits }}
           
           ## Docker Images
-          - Latest: `${{ secrets.DOCKERHUB_USERNAME }}/workout-planner:latest`
-          - Version: `${{ secrets.DOCKERHUB_USERNAME }}/workout-planner:${{ steps.package-version.outputs.version }}`
-          - Commit: `${{ secrets.DOCKERHUB_USERNAME }}/workout-planner:${{ github.sha }}`
+          - Latest: `${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:latest`
+          - Version: `${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:${{ steps.package-version.outputs.version }}`
+          - Commit: `${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:${{ github.sha }}`
         draft: false
         prerelease: false
         token: ${{ secrets.TOKEN_GITHUB }} 

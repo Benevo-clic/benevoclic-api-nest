@@ -87,6 +87,6 @@ jobs:
       with:
         push: true
         tags: |
-          ${{ secrets.DOCKERHUB_USERNAME }}/workout-planner:latest
-          ${{ secrets.DOCKERHUB_USERNAME }}/workout-planner:${{ steps.package-version.outputs.version }}
-          ${{ secrets.DOCKERHUB_USERNAME }}/workout-planner:${{ github.sha }} 
+          ${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:latest
+          ${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:${{ steps.package-version.outputs.version }}
+          ${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:${{ github.sha }}
