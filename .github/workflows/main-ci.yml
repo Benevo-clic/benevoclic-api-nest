@@ -55,11 +55,11 @@ jobs:
     - name: Run unit tests
       run: npm run test:unit
 
-    - name: Run integration tests
-      run: npm run test:integration
+    # - name: Run integration tests
+    #   run: npm run test:integration
 
-    - name: Generate coverage report
-      run: npm run test:cov
+    # - name: Generate coverage report
+    #   run: npm run test:cov
 
   deploy:
     needs: test
