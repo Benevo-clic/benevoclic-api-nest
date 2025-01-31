@@ -1,15 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
 import { mongoConfig } from './config/mongo.config';
+import { getConnectionToken } from '@nestjs/mongoose';
 
 describe('AppController', () => {
   let appController: AppController;
+  let moduleRef: TestingModule;
 
   beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
+    moduleRef = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot(),
         MongooseModule.forRoot(mongoConfig.mongoConfig(), {
@@ -17,10 +18,15 @@ describe('AppController', () => {
         }),
       ],
       controllers: [AppController],
-      providers: [AppService],
     }).compile();
 
-    appController = app.get<AppController>(AppController);
+    appController = moduleRef.get<AppController>(AppController);
+  });
+
+  afterEach(async () => {
+    const connection = moduleRef.get(getConnectionToken());
+    await connection.close();
+    await moduleRef.close();
   });
 
   describe('root', () => {
