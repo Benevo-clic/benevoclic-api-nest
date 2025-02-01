@@ -6,6 +6,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import axios from 'axios';
 import { AuthConfig } from '../config/auth.config';
+import { UserRole } from '../common/enums/roles.enum';
 
 @Injectable()
 export class UserService {
@@ -20,6 +21,7 @@ export class UserService {
         password: registerUser.password,
       });
       console.log('User Record:', userRecord);
+      await this.setUserRole(userRecord.uid, registerUser.role);
       return userRecord;
     } catch (error) {
       console.error('Error creating user:', error);
@@ -114,5 +116,23 @@ export class UserService {
       refresh_token: refreshToken,
     };
     return await this.sendPostRequest(url, payload);
+  }
+
+  async setUserRole(uid: string, role: UserRole) {
+    try {
+      await firebaseAdmin.auth().setCustomUserClaims(uid, { role });
+      return { message: `Rôle ${role} attribué avec succès` };
+    } catch (error) {
+      throw new Error(`Erreur lors de l'attribution du rôle: ${error.message}`);
+    }
+  }
+
+  async findByRole(role: UserRole) {
+    try {
+      const usersResult = await firebaseAdmin.auth().listUsers();
+      return usersResult.users.filter(user => user.customClaims?.role === role);
+    } catch (error) {
+      throw new Error(`Erreur lors de la recherche des utilisateurs: ${error.message}`);
+    }
   }
 }
