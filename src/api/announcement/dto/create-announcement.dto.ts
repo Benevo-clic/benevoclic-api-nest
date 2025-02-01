@@ -11,4 +11,4 @@ export class CreateAnnouncementDto {
   @IsNotEmpty()
   @IsString()
   description: string;
-} 
+}

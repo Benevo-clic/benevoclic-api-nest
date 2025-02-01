@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { MongoClient } from 'mongodb';
-import { MONGODB_CONNECTION } from '../database/mongodb.provider';
+import { MONGODB_CONNECTION } from '../../database/mongodb.provider';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 
 @Injectable()

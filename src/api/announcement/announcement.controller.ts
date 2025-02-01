@@ -1,10 +1,10 @@
 import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { AnnouncementService } from './announcement.service';
-import { Public } from '../common/decorators/public.decorator';
-import { Roles } from '../common/decorators/roles.decorator';
-import { UserRole } from '../common/enums/roles.enum';
+import { Public } from '../../common/decorators/public.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '../../common/enums/roles.enum';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
-import { AuthGuard } from '../guards/auth.guard';
+import { AuthGuard } from '../../guards/auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('announcements')

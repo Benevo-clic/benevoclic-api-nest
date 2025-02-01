@@ -2,7 +2,7 @@ import { MongoClient, ObjectId } from 'mongodb';
 import {
   Announcement,
   AnnouncementStatus,
-} from '../../announcement/interfaces/announcement.interface';
+} from '../../api/announcement/interfaces/announcement.interface';
 
 export async function seedAnnouncements(client: MongoClient) {
   const db = client.db('benevoclic');

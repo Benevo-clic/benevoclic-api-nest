@@ -13,4 +13,4 @@ export class AnnouncementService {
   async create(createAnnouncementDto: CreateAnnouncementDto) {
     return this.repository.create(createAnnouncementDto);
   }
-} 
+}

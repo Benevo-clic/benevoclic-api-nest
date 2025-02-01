@@ -10,17 +10,17 @@ import {
   ValidationPipe,
   UseGuards,
   Query,
+  Request,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginDto } from './dto/login.dto';
-import { AuthGuard } from '../guards/auth.guard';
+import { AuthGuard } from '../../guards/auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
-import { Roles } from '../common/decorators/roles.decorator';
-import { UserRole } from '../common/enums/roles.enum';
-import { Public } from '../common/decorators/public.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '../../common/enums/roles.enum';
+import { Public } from '../../common/decorators/public.decorator';
 
 @Controller('user')
 export class UserController {
@@ -47,7 +47,7 @@ export class UserController {
 
   @Get()
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ASSOCIATION)
+  @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   findAll() {
     return this.userService.findAll();
@@ -55,15 +55,18 @@ export class UserController {
 
   @Get('volunteers')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION)
+  @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   findVolunteers() {
     return this.userService.findByRole(UserRole.VOLUNTEER);
   }
 
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto);
+  @Get('association')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  findAssociation() {
+    return this.userService.findByRole(UserRole.ASSOCIATION);
   }
 
   @Get(':id')
@@ -72,12 +75,26 @@ export class UserController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.userService.update(id, updateUserDto);
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
   remove(@Param('id') id: string) {
-    return this.userService.remove(+id);
+    return this.userService.remove(id);
+  }
+
+  @Post('logout')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  async logout(@Request() req) {
+    const uid = req.user.uid;
+    return this.userService.logout(uid);
   }
 }
