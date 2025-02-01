@@ -1,16 +1,35 @@
-import * as env from 'env-var';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
-export const mongoConfig = {
-  mongoConfig(): string {
-    const user = env.get('MONGODB_USER').required().asString();
-    const password = env.get('MONGODB_PASSWORD').required().asString();
-    const host = env.get('MONGODB_HOST').required().asString();
-    const port = env.get('MONGODB_PORT').required().asPortNumber();
+@Injectable()
+export class MongoConfig {
+  constructor(private configService: ConfigService) {}
 
-    return `mongodb://${user}:${password}@${host}:${port}`;
-  },
+  get uri(): string {
+    return this.configService.get<string>('MONGODB_URL');
+  }
 
-  database(): string {
-    return env.get('MONGODB_DATABASE').required().asString();
-  },
-};
+  get dbName(): string {
+    return this.configService.get<string>('MONGODB_DB_NAME');
+  }
+
+  host(): string {
+    return this.configService.get<string>('MONGODB_HOST');
+  }
+
+  password(): string {
+    return this.configService.get<string>('MONGODB_PASSWORD');
+  }
+
+  port(): number {
+    return this.configService.get<number>('MONGODB_PORT');
+  }
+
+  maxIdleTimeMS(): number {
+    return this.configService.get<number>('MONGODB_MAX_IDLE_TIME_MS');
+  }
+
+  maxPoolSize(): number {
+    return this.configService.get<number>('MONGODB_MAX_POOL_SIZE');
+  }
+}
