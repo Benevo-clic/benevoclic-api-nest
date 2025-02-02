@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AssociationController } from './association.controller';
-import { AssociationService } from './association.service';
+import { AssociationService } from '../services/association.service';
 
 describe('AssociationController', () => {
   let controller: AssociationController;

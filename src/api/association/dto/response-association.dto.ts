@@ -1,4 +1,5 @@
-import { InfoVolunteer, ProfileImage } from '../type/association.type';
+import { InfoVolunteer } from '../type/association.type';
+import { ProfileImage } from '../../../common/type/usersInfo.type';
 
 export class ResponseAssociationDto {
   _id: string;

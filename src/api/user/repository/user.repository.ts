@@ -1,9 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { MongoClient } from 'mongodb';
-import { MONGODB_CONNECTION } from '../../database/mongodb.provider';
-import { User } from './entities/user.entity';
-import { CreateUserDto } from './dto/create-user.dto';
-import { DatabaseCollection } from '../../common/enums/database.collection';
+import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
+import { User } from '../entities/user.entity';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { DatabaseCollection } from '../../../common/enums/database.collection';
 
 @Injectable()
 export class UserRepository {
@@ -62,18 +62,6 @@ export class UserRepository {
 
   async findAllOnlineUsers(): Promise<User[]> {
     return this.collection.find({ isOnline: true }).toArray();
-  }
-
-  async updateUserProfile(uid: string, profileData: Partial<User>): Promise<void> {
-    await this.collection.updateOne(
-      { uid },
-      {
-        $set: {
-          ...profileData,
-          updatedAt: new Date(),
-        },
-      },
-    );
   }
 
   async remove(id: string): Promise<void> {

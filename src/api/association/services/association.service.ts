@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CreateAssociationDto } from './dto/create-association.dto';
-import { UpdateAssociationDto } from './dto/update-association.dto';
-import { Association } from './entities/association.entity';
-import { AssociationRepository } from './association.repository';
-import { Location, ProfileImage } from './type/association.type';
-import { FirebaseAdminService } from '../../common/firebase/firebaseAdmin.service';
+import { CreateAssociationDto } from '../dto/create-association.dto';
+import { UpdateAssociationDto } from '../dto/update-association.dto';
+import { Association } from '../entities/association.entity';
+import { AssociationRepository } from '../repository/association.repository';
+import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
 
 @Injectable()
 export class AssociationService {
@@ -15,13 +14,17 @@ export class AssociationService {
 
   async create(createAssociationDto: CreateAssociationDto) {
     const firebaseUser = await this.firebaseInstance.getUserByEmail(createAssociationDto.email);
+    if (!firebaseUser) {
+      throw new Error('Email not found');
+    }
 
-    const isExist: Association = await this.associationRepository.findByEmail(firebaseUser.email);
+    const isExist: Association = await this.associationRepository.findById(firebaseUser.uid);
 
     if (isExist) {
       throw new Error('Email already exist');
     }
-    const association: Association = {
+
+    return this.associationRepository.create({
       _id: firebaseUser.uid,
       bio: createAssociationDto.bio,
       associationName: createAssociationDto.associationName,
@@ -29,9 +32,7 @@ export class AssociationService {
       country: createAssociationDto.country,
       postalCode: createAssociationDto.postalCode,
       type: createAssociationDto.type,
-    };
-
-    return this.associationRepository.create(association);
+    });
   }
 
   async findAll() {
@@ -43,36 +44,31 @@ export class AssociationService {
   }
 
   async update(id: string, updateAssociationDto: UpdateAssociationDto) {
-    const firebaseUser = await this.firebaseInstance.getUser(id);
     const oldAssociation: Association = await this.associationRepository.findById(id);
-    const association: Association = {
-      _id: firebaseUser.uid,
+    if (!oldAssociation) {
+      throw new Error('Association not found');
+    }
+
+    await this.associationRepository.update(id, {
       bio: updateAssociationDto.bio ?? oldAssociation.bio,
       associationName: updateAssociationDto.associationName ?? oldAssociation.associationName,
       city: updateAssociationDto.city ?? oldAssociation.city,
       country: updateAssociationDto.country ?? oldAssociation.country,
       postalCode: updateAssociationDto.postalCode ?? oldAssociation.postalCode,
       type: updateAssociationDto.type ?? oldAssociation.type,
-      location: oldAssociation.location,
-      profileImage: oldAssociation.profileImage,
-      volunteers: oldAssociation.volunteers,
-      volunteersWaiting: oldAssociation.volunteersWaiting,
-    };
-
-    await this.associationRepository.update(id, association);
+    });
 
     return `This action updates a #${id} association`;
   }
 
-  remove(id: number) {
+  async remove(id: string) {
+    const isExist: Association = await this.associationRepository.findById(id);
+    if (!isExist) {
+      throw new Error('Association not found');
+    }
+
+    await this.associationRepository.remove(id);
+
     return `This action removes a #${id} association`;
-  }
-
-  async updateProfileImage(id: string, profileImage: ProfileImage): Promise<void> {
-    await this.associationRepository.update(id, { profileImage });
-  }
-
-  async updateLocation(id: string, location: Location): Promise<void> {
-    await this.associationRepository.updateLocation(id, location);
   }
 }

@@ -1,13 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { RegisterUserDto } from './dto/register-user.dto';
-import { LoginDto } from './dto/login.dto';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { RegisterUserDto } from '../dto/register-user.dto';
+import { LoginDto } from '../dto/login.dto';
 import axios from 'axios';
-import { AuthConfig } from '../../config/auth.config';
-import { UserRole } from '../../common/enums/roles.enum';
+import { AuthConfig } from '../../../config/auth.config';
+import { UserRole } from '../../../common/enums/roles.enum';
 import { UserRecord } from 'firebase-admin/auth';
-import { UserRepository } from './user.repository';
-import { FirebaseAdminService } from '../../common/firebase/firebaseAdmin.service';
+import { UserRepository } from '../repository/user.repository';
+import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
+import { Location, ProfileImage } from '../../../common/type/usersInfo.type';
 
 @Injectable()
 export class UserService {
@@ -15,6 +16,43 @@ export class UserService {
   firebaseInstance: FirebaseAdminService = FirebaseAdminService.getInstance();
 
   constructor(private readonly userRepository: UserRepository) {}
+
+  async updateLocation(id: string, location: Location) {
+    try {
+      await this.userRepository.update(id, { location });
+      return { message: 'Localisation mise à jour avec succès' };
+    } catch (error) {
+      this.logger.error(`Erreur lors de la mise à jour de la localisation: ${id}`, error.stack);
+      throw new Error('Erreur lors de la mise à jour de la localisation');
+    }
+  }
+  async uploadProfileImage(file: Express.Multer.File): Promise<ProfileImage> {
+    if (!file) {
+      throw new Error('Aucun fichier fourni.');
+    }
+
+    const base64Image = file.buffer.toString('base64');
+
+    return {
+      data: base64Image, // Image encodée en Base64
+      contentType: file.mimetype,
+      uploadedAt: new Date(),
+    };
+  }
+
+  async updateProfilePicture(id: string, file: Express.Multer.File) {
+    try {
+      if (!file) {
+        throw new Error('Aucun fichier fourni.');
+      }
+
+      await this.userRepository.update(id, { imageProfile: await this.uploadProfileImage(file) });
+      return { message: 'Photo de profil mise à jour avec succès' };
+    } catch (error) {
+      this.logger.error(`Erreur lors de la mise à jour de la photo de profil: ${id}`, error.stack);
+      throw new Error('Erreur lors de la mise à jour de la photo de profil');
+    }
+  }
 
   async registerUserInFirebase(registerUser: RegisterUserDto): Promise<UserRecord> {
     const isExist = await this.firebaseInstance.getUserByEmail(registerUser.email);
@@ -221,6 +259,26 @@ export class UserService {
       return { message: 'Déconnexion réussie' };
     } catch (error) {
       throw new Error('Erreur lors de la déconnexion');
+    }
+  }
+
+  async getProfileImage(id: string) {
+    try {
+      const user = await this.userRepository.findByUid(id);
+      if (!user) {
+        throw new Error('Utilisateur non trouvé');
+      }
+
+      if (!user.imageProfile) {
+        throw new Error('Aucune image de profil trouvée');
+      }
+
+      return {
+        data: user.imageProfile.data,
+        contentType: user.imageProfile.contentType,
+      };
+    } catch (error) {
+      throw new Error("Erreur lors de la récupération de l'image de profil");
     }
   }
 }

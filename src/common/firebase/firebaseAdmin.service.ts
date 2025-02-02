@@ -27,8 +27,12 @@ export class FirebaseAdminService {
     return firebaseAdmin.auth().getUser(id);
   }
 
-  getUserByEmail(email: string) {
-    return firebaseAdmin.auth().getUserByEmail(email);
+  async getUserByEmail(email: string) {
+    try {
+      return await firebaseAdmin.auth().getUserByEmail(email);
+    } catch (error) {
+      return null; // Retourne null si l'utilisateur n'est pas trouvé
+    }
   }
 
   listUsers() {

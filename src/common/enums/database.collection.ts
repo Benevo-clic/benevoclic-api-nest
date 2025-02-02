@@ -1,6 +1,6 @@
 export enum DatabaseCollection {
-  ASSOCIATION = 'association',
-  VOLUNTEER = 'volunteer',
+  ASSOCIATION = 'associations',
+  VOLUNTEER = 'volunteers',
   ADMIN = 'admin',
   USERS = 'users',
 }

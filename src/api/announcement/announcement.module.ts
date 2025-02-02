@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../database/database.module';
-import { AnnouncementRepository } from './announcement.repository';
-import { AnnouncementService } from './announcement.service';
-import { AnnouncementController } from './announcement.controller';
+import { AnnouncementService } from './services/announcement.service';
+import { AnnouncementController } from './controllers/announcement.controller';
+import { AnnouncementRepository } from './repositories/announcement.repository';
 
 @Module({
   imports: [DatabaseModule],
