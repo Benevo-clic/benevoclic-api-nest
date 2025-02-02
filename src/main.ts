@@ -8,9 +8,7 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('User Authentication')
-    .setDescription(
-      'The API details for the User Authentication Demo application using Firebase in the NestJS backend.',
-    )
+    .setDescription('The API details for the User Authentication Demo application.')
     .setVersion('1.0')
     .addTag('Authentication')
     .addBearerAuth()

@@ -1,0 +1,15 @@
+import { InfoVolunteer, ProfileImage } from '../type/association.type';
+
+export class ResponseAssociationDto {
+  _id: string;
+  associationName: string;
+  bio: string;
+  location?: Location;
+  city: string;
+  type: string;
+  postalCode: string;
+  country: string;
+  volunteers?: InfoVolunteer[];
+  volunteersWaiting?: InfoVolunteer[];
+  profileImage?: ProfileImage;
+}

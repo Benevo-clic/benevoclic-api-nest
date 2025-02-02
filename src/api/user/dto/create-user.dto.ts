@@ -43,6 +43,11 @@ export class CreateUserDto {
   @IsString()
   createdAt: string;
 
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  isVerified: boolean;
+
   @ApiProperty({ enum: UserRole })
   @IsNotEmpty()
   @IsEnum(UserRole)

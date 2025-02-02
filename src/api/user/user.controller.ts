@@ -70,31 +70,34 @@ export class UserController {
   }
 
   @Get(':id')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
+  @ApiBearerAuth()
   findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id);
+    return this.userService.findOne(id);
   }
 
   @Patch(':id')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(id, updateUserDto);
+    return await this.userService.update(id, updateUserDto);
   }
 
   @Delete(':id')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  remove(@Param('id') id: string) {
-    return this.userService.remove(id);
+  async remove(@Param('id') id: string) {
+    return await this.userService.remove(id);
   }
 
   @Post('logout')
   @UseGuards(AuthGuard)
+  @Roles(UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
   async logout(@Request() req) {
-    const uid = req.user.uid;
-    return this.userService.logout(uid);
+    return await this.userService.logout(req.user.uid);
   }
 }

@@ -3,6 +3,7 @@ import { MongoClient } from 'mongodb';
 import { MONGODB_CONNECTION } from '../../database/mongodb.provider';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
+import { DatabaseCollection } from '../../common/enums/database.collection';
 
 @Injectable()
 export class UserRepository {
@@ -12,7 +13,7 @@ export class UserRepository {
   ) {}
 
   private get collection() {
-    return this.mongoClient.db().collection<User>('users');
+    return this.mongoClient.db().collection<User>(DatabaseCollection.USERS);
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -25,6 +26,7 @@ export class UserRepository {
       role: createUserDto.role,
       isOnline: false,
       disabled: createUserDto.disabled,
+      isVerified: createUserDto.isVerified,
       lastConnection: createUserDto.lastSignInTime,
       createdAt: createUserDto.createdAt,
       updatedAt: new Date(),
@@ -39,6 +41,10 @@ export class UserRepository {
 
   async findByUid(id: string): Promise<User | null> {
     return this.collection.findOne({ _id: id });
+  }
+
+  async findAll() {
+    return this.collection.find().toArray();
   }
 
   async updateConnectionStatus(id: string, isOnline: boolean, lastSignInTime = ''): Promise<void> {

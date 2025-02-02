@@ -9,6 +9,7 @@ export class User {
   role: UserRole;
   isOnline: boolean;
   disabled: boolean;
+  isVerified: boolean;
   lastConnection: string;
   createdAt: string;
   updatedAt: Date;

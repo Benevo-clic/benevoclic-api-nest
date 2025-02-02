@@ -1,36 +1,37 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
-import * as firebaseAdmin from 'firebase-admin';
 import { LoginDto } from './dto/login.dto';
 import axios from 'axios';
 import { AuthConfig } from '../../config/auth.config';
 import { UserRole } from '../../common/enums/roles.enum';
 import { UserRecord } from 'firebase-admin/auth';
 import { UserRepository } from './user.repository';
+import { FirebaseAdminService } from '../../common/firebase/firebaseAdmin.service';
 
 @Injectable()
 export class UserService {
   private readonly logger = new Logger(UserService.name);
+  firebaseInstance: FirebaseAdminService = FirebaseAdminService.getInstance();
 
-  constructor(
-    private readonly authConfig: AuthConfig,
-    private readonly userRepository: UserRepository,
-  ) {}
+  constructor(private readonly userRepository: UserRepository) {}
+
+  async registerUserInFirebase(registerUser: RegisterUserDto): Promise<UserRecord> {
+    const isExist = await this.firebaseInstance.getUserByEmail(registerUser.email);
+    if (isExist) {
+      throw new Error('Email already exist');
+    }
+    return await this.firebaseInstance.createUser({
+      displayName: registerUser.firstName,
+      email: registerUser.email,
+      password: registerUser.password,
+    });
+  }
+
   async registerUser(registerUser: RegisterUserDto): Promise<UserRecord> {
     try {
-      this.logger.log(`Tentative d'inscription pour l'utilisateur: ${registerUser.email}`);
-
-      const userRecord = await firebaseAdmin.auth().createUser({
-        displayName: registerUser.firstName,
-        email: registerUser.email,
-        password: registerUser.password,
-      });
-
-      this.logger.debug(`Utilisateur créé dans Firebase avec l'ID: ${userRecord.uid}`);
-
+      const userRecord = await this.registerUserInFirebase(registerUser);
       await this.setUserRole(userRecord.uid, registerUser.role);
-      this.logger.debug(`Rôle ${registerUser.role} attribué à l'utilisateur`);
 
       await this.userRepository.create({
         _id: userRecord.uid,
@@ -40,6 +41,7 @@ export class UserService {
         phoneNumber: registerUser.phoneNumber,
         role: registerUser.role,
         disabled: userRecord.disabled,
+        isVerified: userRecord.emailVerified,
         lastSignInTime: userRecord.metadata.lastRefreshTime,
         createdAt: userRecord.metadata.creationTime,
       });
@@ -55,12 +57,21 @@ export class UserService {
     }
   }
 
-  findAll() {
-    return `This action returns all user`;
+  async findAll() {
+    return await this.userRepository.findAll();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(id: string) {
+    return await this.userRepository.findByUid(id);
+  }
+
+  async updateInFirebase(id: string, updateUserDto: UpdateUserDto) {
+    const updateData: any = {};
+    if (updateUserDto.email) updateData.email = updateUserDto.email;
+    if (updateUserDto.firstName) updateData.displayName = updateUserDto.firstName;
+
+    await this.firebaseInstance.updateUser(id, updateData);
+    this.logger.debug(`Utilisateur mis à jour dans Firebase: ${id}`);
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
@@ -68,12 +79,7 @@ export class UserService {
       this.logger.log(`Tentative de mise à jour de l'utilisateur: ${id}`);
 
       // Mise à jour Firebase
-      const updateData: any = {};
-      if (updateUserDto.email) updateData.email = updateUserDto.email;
-      if (updateUserDto.firstName) updateData.displayName = updateUserDto.firstName;
-
-      await firebaseAdmin.auth().updateUser(id, updateData);
-      this.logger.debug(`Utilisateur mis à jour dans Firebase: ${id}`);
+      await this.updateInFirebase(id, updateUserDto);
 
       // Mise à jour du rôle si nécessaire
       if (updateUserDto.role) {
@@ -86,7 +92,6 @@ export class UserService {
         ...updateUserDto,
         updatedAt: new Date(),
       });
-      this.logger.debug(`Utilisateur mis à jour dans MongoDB: ${id}`);
 
       this.logger.log(`Mise à jour réussie pour l'utilisateur: ${id}`);
       return { message: 'Utilisateur mis à jour avec succès' };
@@ -96,15 +101,21 @@ export class UserService {
     }
   }
 
+  async removeInFirebase(id: string) {
+    try {
+      await this.firebaseInstance.deleteUser(id);
+      this.logger.debug(`Utilisateur supprimé de Firebase: ${id}`);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la suppression de l'utilisateur: ${id}`, error.stack);
+      throw new Error("Erreur lors de la suppression de l'utilisateur");
+    }
+  }
+
   async remove(id: string) {
     try {
-      this.logger.log(`Tentative de suppression de l'utilisateur: ${id}`);
-
-      await firebaseAdmin.auth().deleteUser(id);
-      this.logger.debug(`Utilisateur supprimé de Firebase: ${id}`);
+      await this.removeInFirebase(id);
 
       await this.userRepository.remove(id);
-      this.logger.debug(`Utilisateur supprimé de MongoDB: ${id}`);
 
       this.logger.log(`Suppression réussie de l'utilisateur: ${id}`);
       return { message: 'Utilisateur supprimé avec succès' };
@@ -123,7 +134,7 @@ export class UserService {
         payload.password,
       );
 
-      const firebaseUser = await firebaseAdmin.auth().getUserByEmail(payload.email);
+      const firebaseUser = await this.firebaseInstance.getUserByEmail(payload.email);
       await this.userRepository.updateConnectionStatus(
         firebaseUser.uid,
         true,
@@ -188,7 +199,7 @@ export class UserService {
 
   async setUserRole(uid: string, role: UserRole) {
     try {
-      await firebaseAdmin.auth().setCustomUserClaims(uid, { role });
+      await this.firebaseInstance.setCustomUserClaims(uid, { role });
       return { message: `Rôle ${role} attribué avec succès` };
     } catch (error) {
       throw new Error(`Erreur lors de l'attribution du rôle: ${error.message}`);
@@ -197,7 +208,7 @@ export class UserService {
 
   async findByRole(role: UserRole) {
     try {
-      const usersResult = await firebaseAdmin.auth().listUsers();
+      const usersResult = await this.firebaseInstance.listUsers();
       return usersResult.users.filter(user => user.customClaims?.role === role);
     } catch (error) {
       throw new Error(`Erreur lors de la recherche des utilisateurs: ${error.message}`);
