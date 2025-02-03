@@ -1,10 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { MongoClient } from 'mongodb';
-import { User } from '../../user/entities/user.entity';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
 import { Volunteer } from '../entities/volunteer.entity';
-import { Association } from '../../association/entities/association.entity';
 
 @Injectable()
 export class VolunteerRepository {

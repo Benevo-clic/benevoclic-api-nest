@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { AnnouncementService } from '../services/announcement.service';
 import { Announcement } from '../interfaces/announcement.interface';
 import { Public } from '../../../common/decorators/public.decorator';
@@ -42,5 +42,4 @@ export class AnnouncementController {
   async delete(@Param('id') id: string): Promise<boolean> {
     return this.service.delete(id);
   }
-
 }

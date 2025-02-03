@@ -126,6 +126,7 @@ export class AssociationService {
       associationId,
       volunteerId,
     );
+    return volunteerId;
   }
 
   async removeVolunteer(associationId: string, volunteerId: string): Promise<string> {

@@ -1,17 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-  UseInterceptors,
-  UploadedFile,
-  Res,
-  NotFoundException,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { VolunteerService } from '../services/volunteer.service';
 import { CreateVolunteerDto } from '../dto/create-volunteer.dto';
 import { UpdateVolunteerDto } from '../dto/update-volunteer.dto';
