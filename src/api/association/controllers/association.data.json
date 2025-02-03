@@ -1,0 +1,26 @@
+{
+  "associations": [
+    {
+      "associationId": "Um7at9Si8gVTEjuXsM8cdyOushc2",
+      "associationName": "Les Restos du Coeur",
+      "bio": "Association d'aide alimentaire",
+      "city": "Paris",
+      "type": "Humanitaire",
+      "postalCode": "75001",
+      "country": "France",
+      "volunteers": [],
+      "volunteersWaiting": []
+    },
+    {
+      "associationId": "Um7at9Si8gVTEjuXsM8cdyOusUc2",
+      "associationName": "Croix Rouge",
+      "bio": "Aide humanitaire et secours",
+      "city": "Lyon",
+      "type": "Santé",
+      "postalCode": "69001",
+      "country": "France",
+      "volunteers": [],
+      "volunteersWaiting": []
+    }
+  ]
+} 

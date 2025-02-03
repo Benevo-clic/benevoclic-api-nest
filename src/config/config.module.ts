@@ -1,8 +1,14 @@
 import { Module } from '@nestjs/common';
-import { AuthConfig } from './auth.config';
+import { ConfigModule as NestConfigModule } from '@nestjs/config';
+import { MongoConfig } from './mongo.config';
 
 @Module({
-  providers: [AuthConfig],
-  exports: [AuthConfig],
+  imports: [
+    NestConfigModule.forRoot({
+      isGlobal: true,
+    }),
+  ],
+  providers: [MongoConfig],
+  exports: [MongoConfig],
 })
 export class ConfigModule {}

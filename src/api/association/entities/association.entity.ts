@@ -1,7 +1,7 @@
 import { InfoVolunteer } from '../type/association.type';
 
 export class Association {
-  _id: string;
+  associationId: string;
   associationName: string;
   bio: string;
   city: string;

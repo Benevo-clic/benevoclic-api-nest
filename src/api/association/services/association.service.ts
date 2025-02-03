@@ -4,6 +4,7 @@ import { UpdateAssociationDto } from '../dto/update-association.dto';
 import { Association } from '../entities/association.entity';
 import { AssociationRepository } from '../repository/association.repository';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
+import { InfoVolunteer } from '../type/association.type';
 
 @Injectable()
 export class AssociationService {
@@ -25,18 +26,20 @@ export class AssociationService {
     }
 
     return this.associationRepository.create({
-      _id: firebaseUser.uid,
+      associationId: firebaseUser.uid,
       bio: createAssociationDto.bio,
       associationName: createAssociationDto.associationName,
       city: createAssociationDto.city,
       country: createAssociationDto.country,
       postalCode: createAssociationDto.postalCode,
       type: createAssociationDto.type,
+      volunteers: [],
+      volunteersWaiting: [],
     });
   }
 
-  async findAll() {
-    return await this.associationRepository.findAll();
+  async findAll(): Promise<Association[]> {
+    return this.associationRepository.findAll();
   }
 
   async findOne(id: string): Promise<Association | null> {
@@ -58,7 +61,7 @@ export class AssociationService {
       type: updateAssociationDto.type ?? oldAssociation.type,
     });
 
-    return `This action updates a #${id} association`;
+    return await this.associationRepository.findById(id);
   }
 
   async remove(id: string) {
@@ -70,5 +73,72 @@ export class AssociationService {
     await this.associationRepository.remove(id);
 
     return `This action removes a #${id} association`;
+  }
+
+  async addVolunteer(associationId: string, volunteerInfo: InfoVolunteer) {
+    const association: Association = await this.associationRepository.findById(associationId);
+    if (!association) {
+      throw new Error('Association not found');
+    }
+
+    const isExist = await this.associationRepository.findAssociationsByVolunteer(volunteerInfo.id);
+    if (isExist.length > 0) {
+      throw new Error('Volunteer already exist');
+    }
+    await this.removeVolunteerWaiting(associationId, volunteerInfo.id);
+
+    association.volunteers.push(volunteerInfo);
+    await this.associationRepository.update(associationId, association);
+
+    return `This action adds a volunteer to association #${associationId}`;
+  }
+
+  async addVolunteerWaiting(associationId: string, volunteerInfo: InfoVolunteer) {
+    const association: Association = await this.associationRepository.findById(associationId);
+    if (!association) {
+      throw new Error('Association not found');
+    }
+
+    const isExist = await this.associationRepository.findAssociationsByVolunteerWaiting(
+      volunteerInfo.id,
+    );
+    if (isExist.length > 0) {
+      throw new Error('Volunteer already exist');
+    }
+
+    association.volunteersWaiting.push(volunteerInfo);
+    await this.associationRepository.update(associationId, association);
+  }
+
+  async removeVolunteerWaiting(associationId: string, volunteerId: string) {
+    const association: Association = await this.associationRepository.findById(associationId);
+    if (!association) {
+      throw new Error('Association not found');
+    }
+
+    const isExist: Association[] =
+      await this.associationRepository.findAssociationsByVolunteerWaiting(volunteerId);
+    if (isExist.length === 0) {
+      throw new Error('Volunteer not exist');
+    }
+
+    await this.associationRepository.removeVolunteerWaitingFromAssociation(
+      associationId,
+      volunteerId,
+    );
+  }
+
+  async removeVolunteer(associationId: string, volunteerId: string) {
+    const association: Association = await this.associationRepository.findById(associationId);
+    if (!association) {
+      throw new Error('Association not found');
+    }
+
+    const isExist = await this.associationRepository.findAssociationsByVolunteer(volunteerId);
+    if (isExist.length === 0) {
+      throw new Error('Volunteer not exist');
+    }
+
+    await this.associationRepository.removeVolunteerFromAssociation(associationId, volunteerId);
   }
 }

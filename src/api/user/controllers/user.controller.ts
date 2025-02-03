@@ -37,6 +37,7 @@ export class UserController {
     return this.userService.registerUser(registerUserDto);
   }
 
+  @Public()
   @Post('refresh-auth')
   refreshAuth(@Query('refreshToken') refreshToken: string) {
     return this.userService.refreshAuthToken(refreshToken);
