@@ -44,11 +44,15 @@ export class AssociationRepository {
     return await this.collection.find({ 'volunteersWaiting.id': volunteerId }).toArray();
   }
 
-  async removeVolunteerFromAssociation(associationId: string, volunteerId: string): Promise<void> {
+  async removeVolunteerFromAssociation(
+    associationId: string,
+    volunteerId: string,
+  ): Promise<string> {
     await this.collection.updateOne(
       { associationId: associationId },
       { $pull: { volunteers: { id: volunteerId } } },
     );
+    return volunteerId;
   }
 
   async removeVolunteerWaitingFromAssociation(

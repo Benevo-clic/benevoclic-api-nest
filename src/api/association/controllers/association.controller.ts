@@ -53,7 +53,10 @@ export class AssociationController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION)
   @ApiBearerAuth()
-  update(@Param('associationId') associationId: string, @Body() updateAssociationDto: UpdateAssociationDto) {
+  update(
+    @Param('associationId') associationId: string,
+    @Body() updateAssociationDto: UpdateAssociationDto,
+  ) {
     return this.associationService.update(associationId, updateAssociationDto);
   }
 
@@ -69,7 +72,10 @@ export class AssociationController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
-  addAssociationVolunteers(@Param('associationId') associationId: string, @Body() volunteers: InfoUserDto) {
+  addAssociationVolunteers(
+    @Param('associationId') associationId: string,
+    @Body() volunteers: InfoUserDto,
+  ) {
     return this.associationService.addVolunteer(associationId, volunteers);
   }
 
@@ -77,15 +83,21 @@ export class AssociationController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  removeAssociationVolunteers(@Param('associationId') associationId: string, @Param('volunteers') volunteers: string) {
-    return this.associationService.removeVolunteer(associationId, volunteers);
+  async removeAssociationVolunteers(
+    @Param('associationId') associationId: string,
+    @Param('volunteers') volunteers: string,
+  ) {
+    return await this.associationService.removeVolunteer(associationId, volunteers);
   }
 
   @Patch(':associationId/addAssociationVolunteersWaiting/:volunteers')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  addAssociationVolunteersWaiting(@Param('associationId') associationId: string, @Body() volunteers: InfoUserDto) {
+  addAssociationVolunteersWaiting(
+    @Param('associationId') associationId: string,
+    @Body() volunteers: InfoUserDto,
+  ) {
     return this.associationService.addVolunteerWaiting(associationId, volunteers);
   }
 
@@ -93,7 +105,10 @@ export class AssociationController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  removeAssociationVolunteersWaiting(@Param('associationId') associationId: string, @Param('volunteer') volunteer: string) {
+  removeAssociationVolunteersWaiting(
+    @Param('associationId') associationId: string,
+    @Param('volunteer') volunteer: string,
+  ) {
     return this.associationService.removeVolunteerWaiting(associationId, volunteer);
   }
 }

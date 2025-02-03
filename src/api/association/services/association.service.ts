@@ -90,7 +90,7 @@ export class AssociationService {
     association.volunteers.push(volunteerInfo);
     await this.associationRepository.update(associationId, association);
 
-    return `This action adds a volunteer to association #${associationId}`;
+    return volunteerInfo;
   }
 
   async addVolunteerWaiting(associationId: string, volunteerInfo: InfoVolunteer) {
@@ -128,7 +128,7 @@ export class AssociationService {
     );
   }
 
-  async removeVolunteer(associationId: string, volunteerId: string) {
+  async removeVolunteer(associationId: string, volunteerId: string): Promise<string> {
     const association: Association = await this.associationRepository.findById(associationId);
     if (!association) {
       throw new Error('Association not found');
@@ -139,6 +139,9 @@ export class AssociationService {
       throw new Error('Volunteer not exist');
     }
 
-    await this.associationRepository.removeVolunteerFromAssociation(associationId, volunteerId);
+    return await this.associationRepository.removeVolunteerFromAssociation(
+      associationId,
+      volunteerId,
+    );
   }
 }
