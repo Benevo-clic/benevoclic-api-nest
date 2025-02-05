@@ -2,7 +2,7 @@ import { UserRole } from '../../../common/enums/roles.enum';
 import { Location, ProfileImage } from '../../../common/type/usersInfo.type';
 
 export class User {
-  _id: string;
+  userId: string;
   email: string;
   firstName: string;
   lastName: string;

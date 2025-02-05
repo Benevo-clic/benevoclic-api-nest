@@ -1,0 +1,46 @@
+{
+  "users": [
+    {
+      "userId": "5roPDukOsyQW2qJEqCK2Gz9cLMsH",
+      "email": "volunteer1@gmail.com",
+      "firstName": "Volunteer",
+      "lastName": "One",
+      "phoneNumber": "1234567890",
+      "role": "VOLUNTEER",
+      "isVerified": true,
+      "isOnline": false,
+      "disabled": false,
+      "createdAt": "2021-06-01T00:00:00.000Z",
+      "updatedAt": "2021-06-01T00:00:00.000Z",
+      "lastConnection": "2021-06-01T00:00:00.000Z"
+    },
+    {
+      "userId": "5roPDukOsyQW2qJEqCK2Gz9cLMsI",
+      "email": "association@gmail.com",
+      "firstName": "Association",
+      "lastName": "One",
+      "phoneNumber": "1234567890",
+      "role": "ASSOCIATION",
+      "isVerified": true,
+      "isOnline": false,
+      "disabled": false,
+      "createdAt": "2021-06-01T00:00:00.000Z",
+      "updatedAt": "2021-06-01T00:00:00.000Z",
+      "lastConnection": "2021-06-01T00:00:00.000Z"
+    },
+    {
+      "userId": "5roPDukOsyQW2qJEqCK2Gz9cLMsJ",
+      "email": "admin@gmail.com",
+      "firstName": "Admin",
+      "lastName": "One",
+      "phoneNumber": "1234567890",
+      "role": "ADMIN",
+      "isVerified": true,
+      "isOnline": false,
+      "disabled": false,
+      "createdAt": "2021-06-01T00:00:00.000Z",
+      "updatedAt": "2021-06-01T00:00:00.000Z",
+      "lastConnection": "2021-06-01T00:00:00.000Z"
+    }
+  ]
+}

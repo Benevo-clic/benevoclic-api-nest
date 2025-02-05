@@ -6,6 +6,7 @@ import { DatabaseModule } from '../../../database/database.module';
 import { MongoClient, ObjectId } from 'mongodb';
 import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import * as mockData from '../../../../test/testFiles/association.data.json';
+import { DatabaseCollection } from '../../../common/enums/database.collection';
 
 // Mock FirebaseAdminService
 jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
@@ -41,14 +42,14 @@ describe('AssociationController (Integration)', () => {
     }));
 
     const db = mongoClient.db();
-    await db.collection('associations').deleteMany({});
-    await db.collection('associations').insertMany(associations);
+    await db.collection(DatabaseCollection.ASSOCIATION).deleteMany({});
+    await db.collection(DatabaseCollection.ASSOCIATION).insertMany(associations);
   });
 
   afterAll(async () => {
     // Nettoyer la base de données après les tests
     const db = mongoClient.db();
-    await db.collection('associations').deleteMany({});
+    await db.collection(DatabaseCollection.ASSOCIATION).deleteMany({});
     await module.close();
   });
 

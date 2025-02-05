@@ -18,7 +18,7 @@ export class UserRepository {
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const user: User = {
-      _id: createUserDto._id,
+      userId: createUserDto._id,
       email: createUserDto.email,
       firstName: createUserDto.firstName,
       lastName: createUserDto.lastName,
@@ -40,7 +40,7 @@ export class UserRepository {
   }
 
   async findByUid(id: string): Promise<User | null> {
-    return this.collection.findOne({ _id: id });
+    return this.collection.findOne({ userId: id });
   }
 
   async findAll() {
@@ -49,7 +49,7 @@ export class UserRepository {
 
   async updateConnectionStatus(id: string, isOnline: boolean, lastSignInTime = ''): Promise<void> {
     await this.collection.updateOne(
-      { _id: id },
+      { userId: id },
       {
         $set: {
           isOnline,
@@ -65,12 +65,12 @@ export class UserRepository {
   }
 
   async remove(id: string): Promise<void> {
-    await this.collection.deleteOne({ _id: id });
+    await this.collection.deleteOne({ userId: id });
   }
 
   async update(id: string, updateData: Partial<User>): Promise<void> {
     await this.collection.updateOne(
-      { _id: id },
+      { userId: id },
       {
         $set: {
           ...updateData,
