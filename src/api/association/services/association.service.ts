@@ -81,7 +81,6 @@ export class AssociationService {
     if (isExist.length > 0) {
       throw new Error('Volunteer already exist');
     }
-    await this.removeVolunteerWaiting(associationId, volunteerInfo.id);
 
     association.volunteers.push(volunteerInfo);
     await this.associationRepository.update(associationId, association);
@@ -104,6 +103,7 @@ export class AssociationService {
 
     association.volunteersWaiting.push(volunteerInfo);
     await this.associationRepository.update(associationId, association);
+    return volunteerInfo;
   }
 
   async removeVolunteerWaiting(associationId: string, volunteerId: string) {

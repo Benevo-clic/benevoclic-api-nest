@@ -230,10 +230,6 @@ describe('AssociationService', () => {
 
         const result = await associationService.addVolunteer('mockFirebaseUid123', mockVolunteer);
         expect(result).toEqual(mockVolunteer);
-        expect(associationRepository.removeVolunteerWaitingFromAssociation).toBeCalledWith(
-          mockAssociation.associationId,
-          mockVolunteer.id,
-        );
       });
 
       it('should throw error if volunteer already exists', async () => {

@@ -93,12 +93,13 @@ export class AssociationController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
-  addAssociationVolunteers(
+  async addAssociationVolunteers(
     @Param('associationId') associationId: string,
     @Body() volunteers: InfoUserDto,
   ) {
     try {
-      return this.associationService.addVolunteer(associationId, volunteers);
+      await this.associationService.removeVolunteerWaiting(associationId, volunteers.id);
+      return await this.associationService.addVolunteer(associationId, volunteers);
     } catch (error) {
       console.error(
         `Erreur lors de l'ajout de bénévoles à l'association: ${associationId}`,
