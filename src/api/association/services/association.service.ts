@@ -5,6 +5,7 @@ import { Association } from '../entities/association.entity';
 import { AssociationRepository } from '../repository/association.repository';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
 import { InfoVolunteer } from '../type/association.type';
+import { FindAssociationDto } from '../dto/find-association.dto';
 
 @Injectable()
 export class AssociationService {
@@ -53,12 +54,7 @@ export class AssociationService {
     }
 
     await this.associationRepository.update(id, {
-      bio: updateAssociationDto.bio ?? oldAssociation.bio,
-      associationName: updateAssociationDto.associationName ?? oldAssociation.associationName,
-      city: updateAssociationDto.city ?? oldAssociation.city,
-      country: updateAssociationDto.country ?? oldAssociation.country,
-      postalCode: updateAssociationDto.postalCode ?? oldAssociation.postalCode,
-      type: updateAssociationDto.type ?? oldAssociation.type,
+      ...updateAssociationDto,
     });
 
     return await this.associationRepository.findById(id);
@@ -116,7 +112,7 @@ export class AssociationService {
       throw new Error('Association not found');
     }
 
-    const isExist: Association[] =
+    const isExist: FindAssociationDto[] =
       await this.associationRepository.findAssociationsByVolunteerWaiting(volunteerId);
     if (isExist.length === 0) {
       throw new Error('Volunteer not exist');
@@ -144,5 +140,13 @@ export class AssociationService {
       associationId,
       volunteerId,
     );
+  }
+
+  getAssociationWaitingByVolunteer(volunteerId: string): Promise<FindAssociationDto[]> {
+    return this.associationRepository.findAssociationsByVolunteerWaiting(volunteerId);
+  }
+
+  getAssociationByVolunteer(volunteerId: string) {
+    return this.associationRepository.findAssociationsByVolunteer(volunteerId);
   }
 }

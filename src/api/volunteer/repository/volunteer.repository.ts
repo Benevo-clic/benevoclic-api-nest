@@ -16,7 +16,7 @@ export class VolunteerRepository {
   }
 
   async findById(uid: string) {
-    return await this.collection.findOne({ _id: uid });
+    return await this.collection.findOne({ volunteerId: uid });
   }
 
   async create(volunteer: Volunteer) {
@@ -29,11 +29,11 @@ export class VolunteerRepository {
   }
 
   async remove(id: string) {
-    await this.collection.deleteOne({ _id: id });
+    return await this.collection.deleteOne({ volunteerId: id });
   }
 
   async update(id: string, volunteer: Partial<Volunteer>) {
-    await this.collection.updateOne({ _id: id }, { $set: volunteer });
+    await this.collection.updateOne({ volunteerId: id }, { $set: volunteer });
     return await this.findById(id);
   }
 }

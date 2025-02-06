@@ -18,9 +18,9 @@ export class VolunteerService {
     }
     const isExist = await this.volunteerRepository.findById(firebaseUser.uid);
     if (isExist) throw new Error('Email already exist');
-
+    this.logger.log(`Volunteer created: ${firebaseUser.uid}`);
     return this.volunteerRepository.create({
-      _id: firebaseUser.uid,
+      volunteerId: firebaseUser.uid,
       city: createVolunteerDto.city,
       country: createVolunteerDto.country,
       postalCode: createVolunteerDto.postalCode,
@@ -32,7 +32,7 @@ export class VolunteerService {
   }
 
   findAll() {
-    return `This action returns all volunteer`;
+    return this.volunteerRepository.findAll();
   }
 
   async findOne(id: string) {
@@ -40,24 +40,22 @@ export class VolunteerService {
   }
 
   async update(id: string, updateVolunteerDto: UpdateVolunteerDto) {
-    const firebaseUser = await this.firebaseInstance.getUser(id);
-    const oldVolunteer = await this.volunteerRepository.findById(id);
-    await this.volunteerRepository.update(id, {
-      _id: firebaseUser.uid,
-      city: updateVolunteerDto.city ?? oldVolunteer.city,
-      country: updateVolunteerDto.country ?? oldVolunteer.country,
-      postalCode: updateVolunteerDto.postalCode ?? oldVolunteer.postalCode,
-      birthDate: updateVolunteerDto.birthDate ?? oldVolunteer.birthDate,
-      bio: updateVolunteerDto.bio ?? oldVolunteer.bio,
-    });
+    const isExist = await this.volunteerRepository.findById(id);
+    if (!isExist) throw new Error('Volunteer not found');
 
-    return `This action updates a #${id} volunteer`;
+    await this.volunteerRepository.update(id, {
+      ...updateVolunteerDto,
+    });
+    this.logger.log(`Volunteer updated: ${id}`);
+    return await this.volunteerRepository.findById(id);
   }
 
   async remove(id: string) {
-    const isExist = this.volunteerRepository.findById(id);
+    const isExist = await this.volunteerRepository.findById(id);
     if (!isExist) throw new Error('Volunteer not found');
-    await this.volunteerRepository.remove(id);
-    return `This action removes a #${id} volunteer`;
+    const deleteResult = await this.volunteerRepository.remove(id);
+    if (!deleteResult.deletedCount) throw new Error('Volunteer not found');
+    this.logger.log(`Volunteer deleted: ${id}`);
+    return { volunteerId: id };
   }
 }

@@ -34,7 +34,14 @@ export class UserController {
   @Post('register')
   @UsePipes(new ValidationPipe({ transform: true }))
   registerUser(@Body() registerUserDto: RegisterUserDto) {
-    return this.userService.registerUser(registerUserDto);
+    try {
+      return this.userService.registerUser(registerUserDto);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la création de l'utilisateur: ${registerUserDto.email}`,
+        error.stack,
+      );
+    }
   }
 
   @Public()
@@ -47,7 +54,11 @@ export class UserController {
   @Post('login')
   @UsePipes(new ValidationPipe({ transform: true }))
   login(@Body() loginDto: LoginDto) {
-    return this.userService.loginUser(loginDto);
+    try {
+      return this.userService.loginUser(loginDto);
+    } catch (error) {
+      console.error(`Erreur lors de la connexion de l'utilisateur: ${loginDto.email}`, error.stack);
+    }
   }
 
   @Get()
@@ -63,7 +74,11 @@ export class UserController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   findVolunteers() {
-    return this.userService.findByRole(UserRole.VOLUNTEER);
+    try {
+      return this.userService.findByRole(UserRole.VOLUNTEER);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des bénévoles', error.stack);
+    }
   }
 
   @Get('association')
@@ -71,7 +86,11 @@ export class UserController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   findAssociation() {
-    return this.userService.findByRole(UserRole.ASSOCIATION);
+    try {
+      return this.userService.findByRole(UserRole.ASSOCIATION);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des associations', error.stack);
+    }
   }
 
   @Get(':id')
@@ -87,7 +106,11 @@ export class UserController {
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return await this.userService.update(id, updateUserDto);
+    try {
+      return await this.userService.update(id, updateUserDto);
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Delete(':id')
@@ -95,7 +118,11 @@ export class UserController {
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
   async remove(@Param('id') id: string) {
-    return await this.userService.remove(id);
+    try {
+      return await this.userService.remove(id);
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Post('logout')
@@ -103,7 +130,11 @@ export class UserController {
   @Roles(UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
   async logout(@Request() req) {
-    return await this.userService.logout(req.user.uid);
+    try {
+      return await this.userService.logout(req.user.uid);
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Patch(':id/image-profile')
@@ -112,7 +143,14 @@ export class UserController {
   @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('image'))
   async updateProfileImage(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
-    return await this.userService.updateProfilePicture(id, file);
+    try {
+      return await this.userService.updateProfilePicture(id, file);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la mise à jour de l'image de profil de l'utilisateur: ${id}`,
+        error.stack,
+      );
+    }
   }
 
   @Patch(':id/location')
@@ -120,10 +158,28 @@ export class UserController {
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
   async updateLocation(@Param('id') id: string, @Body() location: Location) {
-    return await this.userService.updateLocation(id, location);
+    try {
+      return await this.userService.updateLocation(id, location);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la mise à jour de la localisation de l'utilisateur: ${id}`,
+        error.stack,
+      );
+    }
   }
+
   @Get(':id/profile-image')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
+  @ApiBearerAuth()
   async getProfileImage(@Param('id') id: string) {
-    return await this.userService.getProfileImage(id);
+    try {
+      return await this.userService.getProfileImage(id);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la récupération de l'image de profil de l'utilisateur: ${id}`,
+        error.stack,
+      );
+    }
   }
 }

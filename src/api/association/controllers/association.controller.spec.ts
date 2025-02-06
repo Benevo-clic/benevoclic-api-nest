@@ -156,58 +156,92 @@ describe('AssociationController (Integration)', () => {
     });
   });
 
-  describe('removeVolunteerWaiting', () => {
-    it('should remove a volunteer from the waiting list of an association', async () => {
-      const associationId = mockData.associations[0].associationId;
-      const volunteerId = mockData.associations[0].volunteersWaiting[0].id;
+  describe('getAssociationWaitingByVolunteer', () => {
+    it('should return associations waiting for a volunteer', async () => {
+      const volunteerId = 'mockVolunteerId123';
+      const associations = await controller.getAssociationWaiting(volunteerId);
 
-      await controller.removeAssociationVolunteersWaiting(associationId, volunteerId);
-
-      // Vérifier que le bénévole a bien été supprimé
-      const association = await controller.findOne(associationId);
-      expect(association.volunteersWaiting).not.toContainEqual(
-        expect.objectContaining({ id: volunteerId }),
-      );
+      expect(associations).toBeDefined();
+      expect(Array.isArray(associations)).toBe(true);
+      expect(associations.length).toBeGreaterThan(0);
+      expect(associations[0].associationId).toBe(mockData.associations[0].associationId);
+      expect(associations[0].associationName).toBe(mockData.associations[0].associationName);
+      expect(associations[1].associationId).toBe(mockData.associations[2].associationId);
     });
   });
 
-  describe('removeVolunteer', () => {
-    it('should remove a volunteer from an association', async () => {
-      const associationId = mockData.associations[1].associationId;
-      const volunteerId = mockData.associations[1].volunteers[0].id;
+  describe('getAssociationByVolunteer', () => {
+    it('should return associations for a volunteer', async () => {
+      const volunteerId = 'mockVolunteerId123';
+      const associations = await controller.getAssociation(volunteerId);
 
-      const updated = await controller.removeAssociationVolunteers(associationId, volunteerId);
-      expect(updated).toBeDefined();
-      expect(updated).toBe(volunteerId);
-
-      // Vérifier que le bénévole a bien été supprimé
-      const association = await controller.findOne(associationId);
-      expect(association.volunteers).not.toContainEqual(
-        expect.objectContaining({ id: volunteerId }),
-      );
+      expect(associations).toBeDefined();
+      expect(Array.isArray(associations)).toBe(true);
+      expect(associations.length).toBeGreaterThan(0);
+      expect(associations[0].associationId).toBe(mockData.associations[1].associationId);
+      expect(associations[0].associationName).toBe(mockData.associations[1].associationName);
     });
-  });
 
-  describe('addVolunteerWaiting', () => {
-    it('should add a volunteer to the waiting list of an association', async () => {
-      const associationId = mockData.associations[2].associationId;
-      const volunteer = {
-        id: 'mockVolunteerId1234',
-        name: 'John Doe',
-      };
+    describe('removeVolunteerWaiting', () => {
+      it('should remove a volunteer from the waiting list of an association', async () => {
+        const associationId = mockData.associations[0].associationId;
+        const volunteerId = mockData.associations[0].volunteersWaiting[0].id;
 
-      await controller.addAssociationVolunteersWaiting(associationId, volunteer);
+        await controller.removeAssociationVolunteersWaiting(associationId, volunteerId);
 
-      const association = await controller.findOne(associationId);
-      expect(association.volunteersWaiting).toContainEqual(expect.objectContaining(volunteer));
+        // Vérifier que le bénévole a bien été supprimé
+        const association = await controller.findOne(associationId);
+        expect(association.volunteersWaiting).not.toContainEqual(
+          expect.objectContaining({ id: volunteerId }),
+        );
+      });
     });
-  });
 
-  describe('remove', () => {
-    it('should remove an association', async () => {
-      await controller.remove(mockData.associations[0].associationId);
-      const found = await controller.findOne(mockData.associations[0].associationId);
-      expect(found).toBeNull();
+    describe('removeVolunteer', () => {
+      it('should remove a volunteer from an association', async () => {
+        const associationId = mockData.associations[1].associationId;
+        const volunteerId = mockData.associations[1].volunteers[0].id;
+
+        const updated = await controller.removeAssociationVolunteers(associationId, volunteerId);
+        expect(updated).toBeDefined();
+        expect(updated).toBe(volunteerId);
+
+        // Vérifier que le bénévole a bien été supprimé
+        const association = await controller.findOne(associationId);
+        expect(association.volunteers).not.toContainEqual(
+          expect.objectContaining({ id: volunteerId }),
+        );
+      });
+    });
+
+    describe('addVolunteerWaiting', () => {
+      it('should add a volunteer to the waiting list of an association', async () => {
+        const associationId = mockData.associations[2].associationId;
+        const volunteer = {
+          id: 'mockVolunteerId1234',
+          name: 'John Doe',
+        };
+
+        await controller.addAssociationVolunteersWaiting(associationId, volunteer);
+
+        const association = await controller.findOne(associationId);
+        expect(association.volunteersWaiting).toContainEqual(expect.objectContaining(volunteer));
+      });
+    });
+
+    describe('remove', () => {
+      it('should remove an association', async () => {
+        await controller.remove(mockData.associations[0].associationId);
+        const found = await controller.findOne(mockData.associations[0].associationId);
+        expect(found).toBeNull();
+      });
+    });
+
+    it('should return empty array for non-existent volunteer', async () => {
+      const associations = await controller.getAssociation('nonExistentVolunteerId');
+      expect(associations).toBeDefined();
+      expect(Array.isArray(associations)).toBe(true);
+      expect(associations.length).toBe(0);
     });
   });
 });

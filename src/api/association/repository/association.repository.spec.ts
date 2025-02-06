@@ -4,6 +4,7 @@ import { Collection, ObjectId } from 'mongodb';
 import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { Association } from '../entities/association.entity';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
+import { FindAssociationDto } from '../dto/find-association.dto';
 
 describe('AssociationRepository', () => {
   let repository: AssociationRepository;
@@ -159,7 +160,8 @@ describe('AssociationRepository', () => {
         };
         jest.spyOn(collection, 'find').mockReturnValue(mockFind as any);
 
-        const result = await repository.findAssociationsByVolunteerWaiting('vol123');
+        const result: FindAssociationDto[] =
+          await repository.findAssociationsByVolunteerWaiting('vol123');
 
         expect(collection.find).toHaveBeenCalledWith({ 'volunteersWaiting.id': 'vol123' });
         expect(result).toEqual([mockAssociation]);

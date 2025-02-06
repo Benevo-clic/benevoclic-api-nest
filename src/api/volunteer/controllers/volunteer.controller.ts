@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Logger,
+} from '@nestjs/common';
 import { VolunteerService } from '../services/volunteer.service';
 import { CreateVolunteerDto } from '../dto/create-volunteer.dto';
 import { UpdateVolunteerDto } from '../dto/update-volunteer.dto';
@@ -9,6 +19,7 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('volunteer')
 export class VolunteerController {
+  private readonly logger = new Logger(VolunteerController.name);
   constructor(private readonly volunteerService: VolunteerService) {}
 
   @Post()
@@ -16,7 +27,14 @@ export class VolunteerController {
   @Roles(UserRole.VOLUNTEER)
   @ApiBearerAuth()
   create(@Body() createVolunteerDto: CreateVolunteerDto) {
-    return this.volunteerService.create(createVolunteerDto);
+    try {
+      return this.volunteerService.create(createVolunteerDto);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la création du bénévole: ${createVolunteerDto.email}`,
+        error.stack,
+      );
+    }
   }
 
   @Get()
@@ -40,7 +58,11 @@ export class VolunteerController {
   @Roles(UserRole.VOLUNTEER)
   @ApiBearerAuth()
   update(@Param('id') id: string, @Body() updateVolunteerDto: UpdateVolunteerDto) {
-    return this.volunteerService.update(id, updateVolunteerDto);
+    try {
+      return this.volunteerService.update(id, updateVolunteerDto);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la mise à jour du bénévole: ${id}`, error.stack);
+    }
   }
 
   @Delete(':id')
@@ -48,6 +70,10 @@ export class VolunteerController {
   @Roles(UserRole.VOLUNTEER)
   @ApiBearerAuth()
   remove(@Param('id') id: string) {
-    return this.volunteerService.remove(id);
+    try {
+      return this.volunteerService.remove(id);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la suppression du bénévole: ${id}`, error.stack);
+    }
   }
 }

@@ -24,11 +24,29 @@
       "type": "Santé",
       "postalCode": "69001",
       "country": "France",
-      "volunteers": [{
-        "id": "Xm7at9SVTEjuXsM8ci8gdyOusUc2",
-        "name": "Jean Dupont"
-      }],
+      "volunteers": [
+        {
+          "id": "mockVolunteerId1234",
+          "name": "Jean Dupont"
+        }
+      ],
       "volunteersWaiting": []
+    },
+    {
+      "associationId": "Um7at9M8cdySi8gVTEjuXsOushc2",
+      "associationName": "Les Restos du Coeur",
+      "bio": "Association d'aide alimentaire",
+      "city": "Paris",
+      "type": "Humanitaire",
+      "postalCode": "75001",
+      "country": "France",
+      "volunteers": [],
+      "volunteersWaiting": [
+        {
+          "id": "mockVolunteerId123",
+          "name": "Jean Dupont"
+        }
+      ]
     },
     {
       "associationId": "Um7atTEjuXsM89Si8gVcdyOushc2",
@@ -39,8 +57,7 @@
       "postalCode": "75001",
       "country": "France",
       "volunteers": [],
-      "volunteersWaiting": [
-      ]
+      "volunteersWaiting": []
     }
   ]
-} 
+}

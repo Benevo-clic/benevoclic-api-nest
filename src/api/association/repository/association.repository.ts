@@ -3,6 +3,7 @@ import { MongoClient } from 'mongodb';
 import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { Association } from '../entities/association.entity';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
+import { FindAssociationDto } from '../dto/find-association.dto';
 
 @Injectable()
 export class AssociationRepository {
@@ -36,11 +37,11 @@ export class AssociationRepository {
     await this.collection.deleteOne({ associationId: id });
   }
 
-  async findAssociationsByVolunteer(volunteerId: string): Promise<Association[]> {
+  async findAssociationsByVolunteer(volunteerId: string): Promise<FindAssociationDto[]> {
     return await this.collection.find({ 'volunteers.id': volunteerId }).toArray();
   }
 
-  async findAssociationsByVolunteerWaiting(volunteerId: string): Promise<Association[]> {
+  async findAssociationsByVolunteerWaiting(volunteerId: string): Promise<FindAssociationDto[]> {
     return await this.collection.find({ 'volunteersWaiting.id': volunteerId }).toArray();
   }
 

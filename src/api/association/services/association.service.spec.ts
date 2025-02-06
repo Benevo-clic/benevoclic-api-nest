@@ -177,6 +177,7 @@ describe('AssociationService', () => {
 
       const result = await associationService.update('mockFirebaseUid123', updateDto);
       expect(result.bio).toBe(updateDto.bio);
+      expect(associationRepository.update).toHaveBeenCalled();
     });
 
     it('should throw error if association not found', async () => {
@@ -202,6 +203,7 @@ describe('AssociationService', () => {
           mockVolunteer.id,
         );
         expect(result).toBe(mockVolunteer.id);
+        expect(associationRepository.removeVolunteerFromAssociation).toHaveBeenCalled();
       });
     });
 
@@ -228,6 +230,10 @@ describe('AssociationService', () => {
 
         const result = await associationService.addVolunteer('mockFirebaseUid123', mockVolunteer);
         expect(result).toEqual(mockVolunteer);
+        expect(associationRepository.removeVolunteerWaitingFromAssociation).toBeCalledWith(
+          mockAssociation.associationId,
+          mockVolunteer.id,
+        );
       });
 
       it('should throw error if volunteer already exists', async () => {

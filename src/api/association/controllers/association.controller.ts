@@ -30,7 +30,14 @@ export class AssociationController {
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
   create(@Body() createAssociationDto: CreateAssociationDto) {
-    return this.associationService.create(createAssociationDto);
+    try {
+      return this.associationService.create(createAssociationDto);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la création de l'association: ${createAssociationDto.email}`,
+        error.stack,
+      );
+    }
   }
 
   @Get()
@@ -57,7 +64,14 @@ export class AssociationController {
     @Param('associationId') associationId: string,
     @Body() updateAssociationDto: UpdateAssociationDto,
   ) {
-    return this.associationService.update(associationId, updateAssociationDto);
+    try {
+      return this.associationService.update(associationId, updateAssociationDto);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la mise à jour de l'association: ${associationId}`,
+        error.stack,
+      );
+    }
   }
 
   @Delete(':associationId')
@@ -65,7 +79,14 @@ export class AssociationController {
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION)
   @ApiBearerAuth()
   remove(@Param('associationId') associationId: string) {
-    return this.associationService.remove(associationId);
+    try {
+      return this.associationService.remove(associationId);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la suppression de l'association: ${associationId}`,
+        error.stack,
+      );
+    }
   }
 
   @Patch(':associationId/addAssociationVolunteers/:volunteers')
@@ -76,7 +97,14 @@ export class AssociationController {
     @Param('associationId') associationId: string,
     @Body() volunteers: InfoUserDto,
   ) {
-    return this.associationService.addVolunteer(associationId, volunteers);
+    try {
+      return this.associationService.addVolunteer(associationId, volunteers);
+    } catch (error) {
+      console.error(
+        `Erreur lors de l'ajout de bénévoles à l'association: ${associationId}`,
+        error.stack,
+      );
+    }
   }
 
   @Patch(':associationId/removeAssociationVolunteers/:volunteers')
@@ -87,7 +115,14 @@ export class AssociationController {
     @Param('associationId') associationId: string,
     @Param('volunteers') volunteers: string,
   ) {
-    return await this.associationService.removeVolunteer(associationId, volunteers);
+    try {
+      return await this.associationService.removeVolunteer(associationId, volunteers);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la suppression de bénévoles de l'association: ${associationId}`,
+        error.stack,
+      );
+    }
   }
 
   @Patch(':associationId/addAssociationVolunteersWaiting/:volunteers')
@@ -98,7 +133,37 @@ export class AssociationController {
     @Param('associationId') associationId: string,
     @Body() volunteers: InfoUserDto,
   ) {
-    return this.associationService.addVolunteerWaiting(associationId, volunteers);
+    try {
+      return this.associationService.addVolunteerWaiting(associationId, volunteers);
+    } catch (error) {
+      console.error(
+        `Erreur lors de l'ajout de bénévoles en attente à l'association: ${associationId}`,
+        error.stack,
+      );
+    }
+  }
+
+  @Get(':volunteerId/getAssociationWaiting')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  getAssociationWaiting(@Param('volunteerId') volunteerId: string) {
+    try {
+      return this.associationService.getAssociationWaitingByVolunteer(volunteerId);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la récupération des associations en attente du bénévole: ${volunteerId}`,
+        error.stack,
+      );
+    }
+  }
+
+  @Get(':volunteerId/getAssociation')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  getAssociation(@Param('volunteerId') volunteerId: string) {
+    return this.associationService.getAssociationByVolunteer(volunteerId);
   }
 
   @Patch(':associationId/removeAssociationVolunteersWaiting/:volunteer')
@@ -109,6 +174,13 @@ export class AssociationController {
     @Param('associationId') associationId: string,
     @Param('volunteer') volunteer: string,
   ) {
-    return this.associationService.removeVolunteerWaiting(associationId, volunteer);
+    try {
+      return this.associationService.removeVolunteerWaiting(associationId, volunteer);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la suppression de bénévoles en attente de l'association: ${associationId}`,
+        error.stack,
+      );
+    }
   }
 }

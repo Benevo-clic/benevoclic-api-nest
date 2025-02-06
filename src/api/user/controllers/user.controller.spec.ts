@@ -12,7 +12,6 @@ import { UserRole } from '../../../common/enums/roles.enum';
 import * as admin from 'firebase-admin';
 import axios from 'axios';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
-import { User } from '../entities/user.entity';
 
 // Mock Firebase Admin
 jest.mock('firebase-admin', () => ({
@@ -92,6 +91,7 @@ describe('UserController', () => {
   let userController: UserController;
   let mongoClient: MongoClient;
   let testingModule: TestingModule;
+  let userService: UserService;
 
   beforeAll(async () => {
     // Initialize Firebase Admin
@@ -124,6 +124,7 @@ describe('UserController', () => {
 
     userController = testingModule.get<UserController>(UserController);
     mongoClient = testingModule.get<MongoClient>(MONGODB_CONNECTION);
+    userService = testingModule.get<UserService>(UserService);
 
     const users = mockData.users.map(user => ({
       ...user,
@@ -251,102 +252,65 @@ describe('UserController', () => {
       role: UserRole.VOLUNTEER,
     };
 
-    let userRepository: UserRepository;
-
-    beforeEach(() => {
-      userRepository = testingModule.get<UserRepository>(UserRepository);
-    });
-
     it('should update a user', async () => {
-      const mockUser = {
-        ...mockData.users[0],
-        role: UserRole[mockData.users[0].role as keyof typeof UserRole],
-        createdAt: new Date(mockData.users[0].createdAt),
-        updatedAt: new Date(mockData.users[0].updatedAt),
-        lastConnection: new Date(mockData.users[0].lastConnection),
-        _id: mockData.users[0].userId,
-      } as unknown as User;
-
-      jest.spyOn(userRepository, 'findByUid').mockResolvedValue(mockUser);
+      jest
+        .spyOn(userService, 'update')
+        .mockResolvedValue({ message: 'Utilisateur mis à jour avec succès' });
 
       const result = await userController.update(mockData.users[0].userId, updateData);
       expect(result).toBeDefined();
       expect(result).toEqual({ message: 'Utilisateur mis à jour avec succès' });
     });
 
-    it('should throw an error if user not found', async () => {
-      jest.spyOn(userRepository, 'findByUid').mockResolvedValue(null);
+    it('should throw error if user not found', async () => {
       jest
-        .spyOn(userRepository, 'update')
+        .spyOn(userService, 'update')
         .mockRejectedValue(new Error("Erreur lors de la mise à jour de l'utilisateur"));
 
       await expect(userController.update('nonexistent-id', updateData)).rejects.toThrow(
         "Erreur lors de la mise à jour de l'utilisateur",
       );
     });
-    afterEach(() => {
-      jest.clearAllMocks();
-    });
   });
 
   describe('delete', () => {
-    let userRepository: UserRepository;
-
-    beforeEach(() => {
-      userRepository = testingModule.get<UserRepository>(UserRepository);
-    });
-
     it('should delete a user', async () => {
       const userId = mockData.users[0].userId;
       jest
-        .spyOn(userRepository, 'findByUid')
-        .mockResolvedValue(mockData.users[0] as unknown as User);
-      jest.spyOn(userRepository, 'remove').mockResolvedValue(undefined);
+        .spyOn(userService, 'remove')
+        .mockResolvedValue({ message: 'Utilisateur supprimé avec succès' });
 
       const result = await userController.remove(userId);
       expect(result).toEqual({ message: 'Utilisateur supprimé avec succès' });
     });
 
-    it('should throw an error if user not found', async () => {
-      jest.spyOn(userRepository, 'findByUid').mockResolvedValue(null);
-      jest.spyOn(userRepository, 'remove').mockRejectedValue(new Error('User not found'));
+    it('should throw error if user not found', async () => {
+      jest
+        .spyOn(userService, 'remove')
+        .mockRejectedValue(new Error("Erreur lors de la suppression de l'utilisateur"));
 
       await expect(userController.remove('nonexistent-id')).rejects.toThrow(
         "Erreur lors de la suppression de l'utilisateur",
       );
     });
-
-    afterEach(() => {
-      jest.clearAllMocks();
-    });
   });
 
   describe('logout', () => {
-    let userRepository: UserRepository;
-
-    beforeEach(() => {
-      userRepository = testingModule.get<UserRepository>(UserRepository);
-    });
-
     it('should logout a user', async () => {
       const req = { user: { uid: 'mockUid123' } };
-      jest.spyOn(userRepository, 'updateConnectionStatus').mockResolvedValue(undefined);
+      jest.spyOn(userService, 'logout').mockResolvedValue({ message: 'Déconnexion réussie' });
 
       const result = await userController.logout(req);
       expect(result).toEqual({ message: 'Déconnexion réussie' });
     });
 
-    it('should throw an error if user not found', async () => {
+    it('should throw error if user not found', async () => {
       const req = { user: { uid: 'nonexistent-id' } };
       jest
-        .spyOn(userRepository, 'updateConnectionStatus')
+        .spyOn(userService, 'logout')
         .mockRejectedValue(new Error('Erreur lors de la déconnexion'));
 
       await expect(userController.logout(req)).rejects.toThrow('Erreur lors de la déconnexion');
-    });
-
-    afterEach(() => {
-      jest.clearAllMocks();
     });
   });
 });
