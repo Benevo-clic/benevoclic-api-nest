@@ -8,7 +8,7 @@ import { UserRole } from '../../../common/enums/roles.enum';
 import { UserRecord } from 'firebase-admin/auth';
 import { UserRepository } from '../repository/user.repository';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
-import { Location, ProfileImage } from '../../../common/type/usersInfo.type';
+import { Location, Image } from '../../../common/type/usersInfo.type';
 
 @Injectable()
 export class UserService {
@@ -26,7 +26,7 @@ export class UserService {
       throw new Error('Erreur lors de la mise à jour de la localisation');
     }
   }
-  async uploadProfileImage(file: Express.Multer.File): Promise<ProfileImage> {
+  async uploadProfileImage(file: Express.Multer.File): Promise<Image> {
     if (!file) {
       throw new Error('Aucun fichier fourni.');
     }

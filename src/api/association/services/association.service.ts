@@ -71,6 +71,12 @@ export class AssociationService {
     return `This action removes a #${id} association`;
   }
 
+  async registerVolunteer(associationId: string, volunteer: InfoVolunteer) {
+    await this.removeVolunteerWaiting(associationId, volunteer.id);
+    await this.addVolunteer(associationId, volunteer);
+    return volunteer;
+  }
+
   async addVolunteer(associationId: string, volunteerInfo: InfoVolunteer) {
     const association: Association = await this.associationRepository.findById(associationId);
     if (!association) {

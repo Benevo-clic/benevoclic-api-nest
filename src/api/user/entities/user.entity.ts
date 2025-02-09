@@ -1,5 +1,5 @@
 import { UserRole } from '../../../common/enums/roles.enum';
-import { Location, ProfileImage } from '../../../common/type/usersInfo.type';
+import { Location, Image } from '../../../common/type/usersInfo.type';
 
 export class User {
   userId: string;
@@ -12,7 +12,7 @@ export class User {
   disabled: boolean;
   isVerified: boolean;
   location?: Location;
-  imageProfile?: ProfileImage;
+  imageProfile?: Image;
   lastConnection: string;
   createdAt: string;
   updatedAt: Date;

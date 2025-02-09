@@ -98,8 +98,7 @@ export class AssociationController {
     @Body() volunteers: InfoUserDto,
   ) {
     try {
-      await this.associationService.removeVolunteerWaiting(associationId, volunteers.id);
-      return await this.associationService.addVolunteer(associationId, volunteers);
+      return await this.associationService.registerVolunteer(associationId, volunteers);
     } catch (error) {
       console.error(
         `Erreur lors de l'ajout de bénévoles à l'association: ${associationId}`,

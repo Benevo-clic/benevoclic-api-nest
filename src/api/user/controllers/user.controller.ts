@@ -63,7 +63,7 @@ export class UserController {
 
   @Get()
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
   findAll() {
     return this.userService.findAll();

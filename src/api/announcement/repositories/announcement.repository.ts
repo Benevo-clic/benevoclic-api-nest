@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Collection, MongoClient, ObjectId } from 'mongodb';
-import { Announcement } from '../interfaces/announcement.interface';
+import { Collection, MongoClient, ObjectId, ClientSession } from 'mongodb';
+import { Announcement } from '../entities/announcement.entity';
 
 @Injectable()
 export class AnnouncementRepository {
@@ -21,28 +21,26 @@ export class AnnouncementRepository {
     return await this.collection.findOne({ _id: new ObjectId(id) });
   }
 
-  async create(announcement: Omit<Announcement, '_id'>): Promise<Announcement> {
+  async findByAssociationId(associationId: string): Promise<Announcement[]> {
+    return await this.collection.find({ associationId }).toArray();
+  }
+
+  async create(announcement: Announcement): Promise<Announcement> {
     const result = await this.collection.insertOne({
       ...announcement,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as Announcement);
+    });
 
     return await this.findById(result.insertedId.toString());
   }
 
-  async update(id: string, announcement: Partial<Announcement>): Promise<Announcement> {
-    await this.collection.updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $set: {
-          ...announcement,
-          updatedAt: new Date(),
-        },
-      },
-    );
-
-    return await this.findById(id);
+  async updateVolunteer(
+    id: string,
+    announcement: Partial<Announcement>,
+    options?: { session?: ClientSession },
+  ): Promise<Partial<Announcement>> {
+    const collection = this.getCollection();
+    await collection.updateOne({ _id: new ObjectId(id) }, { $set: announcement }, options);
+    return announcement;
   }
 
   async delete(id: string): Promise<boolean> {
@@ -50,7 +48,38 @@ export class AnnouncementRepository {
     return result.deletedCount === 1;
   }
 
-  async findByAssociationId(associationId: string): Promise<Announcement[]> {
-    return await this.collection.find({ associationId: new ObjectId(associationId) }).toArray();
+  async deleteByAssociationId(associationId: string): Promise<boolean> {
+    const result = await this.collection.deleteMany({ associationId });
+    return result.deletedCount > 0;
+  }
+
+  private getCollection(): Collection<Announcement> {
+    return this.collection;
+  }
+
+  async removeVolunteerWaiting(
+    id: string,
+    volunteerId: string,
+    options?: { session?: ClientSession },
+  ) {
+    await this.collection.updateOne(
+      { _id: new ObjectId(id) },
+      { $pull: { volunteersWaiting: { id: volunteerId } } },
+      options,
+    );
+  }
+
+  async removeVolunteer(id: string, volunteerId: string, nbVolunteers: number) {
+    await this.collection.updateOne(
+      { _id: new ObjectId(id) },
+      { $pull: { volunteers: { id: volunteerId } }, $set: { nbVolunteers } },
+    );
+  }
+
+  async removeParticipant(id: string, participantId: string, nbParticipants: number) {
+    await this.collection.updateOne(
+      { _id: new ObjectId(id) },
+      { $pull: { participants: { id: participantId } }, $set: { nbParticipants } },
+    );
   }
 }

@@ -1,4 +1,4 @@
-export type ProfileImage = {
+export type Image = {
   data: string;
   contentType: string;
   uploadedAt: Date;

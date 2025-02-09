@@ -7,8 +7,7 @@ export const MONGODB_CONNECTION = 'MONGODB_CONNECTION';
 export const mongodbProvider: Provider = {
   provide: MONGODB_CONNECTION,
   useFactory: async (config: MongoConfig): Promise<MongoClient> => {
-    const client = await MongoClient.connect(config.uri);
-    return client;
+    return await MongoClient.connect(config.uri);
   },
   inject: [MongoConfig],
 };

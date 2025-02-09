@@ -1,5 +1,5 @@
 import { InfoVolunteer } from '../type/association.type';
-import { ProfileImage } from '../../../common/type/usersInfo.type';
+import { Image } from '../../../common/type/usersInfo.type';
 
 export class ResponseAssociationDto {
   _id: string;
@@ -12,5 +12,5 @@ export class ResponseAssociationDto {
   country: string;
   volunteers?: InfoVolunteer[];
   volunteersWaiting?: InfoVolunteer[];
-  profileImage?: ProfileImage;
+  profileImage?: Image;
 }
