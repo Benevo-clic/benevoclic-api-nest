@@ -1,13 +1,9 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Image, Location } from '../../../common/type/usersInfo.type';
+import { AnnouncementStatus } from '../interfaces/announcement.interface';
 
 export class CreateAnnouncementDto {
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  title: string;
-
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
@@ -36,7 +32,7 @@ export class CreateAnnouncementDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString({ each: true })
-  tags: string[];
+  tags?: string[];
 
   @ApiProperty()
   @IsNotEmpty()
@@ -50,19 +46,15 @@ export class CreateAnnouncementDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  associationLogo: Image;
+  associationLogo?: Image;
 
   @ApiProperty()
   @IsNotEmpty()
-  announcementImage: Image;
+  announcementImage?: Image;
 
   @ApiProperty()
   @IsNotEmpty()
-  locationAnnouncement: Location;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  nbParticipants: number;
+  locationAnnouncement?: Location;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -70,11 +62,7 @@ export class CreateAnnouncementDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  isPublished: boolean;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  nbVolunteers: number;
+  status: AnnouncementStatus;
 
   @ApiProperty()
   @IsNotEmpty()

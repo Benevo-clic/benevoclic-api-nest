@@ -19,13 +19,4 @@ export class InfoVolunteerDto {
   @IsNotEmpty()
   @IsString()
   name: string;
-
-  @ApiProperty({
-    description: 'Email du bénévole',
-    example: 'john.doe@example.com',
-    required: true,
-  })
-  @IsNotEmpty()
-  @IsString()
-  email: string;
 }

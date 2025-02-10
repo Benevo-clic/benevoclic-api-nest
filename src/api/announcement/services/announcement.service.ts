@@ -5,7 +5,8 @@ import { Announcement } from '../entities/announcement.entity';
 import { UpdateAnnouncementDto } from '../dto/update-announcement.dto';
 import { InfoVolunteer } from '../../association/type/association.type';
 import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
-import { ClientSession, MongoClient } from 'mongodb';
+import { MongoClient } from 'mongodb';
+import { AnnouncementStatus } from '../interfaces/announcement.interface';
 
 @Injectable()
 export class AnnouncementService {
@@ -43,10 +44,10 @@ export class AnnouncementService {
       volunteers: [],
       volunteersWaiting: [],
       nbParticipants: 0,
-      maxParticipants: 0,
-      isPublished: false,
+      maxParticipants: announcement.maxParticipants,
+      status: AnnouncementStatus.INACTIVE,
       nbVolunteers: 0,
-      maxVolunteers: 0,
+      maxVolunteers: announcement.maxVolunteers,
     });
   }
 
@@ -84,7 +85,7 @@ export class AnnouncementService {
     return volunteer;
   }
 
-  async addVolunteer(id: string, volunteer: InfoVolunteer, session?: any) {
+  async addVolunteer(id: string, volunteer: InfoVolunteer) {
     const announcement = await this.announcementRepository.findById(id);
     if (await this.isCompletedVolunteer(announcement)) {
       throw new Error('Announcement is already completed');
@@ -94,7 +95,7 @@ export class AnnouncementService {
     }
     announcement.volunteers.push(volunteer);
     announcement.nbVolunteers++;
-    await this.announcementRepository.updateVolunteer(id, announcement, { session });
+    await this.announcementRepository.updateVolunteer(id, announcement);
   }
 
   async registerVolunteerWaiting(id: string, volunteer: InfoVolunteer): Promise<InfoVolunteer> {
@@ -110,11 +111,7 @@ export class AnnouncementService {
     return volunteer;
   }
 
-  async removeVolunteerWaiting(
-    id: string,
-    volunteerId: string,
-    session?: ClientSession,
-  ): Promise<string> {
+  async removeVolunteerWaiting(id: string, volunteerId: string): Promise<string> {
     const announcement = await this.announcementRepository.findById(id);
     if (!announcement) {
       throw new Error('Announcement not found');
@@ -122,7 +119,7 @@ export class AnnouncementService {
     if (!(await this.isVolunteerWaiting(announcement, volunteerId))) {
       throw new Error('Volunteer not registered');
     }
-    await this.announcementRepository.removeVolunteerWaiting(id, volunteerId, { session });
+    await this.announcementRepository.removeVolunteerWaiting(id, volunteerId);
     return volunteerId;
   }
 
@@ -174,5 +171,9 @@ export class AnnouncementService {
       announcement.nbParticipants - 1,
     );
     return participantId;
+  }
+
+  async updateStatus(id: string, status: AnnouncementStatus) {
+    return await this.announcementRepository.updateStatus(id, status);
   }
 }

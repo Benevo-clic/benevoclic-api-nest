@@ -3,4 +3,6 @@ export enum DatabaseCollection {
   VOLUNTEER = 'volunteers',
   ADMIN = 'admin',
   USERS = 'users',
+  FAVORITES = 'favorites',
+  ANNOUNCEMENT = 'announcements',
 }

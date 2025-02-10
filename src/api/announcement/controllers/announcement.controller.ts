@@ -17,6 +17,7 @@ import { CreateAnnouncementDto } from '../dto/create-announcement.dto';
 import { UpdateAnnouncementDto } from '../dto/update-announcement.dto';
 import { InfoVolunteer } from '../../association/type/association.type';
 import { InfoVolunteerDto } from '../../association/dto/info-volunteer.dto';
+import { AnnouncementStatus } from '../interfaces/announcement.interface';
 
 @ApiTags('announcements')
 @Controller('announcements')
@@ -187,5 +188,16 @@ export class AnnouncementController {
     @Param('volunteer') volunteer: string,
   ): Promise<string> {
     return this.service.removeVolunteerWaiting(announcementId, volunteer);
+  }
+
+  @Patch('/updateStatus/:announcementId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ASSOCIATION)
+  @ApiBearerAuth()
+  async updateStatus(
+    @Param('announcementId') announcementId: string,
+    @Body('status') status: AnnouncementStatus,
+  ) {
+    return this.service.updateStatus(announcementId, status);
   }
 }

@@ -1,0 +1,96 @@
+{
+  "announcements": [
+    {
+      "_id": "67a89edbafdcf40d022aac89",
+      "associationId": "Um7at9Si8gVTEjuXsM8cdyOushc2",
+      "description": "une description",
+      "datePublication": "2021-06-01T00:00:00.000Z",
+      "dateEvent": "2021-06-01T00:00:00.000Z",
+      "hoursEvent": "01:00",
+      "nameEvent": "un événement",
+      "tags": [
+        "tag1"
+      ],
+      "associationName": "Les Restos du Coeur",
+      "associationLogo": {},
+      "announcementImage": {},
+      "locationAnnouncement": {},
+      "participants": [
+        {
+          "id": "mockVolunteerId123",
+          "name": "Jean Dupont"
+        }
+      ],
+      "volunteers": [],
+      "volunteersWaiting": [],
+      "nbParticipants": 1,
+      "maxParticipants": 10,
+      "isPublished": false,
+      "nbVolunteers": 0,
+      "maxVolunteers": 10
+    },
+    {
+      "_id": "67a89edbafdcf40d022aac88",
+      "associationId": "Um7at9Si8gVTEjuXsM8cdyOusUc2",
+      "description": "une description",
+      "datePublication": "2021-06-01T00:00:00.000Z",
+      "dateEvent": "2021-06-01T00:00:00.000Z",
+      "hoursEvent": "01:00",
+      "nameEvent": "un événement",
+      "tags": [
+        "tag1"
+      ],
+      "associationName": "Croix Rouge",
+      "associationLogo": {},
+      "announcementImage": {},
+      "locationAnnouncement": {},
+      "participants": [],
+      "volunteers": [
+        {
+          "id": "mockVolunteerId123",
+          "name": "Jean Dupont"
+        }
+      ],
+      "volunteersWaiting": [],
+      "nbParticipants": 0,
+      "maxParticipants": 10,
+      "isPublished": false,
+      "nbVolunteers": 1,
+      "maxVolunteers": 10
+    },
+    {
+      "_id": "67a89edbafdcf40d022aac87",
+      "associationId": "Um7at9M8cdySi8gVTEjuXsOushc2",
+      "description": "une description",
+      "datePublication": "2021-06-01T00:00:00.000Z",
+      "dateEvent": "2021-06-01T00:00:00.000Z",
+      "hoursEvent": "01:00",
+      "nameEvent": "un événement",
+      "tags": [
+        "tag1"
+      ],
+      "associationName": "Les Restos du Coeur",
+      "associationLogo": {},
+      "announcementImage": {},
+      "locationAnnouncement": {},
+      "participants": [
+        {
+          "id": "mockVolunteerId123",
+          "name": "Jean Dupont"
+        }
+      ],
+      "volunteers": [
+        {
+          "id": "mockVolunteerId123",
+          "name": "Jean Dupont"
+        }
+      ],
+      "volunteersWaiting": [],
+      "nbParticipants": 1,
+      "maxParticipants": 10,
+      "isPublished": false,
+      "nbVolunteers": 1,
+      "maxVolunteers": 10
+    }
+  ]
+}

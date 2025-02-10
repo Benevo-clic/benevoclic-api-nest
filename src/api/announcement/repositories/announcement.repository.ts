@@ -1,18 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Collection, MongoClient, ObjectId, ClientSession } from 'mongodb';
 import { Announcement } from '../entities/announcement.entity';
+import { AnnouncementStatus } from '../interfaces/announcement.interface';
+import { DatabaseCollection } from '../../../common/enums/database.collection';
 
 @Injectable()
 export class AnnouncementRepository {
-  private readonly collection: Collection<Announcement>;
-
   constructor(
     @Inject('MONGODB_CONNECTION')
     private readonly mongoClient: MongoClient,
-  ) {
-    this.collection = this.mongoClient.db('benevoclic').collection<Announcement>('announcements');
-  }
+  ) {}
 
+  private get collection() {
+    return this.mongoClient.db().collection<Announcement>(DatabaseCollection.ANNOUNCEMENT);
+  }
   async findAll(): Promise<Announcement[]> {
     return await this.collection.find().toArray();
   }
@@ -36,10 +37,9 @@ export class AnnouncementRepository {
   async updateVolunteer(
     id: string,
     announcement: Partial<Announcement>,
-    options?: { session?: ClientSession },
   ): Promise<Partial<Announcement>> {
     const collection = this.getCollection();
-    await collection.updateOne({ _id: new ObjectId(id) }, { $set: announcement }, options);
+    await collection.updateOne({ _id: new ObjectId(id) }, { $set: announcement });
     return announcement;
   }
 
@@ -81,5 +81,10 @@ export class AnnouncementRepository {
       { _id: new ObjectId(id) },
       { $pull: { participants: { id: participantId } }, $set: { nbParticipants } },
     );
+  }
+
+  async updateStatus(id: string, status: AnnouncementStatus) {
+    await this.collection.updateOne({ _id: new ObjectId(id) }, { $set: { status } });
+    return this.findById(id);
   }
 }
