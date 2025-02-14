@@ -84,6 +84,11 @@ jobs:
         env:
           NODE_ENV: test
 
+      - name: Run coverage
+        run: npm run test:cov
+        env:
+          NODE_ENV: test
+
   build:
     needs: test
     runs-on: ubuntu-latest
