@@ -89,9 +89,6 @@ jobs:
         env:
           NODE_ENV: test
 
-      - name: Generate coverage report
-        run: npm run test:cov
-
   build:
     needs: test
     runs-on: ubuntu-latest
