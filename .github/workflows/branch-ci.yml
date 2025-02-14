@@ -44,7 +44,7 @@ jobs:
           npm run lint
 
       - name: Type check
-        run: npm run type:check
+        run: npx tsc --noEmit
 
   test:
     needs: quality
