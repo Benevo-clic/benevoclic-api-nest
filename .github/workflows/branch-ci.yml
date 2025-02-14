@@ -79,18 +79,10 @@ jobs:
           NODE_ENV=test
           EOF
 
-      - name: Run unit tests
-        run: npm run test:unit
+      - name: Run tests
+        run: npm run test
         env:
           NODE_ENV: test
-
-      - name: Run integration tests
-        run: npm run test:integration
-        env:
-          NODE_ENV: test
-
-      - name: Generate coverage report
-        run: npm run test:cov
 
   build:
     needs: test
