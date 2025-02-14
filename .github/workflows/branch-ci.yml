@@ -79,8 +79,13 @@ jobs:
           NODE_ENV=test
           EOF
 
-      - name: Run tests
-        run: npm run test:ci
+      - name: Run unit tests
+        run: npm run test:unit
+        env:
+          NODE_ENV: test
+
+      - name: Run integration tests
+        run: npm run test:integration
         env:
           NODE_ENV: test
 
