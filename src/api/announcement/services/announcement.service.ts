@@ -1,19 +1,14 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AnnouncementRepository } from '../repositories/announcement.repository';
 import { CreateAnnouncementDto } from '../dto/create-announcement.dto';
 import { Announcement } from '../entities/announcement.entity';
 import { UpdateAnnouncementDto } from '../dto/update-announcement.dto';
 import { InfoVolunteer } from '../../association/type/association.type';
-import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
-import { MongoClient } from 'mongodb';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 
 @Injectable()
 export class AnnouncementService {
-  constructor(
-    private readonly announcementRepository: AnnouncementRepository,
-    @Inject(MONGODB_CONNECTION) private readonly mongoClient: MongoClient,
-  ) {}
+  constructor(private readonly announcementRepository: AnnouncementRepository) {}
 
   async findAll(): Promise<Announcement[]> {
     return this.announcementRepository.findAll();
