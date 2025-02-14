@@ -19,7 +19,8 @@ WORKDIR /app
 # Copier uniquement les fichiers nécessaires depuis l'étape précédente
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
+COPY .env.production ./.env
 
 EXPOSE 3000
 
-CMD ["node", "dist/main.js"]
+CMD ["npm", "start"]
