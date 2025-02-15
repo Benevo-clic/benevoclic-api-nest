@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build-and-deploy:
+  build-and-deploy-to-dockerhub:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -24,7 +24,48 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
+          file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/benevolic-api:latest
-          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/benevolic-api:buildcache
-          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/benevolic-api:buildcache,mode=max
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:buildcache,mode=max
+
+  deploy-to-ovh:
+    runs-on: ubuntu-latest
+    needs: build-and-deploy-to-dockerhub
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to Production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.OVH_SSH_KEY }}
+          port: 22
+          script: |
+            # Créer le dossier et le fichier docker-compose.yml
+            mkdir -p ~/benevoclic
+            cat > ~/benevoclic/docker-compose.yml << 'EOL'
+            version: '3.8'
+            
+            services:
+              api:
+                image: ${DOCKERHUB_USERNAME}/benevoclic-api:latest
+                container_name: benevoclic-api
+                restart: always
+                ports:
+                  - "3000:3000"
+                environment:
+                  - NODE_ENV=production
+                  - PORT=3000
+                  - MONGODB_URL=${{ secrets.MONGODB_URL }}
+                  - FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
+                  - FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
+                  - FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+            EOL
+            # Déployer le service
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:latest
+            docker stack deploy --compose-file ~/benevoclic/docker-compose.yml benevoclic
+            docker service update --image ${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:latest benevoclic_api
