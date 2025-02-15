@@ -16,8 +16,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copier package.json car il est nécessaire pour npm start
+# Copier package.json et tsconfig.json
 COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/tsconfig*.json ./
 
 # Copier uniquement les fichiers nécessaires depuis l'étape précédente
 COPY --from=builder /app/dist ./dist
@@ -26,4 +27,5 @@ COPY .env.production ./.env
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+# Utiliser node directement pour lancer l'application compilée
+CMD ["node", "dist/main"]
