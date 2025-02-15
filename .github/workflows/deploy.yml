@@ -47,7 +47,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.OVH_SSH_KEY }}
           port: 22
-          envs: MONGODB_URL,FIREBASE_CLIENT_EMAIL,FIREBASE_PRIVATE_KEY,FIREBASE_PROJECT_ID
+          envs: MONGODB_URL,FIREBASE_CLIENT_EMAIL,FIREBASE_PRIVATE_KEY,FIREBASE_PROJECT_ID,FIREBASE_API_KEY
           script: |
             mkdir -p ~/benevoclic
             cat > ~/benevoclic/docker-compose.yml << EOL
