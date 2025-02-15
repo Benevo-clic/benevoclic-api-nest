@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Copier les fichiers nécessaires pour installer les dépendances
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 # Copier tout le projet et construire
 COPY . .
@@ -16,11 +16,19 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copier uniquement les fichiers nécessaires depuis l'étape précédente
+# Copier package.json et package-lock.json
+COPY package*.json ./
+
+# Installer uniquement les dépendances de production
+RUN npm ci --only=production
+
+# Copier les fichiers nécessaires depuis l'étape précédente
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY .env.production ./.env
+
+# Définir les variables d'environnement par défaut
+ENV NODE_ENV=production
+ENV PORT=3000
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["node", "dist/main"]
