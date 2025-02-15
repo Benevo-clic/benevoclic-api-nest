@@ -38,6 +38,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           MONGODB_URL: ${{ secrets.MONGODB_URL }}
+          MONGODB_DB_NAME: benevoclic
           FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
           FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
@@ -47,7 +48,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.OVH_SSH_KEY }}
           port: 22
-          envs: MONGODB_URL,FIREBASE_CLIENT_EMAIL,FIREBASE_PRIVATE_KEY,FIREBASE_PROJECT_ID,FIREBASE_API_KEY
+          envs: MONGODB_URL,MONGODB_DB_NAME,FIREBASE_CLIENT_EMAIL,FIREBASE_PRIVATE_KEY,FIREBASE_PROJECT_ID,FIREBASE_API_KEY
           script: |
             mkdir -p ~/benevoclic
             cat > ~/benevoclic/docker-compose.yml << EOL
@@ -64,6 +65,7 @@ jobs:
                   NODE_ENV: production
                   PORT: 3000
                   MONGODB_URL: \${MONGODB_URL}
+                  MONGODB_DB_NAME: \${MONGODB_DB_NAME}
                   FIREBASE_CLIENT_EMAIL: \${FIREBASE_CLIENT_EMAIL}
                   FIREBASE_PRIVATE_KEY: \${FIREBASE_PRIVATE_KEY}
                   FIREBASE_PROJECT_ID: \${FIREBASE_PROJECT_ID}
