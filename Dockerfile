@@ -16,6 +16,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Copier package.json car il est nécessaire pour npm start
+COPY --from=builder /app/package*.json ./
+
 # Copier uniquement les fichiers nécessaires depuis l'étape précédente
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
