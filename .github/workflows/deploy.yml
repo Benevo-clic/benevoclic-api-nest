@@ -36,14 +36,20 @@ jobs:
     steps:
       - name: Deploy to Production
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          MONGODB_URL: ${{ secrets.MONGODB_URL }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.OVH_SSH_KEY }}
           port: 22
+          envs: MONGODB_URL,FIREBASE_CLIENT_EMAIL,FIREBASE_PRIVATE_KEY,FIREBASE_PROJECT_ID
           script: |
             mkdir -p ~/benevoclic
-            cat > ~/benevoclic/docker-compose.yml << 'EOL'
+            cat > ~/benevoclic/docker-compose.yml << EOL
             version: '3.8'
             
             services:
@@ -56,10 +62,10 @@ jobs:
                 environment:
                   NODE_ENV: production
                   PORT: 3000
-                  MONGODB_URL: ${{ secrets.MONGODB_URL }}
-                  FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
-                  FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
-                  FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+                  MONGODB_URL: \${MONGODB_URL}
+                  FIREBASE_CLIENT_EMAIL: \${FIREBASE_CLIENT_EMAIL}
+                  FIREBASE_PRIVATE_KEY: \${FIREBASE_PRIVATE_KEY}
+                  FIREBASE_PROJECT_ID: \${FIREBASE_PROJECT_ID}
             EOL
 
             cd ~/benevoclic
