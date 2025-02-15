@@ -9,19 +9,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v2
 
       - name: Login to DockerHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: .
           file: ./Dockerfile
@@ -42,7 +42,6 @@ jobs:
           key: ${{ secrets.OVH_SSH_KEY }}
           port: 22
           script: |
-            # Créer le dossier et le fichier docker-compose.yml
             mkdir -p ~/benevoclic
             cat > ~/benevoclic/docker-compose.yml << 'EOL'
             version: '3.8'
@@ -55,15 +54,14 @@ jobs:
                 ports:
                   - "3000:3000"
                 environment:
-                  - NODE_ENV=production
-                  - PORT=3000
-                  - MONGODB_URL=${{ secrets.MONGODB_URL }}
-                  - FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
-                  - FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
-                  - FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+                  NODE_ENV: production
+                  PORT: 3000
+                  MONGODB_URL: ${{ secrets.MONGODB_URL }}
+                  FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+                  FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+                  FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
             EOL
 
-            # Déployer avec Docker Compose
             cd ~/benevoclic
             docker compose pull
             docker compose up -d
