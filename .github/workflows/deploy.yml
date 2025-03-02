@@ -64,6 +64,7 @@ jobs:
                 environment:
                   NODE_ENV: production
                   PORT: 3000
+                  FRONTEND_URL: \${FRONTEND_URL}
                   MONGODB_URL: \${MONGODB_URL}
                   MONGODB_DB_NAME: \${MONGODB_DB_NAME}
                   FIREBASE_CLIENT_EMAIL: \${FIREBASE_CLIENT_EMAIL}
