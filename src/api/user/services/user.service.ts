@@ -8,7 +8,7 @@ import { UserRecord } from 'firebase-admin/auth';
 import { UserRepository } from '../repository/user.repository';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
 import { Location, Image } from '../../../common/type/usersInfo.type';
-import { AuthConfig } from '@config/auth.config';
+import { AuthConfig } from '../../../config/auth.config';
 
 @Injectable()
 export class UserService {
