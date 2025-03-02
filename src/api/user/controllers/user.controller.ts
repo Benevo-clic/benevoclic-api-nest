@@ -13,6 +13,7 @@ import {
   Request,
   UseInterceptors,
   UploadedFile,
+  Res,
 } from '@nestjs/common';
 import { UserService } from '../services/user.service';
 import { UpdateUserDto } from '../dto/update-user.dto';
@@ -25,6 +26,7 @@ import { UserRole } from '../../../common/enums/roles.enum';
 import { Public } from '../../../common/decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Location } from '../../../common/type/usersInfo.type';
+import { Response } from 'express';
 
 @Controller('user')
 export class UserController {
@@ -53,11 +55,32 @@ export class UserController {
   @Public()
   @Post('login')
   @UsePipes(new ValidationPipe({ transform: true }))
-  login(@Body() loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) response: Response) {
     try {
-      return this.userService.loginUser(loginDto);
+      const authResult = await this.userService.loginUser(loginDto);
+
+      // Configuration du cookie JWT
+      response.cookie('jwt', authResult.idToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: authResult.expiresIn * 1000,
+      });
+
+      // Configuration du cookie refresh token
+      response.cookie('refresh_token', authResult.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 jours
+      });
+
+      return {
+        message: 'Connexion réussie',
+      };
     } catch (error) {
       console.error(`Erreur lors de la connexion de l'utilisateur: ${loginDto.email}`, error.stack);
+      throw error;
     }
   }
 
@@ -129,9 +152,24 @@ export class UserController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  async logout(@Request() req) {
+  async logout(@Request() req, @Res({ passthrough: true }) response: Response) {
     try {
-      return await this.userService.logout(req.user.uid);
+      await this.userService.logout(req.user.uid);
+
+      // Suppression des deux cookies
+      response.clearCookie('jwt', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+      });
+
+      response.clearCookie('refresh_token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+      });
+
+      return { message: 'Déconnexion réussie' };
     } catch (error) {
       throw error;
     }
