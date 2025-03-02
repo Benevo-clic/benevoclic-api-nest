@@ -1,17 +1,13 @@
 import { UserController } from './user.controller';
-import { MongoClient, ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from '../services/user.service';
-import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
-import { ConfigModule as NestConfigModule } from '@nestjs/config';
-import { DatabaseModule } from '../../../database/database.module';
 import * as mockData from '../../../../test/testFiles/user.data.json';
-import { DatabaseCollection } from '../../../common/enums/database.collection';
-import { UserRepository } from '../repository/user.repository';
 import { UserRole } from '../../../common/enums/roles.enum';
-import * as admin from 'firebase-admin';
-import axios from 'axios';
-import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
+import { Response } from 'express';
+import { User } from '../entities/user.entity';
+import { UserRecord, UserMetadata } from 'firebase-admin/auth';
+import { WithId } from 'mongodb';
 
 // Mock Firebase Admin
 jest.mock('firebase-admin', () => ({
@@ -89,70 +85,108 @@ jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
 
 describe('UserController', () => {
   let userController: UserController;
-  let mongoClient: MongoClient;
-  let testingModule: TestingModule;
   let userService: UserService;
 
-  beforeAll(async () => {
-    // Initialize Firebase Admin
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: 'mock-project',
-        clientEmail: 'mock@email.com',
-        privateKey: 'mock-key',
-      }),
-    });
+  // Mock de Response pour Express
+  const mockResponse = {
+    cookie: jest.fn(),
+    clearCookie: jest.fn(),
+  } as unknown as Response;
 
-    testingModule = await Test.createTestingModule({
-      imports: [
-        NestConfigModule.forRoot({
-          isGlobal: true,
-          load: [
-            () => ({
-              FIREBASE_API_KEY: 'mock-api-key',
-              MONGODB_URL: process.env.MONGODB_URL,
-              MONGODB_DB_NAME: process.env.MONGODB_DB_NAME,
-            }),
-          ],
-        }),
-        DatabaseModule,
-      ],
+  beforeEach(async () => {
+    jest.clearAllMocks();
+
+    const module: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
-      providers: [UserService, UserRepository],
-      exports: [UserService],
+      providers: [
+        {
+          provide: UserService,
+          useValue: {
+            registerUser: jest.fn(),
+            loginUser: jest.fn(),
+            findAll: jest.fn(),
+            findOne: jest.fn(),
+            update: jest.fn(),
+            remove: jest.fn(),
+            logout: jest.fn(),
+            findByRole: jest.fn(),
+            refreshAuthToken: jest.fn(),
+            updateProfilePicture: jest.fn(),
+            updateLocation: jest.fn(),
+            getProfileImage: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
-    userController = testingModule.get<UserController>(UserController);
-    mongoClient = testingModule.get<MongoClient>(MONGODB_CONNECTION);
-    userService = testingModule.get<UserService>(UserService);
-
-    const users = mockData.users.map(user => ({
-      ...user,
-      _id: new ObjectId(),
-    }));
-    const db = mongoClient.db();
-    await db.collection(DatabaseCollection.USERS).deleteMany({});
-    await db.collection(DatabaseCollection.USERS).insertMany(users);
-  });
-
-  afterAll(async () => {
-    const db = mongoClient.db();
-    await db.collection(DatabaseCollection.USERS).deleteMany({});
-    await testingModule.close();
+    userController = module.get<UserController>(UserController);
+    userService = module.get<UserService>(UserService);
   });
 
   describe('findAll', () => {
     it('should return all users', async () => {
+      const mockUsers: WithId<User>[] = [
+        {
+          _id: new ObjectId('507f1f77bcf86cd799439011'),
+          userId: '1',
+          email: 'user1@test.com',
+          firstName: 'User',
+          lastName: 'One',
+          phoneNumber: '1234567890',
+          role: UserRole.VOLUNTEER,
+          isVerified: true,
+          disabled: false,
+          isOnline: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          lastConnection: new Date().toISOString(),
+        },
+        {
+          _id: new ObjectId('507f1f77bcf86cd799439012'),
+          userId: '2',
+          email: 'user2@test.com',
+          firstName: 'User',
+          lastName: 'Two',
+          phoneNumber: '0987654321',
+          role: UserRole.VOLUNTEER,
+          isVerified: true,
+          disabled: false,
+          isOnline: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          lastConnection: new Date().toISOString(),
+        },
+      ];
+
+      jest.spyOn(userService, 'findAll').mockResolvedValue(mockUsers);
+
       const users = await userController.findAll();
       expect(users).toBeDefined();
       expect(Array.isArray(users)).toBe(true);
+      expect(users).toEqual(mockUsers);
     });
   });
 
   describe('findOne', () => {
     it('should return a single user', async () => {
-      const found = await userController.findOne(mockData.users[0].userId);
+      const mockUser: User = {
+        userId: mockData.users[0].userId,
+        email: mockData.users[0].email,
+        firstName: mockData.users[0].firstName,
+        lastName: mockData.users[0].lastName,
+        phoneNumber: mockData.users[0].phoneNumber,
+        role: UserRole.VOLUNTEER,
+        isVerified: true,
+        disabled: false,
+        isOnline: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastConnection: new Date().toISOString(),
+      };
 
+      jest.spyOn(userService, 'findOne').mockResolvedValue(mockUser);
+
+      const found = await userController.findOne(mockData.users[0].userId);
       expect(found).toBeDefined();
       expect(found).not.toBeNull();
       expect(found.email).toBe(mockData.users[0].email);
@@ -170,76 +204,100 @@ describe('UserController', () => {
     };
 
     it('should create a new user', async () => {
+      const mockMetadata: UserMetadata = {
+        creationTime: new Date().toISOString(),
+        lastSignInTime: new Date().toISOString(),
+        lastRefreshTime: new Date().toISOString(),
+        toJSON: () => ({
+          creationTime: new Date().toISOString(),
+          lastSignInTime: new Date().toISOString(),
+          lastRefreshTime: new Date().toISOString(),
+        }),
+      };
+
+      const mockCreatedUser: UserRecord = {
+        uid: 'newUserId',
+        email: newUser.email,
+        emailVerified: false,
+        disabled: false,
+        metadata: mockMetadata,
+        providerData: [],
+        toJSON: () => ({}),
+      };
+
+      jest.spyOn(userService, 'registerUser').mockResolvedValue(mockCreatedUser);
+
       const createdUser = await userController.registerUser(newUser);
       expect(createdUser).toBeDefined();
       expect(createdUser.email).toBe(newUser.email);
     });
 
     it('should throw an error if email already exists', async () => {
-      const existingUser = {
-        ...newUser,
-        email: 'existing@email.com',
-      };
+      jest
+        .spyOn(userService, 'registerUser')
+        .mockRejectedValue(new Error('User registration failed'));
 
-      await expect(userController.registerUser(existingUser)).rejects.toThrow(
-        'User registration failed',
-      );
+      await expect(
+        userController.registerUser({
+          ...newUser,
+          email: 'existing@email.com',
+        }),
+      ).rejects.toThrow('User registration failed');
     });
   });
 
   describe('login', () => {
-    const loginCredentials = {
-      email: 'test@example.com',
-      password: 'password123',
-    };
+    it('should login successfully', async () => {
+      const loginCredentials = {
+        email: 'test@example.com',
+        password: 'password123',
+      };
 
-    beforeEach(() => {
-      // Mock axios pour la requête de login
-      jest.spyOn(axios, 'post').mockResolvedValue({
-        data: {
-          idToken: 'mock-id-token',
-          refreshToken: 'mock-refresh-token',
-          expiresIn: '3600',
-        },
-      });
-
-      // Mock getUserByEmail pour le login
-      const firebaseAdmin = FirebaseAdminService.getInstance();
-      jest.spyOn(firebaseAdmin, 'getUserByEmail').mockResolvedValue({
-        uid: 'mockUid123',
-        email: loginCredentials.email,
-        emailVerified: false,
-        disabled: false,
-        metadata: {
-          lastSignInTime: new Date().toISOString(),
-          creationTime: new Date().toISOString(),
-          toJSON: () => ({}),
-        },
-        providerData: [],
-        toJSON: () => ({}),
-      });
-    });
-
-    it('should login a user successfully', async () => {
-      const result = await userController.login(loginCredentials);
-
-      expect(result).toBeDefined();
-      expect(result).toEqual({
-        idToken: 'mock-id-token',
+      const mockAuthResult = {
+        idToken: 'mock-token',
         refreshToken: 'mock-refresh-token',
-        expiresIn: '3600',
+        expiresIn: 3600,
+      };
+
+      jest.spyOn(userService, 'loginUser').mockResolvedValue(mockAuthResult);
+
+      const result = await userController.login(loginCredentials, mockResponse);
+
+      expect(mockResponse.cookie).toHaveBeenCalledWith('jwt', mockAuthResult.idToken, {
+        httpOnly: true,
+        secure: expect.any(Boolean),
+        sameSite: 'strict',
+        maxAge: mockAuthResult.expiresIn * 1000,
+      });
+
+      expect(mockResponse.cookie).toHaveBeenCalledWith(
+        'refresh_token',
+        mockAuthResult.refreshToken,
+        {
+          httpOnly: true,
+          secure: expect.any(Boolean),
+          sameSite: 'strict',
+          maxAge: 30 * 24 * 60 * 60 * 1000,
+        },
+      );
+
+      expect(result).toEqual({
+        message: 'Connexion réussie',
       });
     });
 
-    it('should throw an error if login fails', async () => {
-      // Mock axios pour simuler une erreur
-      jest.spyOn(axios, 'post').mockRejectedValue(new Error('Invalid credentials'));
+    it('should throw an error on login failure', async () => {
+      const loginCredentials = {
+        email: 'test@example.com',
+        password: 'wrong-password',
+      };
 
-      await expect(userController.login(loginCredentials)).rejects.toThrow();
-    });
+      jest.spyOn(userService, 'loginUser').mockRejectedValue(new Error('Login failed'));
+      jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    afterEach(() => {
-      jest.clearAllMocks();
+      await expect(userController.login(loginCredentials, mockResponse)).rejects.toThrow(
+        'Login failed',
+      );
     });
   });
 
@@ -296,21 +354,36 @@ describe('UserController', () => {
   });
 
   describe('logout', () => {
-    it('should logout a user', async () => {
-      const req = { user: { uid: 'mockUid123' } };
+    it('should logout successfully', async () => {
+      const req = { user: { uid: 'test-uid' } };
       jest.spyOn(userService, 'logout').mockResolvedValue({ message: 'Déconnexion réussie' });
 
-      const result = await userController.logout(req);
+      const result = await userController.logout(req, mockResponse);
+
+      expect(mockResponse.clearCookie).toHaveBeenCalledWith('jwt', {
+        httpOnly: true,
+        secure: expect.any(Boolean),
+        sameSite: 'strict',
+      });
+
+      expect(mockResponse.clearCookie).toHaveBeenCalledWith('refresh_token', {
+        httpOnly: true,
+        secure: expect.any(Boolean),
+        sameSite: 'strict',
+      });
+
       expect(result).toEqual({ message: 'Déconnexion réussie' });
     });
 
-    it('should throw error if user not found', async () => {
-      const req = { user: { uid: 'nonexistent-id' } };
+    it('should throw an error on logout failure', async () => {
+      const req = { user: { uid: 'test-uid' } };
       jest
         .spyOn(userService, 'logout')
         .mockRejectedValue(new Error('Erreur lors de la déconnexion'));
 
-      await expect(userController.logout(req)).rejects.toThrow('Erreur lors de la déconnexion');
+      await expect(userController.logout(req, mockResponse)).rejects.toThrow(
+        'Erreur lors de la déconnexion',
+      );
     });
   });
 });

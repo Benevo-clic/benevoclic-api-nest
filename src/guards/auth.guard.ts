@@ -31,24 +31,25 @@ export class AuthGuard implements CanActivate {
     ]);
 
     const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Vérifier d'abord le cookie
+    const token =
+      request.cookies['jwt'] ||
+      (request.headers.authorization?.startsWith('Bearer ') &&
+        request.headers.authorization.split('Bearer ')[1]);
+
+    if (!token) {
       throw new UnauthorizedException('Token manquant ou invalide');
     }
-
-    const token = authHeader.split('Bearer ')[1];
 
     try {
       const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
       request.user = decodedToken;
 
-      // Si aucun rôle n'est requis, on autorise l'accès
       if (!requiredRoles) {
         return true;
       }
 
-      // Vérifie si l'utilisateur a le rôle requis
       const userRole = decodedToken.role as UserRole;
       if (!userRole || !requiredRoles.includes(userRole)) {
         throw new ForbiddenException("Vous n'avez pas les droits nécessaires");

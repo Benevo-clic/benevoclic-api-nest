@@ -3,12 +3,12 @@ import { UpdateUserDto } from '../dto/update-user.dto';
 import { RegisterUserDto } from '../dto/register-user.dto';
 import { LoginDto } from '../dto/login.dto';
 import axios from 'axios';
-import { AuthConfig } from '../../../config/auth.config';
 import { UserRole } from '../../../common/enums/roles.enum';
 import { UserRecord } from 'firebase-admin/auth';
 import { UserRepository } from '../repository/user.repository';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
 import { Location, Image } from '../../../common/type/usersInfo.type';
+import { AuthConfig } from '@config/auth.config';
 
 @Injectable()
 export class UserService {
@@ -167,10 +167,14 @@ export class UserService {
     try {
       this.logger.log(`Tentative de connexion pour: ${payload.email}`);
 
-      const { idToken, refreshToken, expiresIn } = await this.signInWithEmailAndPassword(
-        payload.email,
-        payload.password,
-      );
+      const response = await this.signInWithEmailAndPassword(payload.email, payload.password);
+
+      // Vérifier si la réponse est valide
+      if (!response || !response.idToken) {
+        throw new Error("Échec de l'authentification: réponse invalide");
+      }
+
+      const { idToken, refreshToken, expiresIn } = response;
 
       const firebaseUser = await this.firebaseInstance.getUserByEmail(payload.email);
       await this.userRepository.updateConnectionStatus(
@@ -186,13 +190,41 @@ export class UserService {
       throw error;
     }
   }
+
   private async signInWithEmailAndPassword(email: string, password: string) {
-    const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${AuthConfig.apiKey}`;
-    return await this.sendPostRequest(url, {
-      email,
-      password,
-      returnSecureToken: true,
-    });
+    try {
+      const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${AuthConfig.apiKey}`;
+      const response = await axios.post(
+        url,
+        {
+          email,
+          password,
+          returnSecureToken: true,
+        },
+        {
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+
+      // Vérifier si la réponse contient les données attendues
+      if (!response.data || !response.data.idToken) {
+        throw new Error("Réponse invalide du serveur d'authentification");
+      }
+
+      return {
+        idToken: response.data.idToken,
+        refreshToken: response.data.refreshToken,
+        expiresIn: response.data.expiresIn,
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        // Gérer les erreurs spécifiques à Firebase Auth
+        const errorMessage =
+          error.response?.data?.error?.message || "Erreur d'authentification inconnue";
+        throw new Error(`Erreur d'authentification: ${errorMessage}`);
+      }
+      throw error;
+    }
   }
 
   private async sendPostRequest(url: string, data: any) {
@@ -202,7 +234,11 @@ export class UserService {
       });
       return response.data;
     } catch (error) {
-      console.log('error', error);
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.error?.message || 'Erreur de requête inconnue';
+        throw new Error(`Erreur lors de la requête: ${errorMessage}`);
+      }
+      throw error;
     }
   }
 
