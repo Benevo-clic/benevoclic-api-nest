@@ -13,7 +13,7 @@ export class User {
   isVerified: boolean;
   location?: Location;
   imageProfile?: Image;
-  lastConnection: string;
-  createdAt: string;
-  updatedAt: Date;
+  lastConnection: string | Date;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }

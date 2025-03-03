@@ -1,13 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { initializeFirebase } from './config/firebase.config';
+import cookieParser from 'cookie-parser';
+import { TokenRefreshInterceptor } from './common/interceptors/token-refresh.interceptor';
+import { UserService } from './api/user/services/user.service';
+import { initializeFirebase } from '@config/firebase.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: 'http://localhost:5482', // 🔹 Autorise uniquement ton frontend
+    origin: [process.env.URL_FRONT, process.env.FRONTEND_URL], // 🔹 Autorise uniquement ton frontend
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true, // 🔥 Permet d'envoyer les cookies et headers sécurisés
   });
@@ -24,6 +27,18 @@ async function bootstrap() {
 
   // Initialize Firebase
   initializeFirebase();
+
+  app.use(cookieParser());
+
+  // Configuration des cookies en production
+  if (process.env.NODE_ENV === 'production') {
+    app.enableCors({
+      origin: [process.env.URL_FRONT, process.env.FRONTEND_URL],
+      credentials: true,
+    });
+  }
+
+  app.useGlobalInterceptors(new TokenRefreshInterceptor(app.get(UserService)));
 
   await app.listen(3000);
 }
