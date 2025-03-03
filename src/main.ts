@@ -16,6 +16,13 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
+  app.enableCors({
+    origin: 'http://localhost:5482', // Correction des origines
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS', // Ajout de OPTIONS pour les requêtes preflight
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'], // Ajout des headers autorisés
+  });
+
   // Initialize Firebase
   initializeFirebase();
 
