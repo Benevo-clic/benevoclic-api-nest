@@ -25,9 +25,10 @@ async function bootstrap() {
   app.use(cookieParser());
 
   app.enableCors({
-    origin: ['http://151.80.152.63:3000/api', 'http://localhost:5482/'], // 🔹 Autorise uniquement ton frontend
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true, // 🔥 Permet d'envoyer les cookies et headers sécurisés
+    origin: ['http://151.80.152.63:3000', 'http://localhost:5482'], // Correction des origines
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS', // Ajout de OPTIONS pour les requêtes preflight
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'], // Ajout des headers autorisés
   });
 
   // // Configuration des cookies en production
