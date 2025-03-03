@@ -10,7 +10,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: 'http://localhost:5482', // 🔹 Autorise uniquement ton frontend
+    origin: [process.env.URL_FRONT, process.env.FRONTEND_URL], // 🔹 Autorise uniquement ton frontend
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true, // 🔥 Permet d'envoyer les cookies et headers sécurisés
   });
@@ -33,7 +33,7 @@ async function bootstrap() {
   // Configuration des cookies en production
   if (process.env.NODE_ENV === 'production') {
     app.enableCors({
-      origin: process.env.FRONTEND_URL,
+      origin: [process.env.URL_FRONT, process.env.FRONTEND_URL],
       credentials: true,
     });
   }

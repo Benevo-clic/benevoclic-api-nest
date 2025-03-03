@@ -77,6 +77,7 @@ export class UserController {
 
       return {
         message: 'Connexion réussie',
+        idToken: authResult.idToken,
       };
     } catch (error) {
       console.error(`Erreur lors de la connexion de l'utilisateur: ${loginDto.email}`, error.stack);

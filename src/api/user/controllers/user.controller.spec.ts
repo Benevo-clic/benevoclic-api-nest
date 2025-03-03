@@ -283,6 +283,7 @@ describe('UserController', () => {
 
       expect(result).toEqual({
         message: 'Connexion réussie',
+        idToken: 'mock-token',
       });
     });
 
