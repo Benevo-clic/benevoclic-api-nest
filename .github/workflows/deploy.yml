@@ -44,7 +44,7 @@ jobs:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
           URL_FRONT: ${{secrets.URL_FRONT}}
-          FRONTEND_URL: ${{FRONTEND_URL}}
+          FRONTEND_URL: ${{secrets.FRONTEND_URL}}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
