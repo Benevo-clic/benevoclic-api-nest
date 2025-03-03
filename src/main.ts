@@ -9,12 +9,6 @@ import { initializeFirebase } from '@config/firebase.config';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.enableCors({
-    origin: [process.env.URL_FRONT, process.env.FRONTEND_URL], // 🔹 Autorise uniquement ton frontend
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true, // 🔥 Permet d'envoyer les cookies et headers sécurisés
-  });
-
   const config = new DocumentBuilder()
     .setTitle('User Authentication')
     .setDescription('The API details for the User Authentication Demo application.')
@@ -30,13 +24,19 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  // Configuration des cookies en production
-  if (process.env.NODE_ENV === 'production') {
-    app.enableCors({
-      origin: [process.env.URL_FRONT, process.env.FRONTEND_URL],
-      credentials: true,
-    });
-  }
+  app.enableCors({
+    origin: ['http://151.80.152.63:3000/api', 'http://localhost:5482/'], // 🔹 Autorise uniquement ton frontend
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true, // 🔥 Permet d'envoyer les cookies et headers sécurisés
+  });
+
+  // // Configuration des cookies en production
+  // if (process.env.NODE_ENV === 'production') {
+  //   app.enableCors({
+  //     origin: [process.env.URL_FRONT, process.env.FRONTEND_URL],
+  //     credentials: true,
+  //   });
+  // }
 
   app.useGlobalInterceptors(new TokenRefreshInterceptor(app.get(UserService)));
 
