@@ -101,6 +101,14 @@ export class UserController {
     return this.userService.findOne(id);
   }
 
+  @Get('email/:email')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  findByEmail(@Param('email') email: string) {
+    return this.userService.findByEmail(email);
+  }
+
   @Patch(':id')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)

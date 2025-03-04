@@ -253,6 +253,14 @@ export class UserService {
     }
   }
 
+  async findByEmail(email: string) {
+    try {
+      return await this.userRepository.findByEmail(email);
+    } catch (error) {
+      throw new Error("Erreur lors de la récupération de l'utilisateur");
+    }
+  }
+
   async logout(id: string) {
     try {
       await this.userRepository.updateConnectionStatus(id, false);
