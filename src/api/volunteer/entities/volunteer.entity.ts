@@ -7,6 +7,9 @@ export class Volunteer {
   postalCode?: string;
   country?: string;
   birthDate?: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
   myAssociations?: InfoAssociation[];
   myAssociationsWaiting?: InfoAssociation[];
 }
