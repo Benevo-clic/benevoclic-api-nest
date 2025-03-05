@@ -78,6 +78,9 @@ describe('VolunteerController (Integration)', () => {
     it('should create a volunteer', async () => {
       const volunteer: CreateVolunteerDto = {
         email: 'vol@gmail.com',
+        firstName: 'Volunteer',
+        lastName: 'Volunteer',
+        phone: '1234567890',
         bio: 'I am a volunteer',
         city: 'Paris',
       };
@@ -89,6 +92,9 @@ describe('VolunteerController (Integration)', () => {
     it('should throw an error for an existing email', async () => {
       const volunteer: CreateVolunteerDto = {
         email: 'vol@gmail.com',
+        firstName: 'Volunteer',
+        lastName: 'Volunteer',
+        phone: '1234567890',
         bio: 'I am a volunteer',
         city: 'Paris',
       };

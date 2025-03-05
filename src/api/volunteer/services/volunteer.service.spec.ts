@@ -58,6 +58,9 @@ describe('VolunteerService', () => {
     it('should create a volunteer', async () => {
       const createVolunteerDto: CreateVolunteerDto = {
         email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        phone: '1234567890',
         city: 'Paris',
         country: 'France',
         postalCode: '75000',
@@ -83,6 +86,9 @@ describe('VolunteerService', () => {
       const createVolunteerDto: CreateVolunteerDto = {
         email: 'test@example.com',
         city: 'Paris',
+        firstName: 'Test',
+        lastName: 'User',
+        phone: '1234567890',
         country: 'France',
         postalCode: '75000',
         birthDate: '01/01/2000',

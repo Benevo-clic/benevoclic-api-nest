@@ -16,21 +16,6 @@ export class CreateUserDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  firstName: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  lastName: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  phoneNumber: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
   disabled: boolean;
 
   @ApiProperty()
