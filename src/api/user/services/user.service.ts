@@ -60,7 +60,6 @@ export class UserService {
       throw new Error('Email already exist');
     }
     return await this.firebaseInstance.createUser({
-      displayName: registerUser.firstName,
       email: registerUser.email,
       password: registerUser.password,
     });
@@ -74,9 +73,6 @@ export class UserService {
       await this.userRepository.create({
         _id: userRecord.uid,
         email: registerUser.email,
-        firstName: registerUser.firstName,
-        lastName: registerUser.lastName,
-        phoneNumber: registerUser.phoneNumber,
         role: registerUser.role,
         disabled: userRecord.disabled,
         isVerified: userRecord.emailVerified,
@@ -106,7 +102,6 @@ export class UserService {
   async updateInFirebase(id: string, updateUserDto: UpdateUserDto) {
     const updateData: any = {};
     if (updateUserDto.email) updateData.email = updateUserDto.email;
-    if (updateUserDto.firstName) updateData.displayName = updateUserDto.firstName;
 
     await this.firebaseInstance.updateUser(id, updateData);
     this.logger.debug(`Utilisateur mis à jour dans Firebase: ${id}`);

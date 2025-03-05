@@ -5,16 +5,6 @@ import { UserRole } from '../../../common/enums/roles.enum';
 export class UpdateUserDto {
   @ApiPropertyOptional()
   @IsOptional()
-  @IsString()
-  firstName?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  lastName?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
   @IsEmail()
   email?: string;
 

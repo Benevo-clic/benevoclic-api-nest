@@ -20,9 +20,6 @@ export class UserRepository {
     const user: User = {
       userId: createUserDto._id,
       email: createUserDto.email,
-      firstName: createUserDto.firstName,
-      lastName: createUserDto.lastName,
-      phoneNumber: createUserDto.phoneNumber,
       role: createUserDto.role,
       isOnline: false,
       disabled: createUserDto.disabled,
