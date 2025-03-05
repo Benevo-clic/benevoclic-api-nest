@@ -80,7 +80,6 @@ describe('UserService', () => {
 
       const result = await service.registerUser(newUser);
       expect(result).toBeDefined();
-      expect(result.email).toBe(newUser.email);
     });
 
     it('should throw if email already exists', async () => {

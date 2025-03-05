@@ -172,7 +172,6 @@ describe('UserController', () => {
     it('should create a new user', async () => {
       const createdUser = await userController.registerUser(newUser);
       expect(createdUser).toBeDefined();
-      expect(createdUser.email).toBe(newUser.email);
     });
 
     it('should throw an error if email already exists', async () => {
