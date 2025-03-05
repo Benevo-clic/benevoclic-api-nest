@@ -9,6 +9,8 @@ import { UserRecord } from 'firebase-admin/auth';
 import { UserRepository } from '../repository/user.repository';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
 import { Location, Image } from '../../../common/type/usersInfo.type';
+import { LoginResponseDto } from '../dto/login.response.dto';
+import { RegisterReponseDto } from '../dto/register.reponse.dto';
 
 @Injectable()
 export class UserService {
@@ -65,7 +67,7 @@ export class UserService {
     });
   }
 
-  async registerUser(registerUser: RegisterUserDto): Promise<UserRecord> {
+  async registerUser(registerUser: RegisterUserDto): Promise<RegisterReponseDto> {
     try {
       const userRecord = await this.registerUserInFirebase(registerUser);
       await this.setUserRole(userRecord.uid, registerUser.role);
@@ -81,7 +83,10 @@ export class UserService {
       });
 
       this.logger.log(`Inscription réussie pour l'utilisateur: ${registerUser.email}`);
-      return userRecord;
+
+      return {
+        uid: userRecord.uid,
+      };
     } catch (error) {
       this.logger.error(
         `Erreur lors de l'inscription de l'utilisateur: ${registerUser.email}`,
@@ -158,7 +163,7 @@ export class UserService {
     }
   }
 
-  async loginUser(payload: LoginDto) {
+  async loginUser(payload: LoginDto): Promise<LoginResponseDto> {
     try {
       this.logger.log(`Tentative de connexion pour: ${payload.email}`);
 
