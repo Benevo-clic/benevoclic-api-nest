@@ -25,6 +25,7 @@ import { UserRole } from '../../../common/enums/roles.enum';
 import { Public } from '../../../common/decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Location } from '../../../common/type/usersInfo.type';
+import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
 
 @Controller('user')
 export class UserController {
@@ -41,6 +42,17 @@ export class UserController {
         `Erreur lors de la création de l'utilisateur: ${registerUserDto.email}`,
         error.stack,
       );
+    }
+  }
+
+  @Get(':currentUser')
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  async getCurrentUser(req: Request) {
+    try {
+      return FirebaseAdminService.getInstance().getCurrentUser(req);
+    } catch (error) {
+      console.error(`Erreur lors de la recuperation de l'utilisateur`, error.stack);
     }
   }
 

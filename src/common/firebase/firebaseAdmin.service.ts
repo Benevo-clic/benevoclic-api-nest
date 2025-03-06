@@ -23,6 +23,21 @@ export class FirebaseAdminService {
     return firebaseAdmin.auth().deleteUser(id);
   }
 
+  async getCurrentUser(req: any) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new Error('Aucun token fourni');
+    }
+
+    const idToken = authHeader.split('Bearer ')[1];
+    try {
+      const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+      return await this.getUser(decodedToken.uid);
+    } catch (error) {
+      throw new Error('Token invalide ou expiré');
+    }
+  }
+
   getUser(id: string) {
     return firebaseAdmin.auth().getUser(id);
   }
