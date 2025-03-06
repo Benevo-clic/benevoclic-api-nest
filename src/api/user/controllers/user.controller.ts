@@ -45,14 +45,16 @@ export class UserController {
     }
   }
 
-  @Get(':currentUser')
+  @Get('current-user')
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  async getCurrentUser(req: Request) {
+  @UseGuards(AuthGuard)
+  async getCurrentUser(@Request() req) {
     try {
       return FirebaseAdminService.getInstance().getCurrentUser(req);
     } catch (error) {
       console.error(`Erreur lors de la recuperation de l'utilisateur`, error.stack);
+      throw error;
     }
   }
 
