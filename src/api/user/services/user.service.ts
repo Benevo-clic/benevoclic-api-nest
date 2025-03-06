@@ -67,6 +67,15 @@ export class UserService {
     });
   }
 
+  async getCurrentUser(req: any) {
+    const currentUser = await FirebaseAdminService.getInstance().getCurrentUser(req);
+    if (!currentUser) {
+      this.logger.error('Utilisateur non trouvé');
+      throw new Error('Utilisateur non trouvé');
+    }
+    return await this.userRepository.findByUid(currentUser.uid);
+  }
+
   async registerUser(registerUser: RegisterUserDto): Promise<RegisterReponseDto> {
     try {
       const userRecord = await this.registerUserInFirebase(registerUser);
