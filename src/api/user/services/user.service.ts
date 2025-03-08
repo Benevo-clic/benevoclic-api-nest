@@ -81,9 +81,7 @@ export class UserService {
     registerUser: RegisterUserVerifiedDto,
   ): Promise<RegisterReponseDto> {
     const userRecord = await this.firebaseInstance.getUserByEmail(registerUser.email);
-    if (userRecord) {
-      throw new Error('Email already exist');
-    }
+
     await this.setUserRole(userRecord.uid, registerUser.role);
 
     await this.userRepository.create({
