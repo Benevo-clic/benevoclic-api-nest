@@ -11,6 +11,7 @@ import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.ser
 import { Location, Image } from '../../../common/type/usersInfo.type';
 import { LoginResponseDto } from '../dto/login.response.dto';
 import { RegisterReponseDto } from '../dto/register.reponse.dto';
+import { RegisterUserVerifiedDto } from '../dto/register-user-verified.dto';
 
 @Injectable()
 export class UserService {
@@ -76,6 +77,35 @@ export class UserService {
     return await this.userRepository.findByUid(currentUser.uid);
   }
 
+  async registerWithEmailAndPasswordVerification(
+    registerUser: RegisterUserVerifiedDto,
+  ): Promise<RegisterReponseDto> {
+    const userRecord = await this.firebaseInstance.getUserByEmail(registerUser.email);
+    if (userRecord) {
+      throw new Error('Email already exist');
+    }
+    await this.setUserRole(userRecord.uid, registerUser.role);
+
+    await this.userRepository.create({
+      _id: userRecord.uid,
+      email: registerUser.email,
+      role: registerUser.role,
+      disabled: userRecord.disabled,
+      isVerified: userRecord.emailVerified,
+      lastSignInTime: userRecord.metadata.lastRefreshTime,
+      createdAt: userRecord.metadata.creationTime,
+    });
+
+    return {
+      idToken: await this.firebaseInstance.getToken(userRecord.uid),
+      uid: userRecord.uid,
+    };
+  }
+
+  async getCustomToken(uid: string) {
+    return await this.firebaseInstance.getToken(uid);
+  }
+
   async registerUser(registerUser: RegisterUserDto): Promise<RegisterReponseDto> {
     try {
       const userRecord = await this.registerUserInFirebase(registerUser);
@@ -94,6 +124,7 @@ export class UserService {
       this.logger.log(`Inscription réussie pour l'utilisateur: ${registerUser.email}`);
 
       return {
+        idToken: await this.getCustomToken(userRecord.uid),
         uid: userRecord.uid,
       };
     } catch (error) {

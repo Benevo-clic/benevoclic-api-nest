@@ -25,6 +25,7 @@ import { UserRole } from '../../../common/enums/roles.enum';
 import { Public } from '../../../common/decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Location } from '../../../common/type/usersInfo.type';
+import { RegisterUserVerifiedDto } from '../dto/register-user-verified.dto';
 
 @Controller('user')
 export class UserController {
@@ -36,6 +37,20 @@ export class UserController {
   registerUser(@Body() registerUserDto: RegisterUserDto) {
     try {
       return this.userService.registerUser(registerUserDto);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la création de l'utilisateur: ${registerUserDto.email}`,
+        error.stack,
+      );
+    }
+  }
+
+  @Public()
+  @Post('register-user-verified')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  registerUserVerified(@Body() registerUserDto: RegisterUserVerifiedDto) {
+    try {
+      return this.userService.registerWithEmailAndPasswordVerification(registerUserDto);
     } catch (error) {
       console.error(
         `Erreur lors de la création de l'utilisateur: ${registerUserDto.email}`,
