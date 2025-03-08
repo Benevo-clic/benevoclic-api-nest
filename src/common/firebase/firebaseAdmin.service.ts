@@ -50,6 +50,10 @@ export class FirebaseAdminService {
     }
   }
 
+  getToken(uid: string) {
+    return firebaseAdmin.auth().createCustomToken(uid);
+  }
+
   listUsers() {
     return firebaseAdmin.auth().listUsers();
   }
