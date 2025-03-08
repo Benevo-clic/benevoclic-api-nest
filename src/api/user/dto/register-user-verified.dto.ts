@@ -12,4 +12,7 @@ export class RegisterUserVerifiedDto {
   @IsNotEmpty()
   @IsEnum(UserRole)
   role: UserRole = UserRole.VOLUNTEER;
+
+  @ApiProperty({ description: 'refresh token' })
+  refreshToken?: string;
 }
