@@ -48,8 +48,6 @@ jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
         }
         return Promise.resolve(null);
       }),
-      getToken: jest.fn().mockResolvedValue('mock-custom-token'),
-
       createUser: jest.fn().mockResolvedValue({
         uid: 'newMockUid123',
         email: 'volunteer@yahoo.com',

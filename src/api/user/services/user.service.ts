@@ -79,7 +79,7 @@ export class UserService {
 
   async registerWithEmailAndPasswordVerification(
     registerUser: RegisterUserVerifiedDto,
-  ): Promise<LoginResponseDto> {
+  ): Promise<RegisterReponseDto> {
     const userRecord = await this.firebaseInstance.getUserByEmail(registerUser.email);
 
     await this.setUserRole(userRecord.uid, registerUser.role);
@@ -94,18 +94,9 @@ export class UserService {
       createdAt: userRecord.metadata.creationTime,
     });
 
-    const firebaseUser = await this.firebaseInstance.getUserByEmail(registerUser.email);
-    await this.userRepository.updateConnectionStatus(
-      firebaseUser.uid,
-      true,
-      firebaseUser.metadata.lastSignInTime,
-    );
-
-    return this.refreshAuthToken(registerUser.refreshToken);
-  }
-
-  async getCustomToken(uid: string) {
-    return await this.firebaseInstance.getToken(uid);
+    return {
+      uid: userRecord.uid,
+    };
   }
 
   async registerUser(registerUser: RegisterUserDto): Promise<RegisterReponseDto> {
@@ -126,7 +117,6 @@ export class UserService {
       this.logger.log(`Inscription réussie pour l'utilisateur: ${registerUser.email}`);
 
       return {
-        idToken: await this.getCustomToken(userRecord.uid),
         uid: userRecord.uid,
       };
     } catch (error) {

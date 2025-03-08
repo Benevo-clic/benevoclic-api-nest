@@ -78,7 +78,6 @@ describe('UserService', () => {
       jest.spyOn(firebaseAdmin, 'getUserByEmail').mockResolvedValue(null);
       jest.spyOn(firebaseAdmin, 'createUser').mockResolvedValue(firebaseUser);
       jest.spyOn(repository, 'create').mockResolvedValue(undefined);
-      jest.spyOn(firebaseAdmin, 'getToken').mockResolvedValue('mockToken');
 
       const result = await service.registerUser(newUser);
       expect(result).toBeDefined();
