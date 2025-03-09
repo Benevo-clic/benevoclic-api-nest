@@ -12,6 +12,10 @@ import { Location, Image } from '../../../common/type/usersInfo.type';
 import { LoginResponseDto } from '../dto/login.response.dto';
 import { RegisterReponseDto } from '../dto/register.reponse.dto';
 import { RegisterUserVerifiedDto } from '../dto/register-user-verified.dto';
+import {
+  RegisterUserGoogleDto,
+  RegisterUserGoogleResponseDto,
+} from '../dto/register-user-google.dto';
 
 @Injectable()
 export class UserService {
@@ -75,6 +79,52 @@ export class UserService {
       throw new Error('Utilisateur non trouvé');
     }
     return await this.userRepository.findByUid(currentUser.uid);
+  }
+
+  async registerWithGoogle(
+    registerUser: RegisterUserGoogleDto,
+  ): Promise<RegisterUserGoogleResponseDto> {
+    try {
+      const decodedToken = await this.firebaseInstance.verifyIdToken(registerUser.idToken);
+
+      const userRecord = await this.firebaseInstance.getUserByEmail(decodedToken.email);
+      if (!userRecord) {
+        throw new Error('User not found');
+      }
+
+      await this.firebaseInstance.setCustomUserClaims(userRecord.uid, {
+        role: registerUser.role,
+      });
+
+      const customToken = await this.firebaseInstance.getToken(userRecord.uid);
+
+      await this.userRepository.create({
+        _id: userRecord.uid,
+        email: userRecord.email,
+        role: registerUser.role,
+        disabled: userRecord.disabled,
+        isVerified: userRecord.emailVerified,
+        lastSignInTime: userRecord.metadata.lastRefreshTime,
+        createdAt: userRecord.metadata.creationTime,
+      });
+
+      await this.userRepository.updateConnectionStatus(
+        userRecord.uid,
+        true,
+        userRecord.metadata.lastSignInTime,
+      );
+
+      return {
+        token: customToken,
+        expiresIn: 3600,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de l'inscription de l'utilisateur: ${registerUser}`,
+        error.stack,
+      );
+      throw new Error('User registration failed');
+    }
   }
 
   async registerWithEmailAndPasswordVerification(

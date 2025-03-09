@@ -31,11 +31,15 @@ export class FirebaseAdminService {
 
     const idToken = authHeader.split('Bearer ')[1];
     try {
-      const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+      const decodedToken = await this.verifyIdToken(idToken);
       return await this.getUser(decodedToken.uid);
     } catch (error) {
       throw new Error('Token invalide ou expiré');
     }
+  }
+
+  async verifyIdToken(idToken: string) {
+    return firebaseAdmin.auth().verifyIdToken(idToken);
   }
 
   getUser(id: string) {

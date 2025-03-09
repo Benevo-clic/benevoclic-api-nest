@@ -26,6 +26,7 @@ import { Public } from '../../../common/decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Location } from '../../../common/type/usersInfo.type';
 import { RegisterUserVerifiedDto } from '../dto/register-user-verified.dto';
+import { RegisterUserGoogleDto } from '../dto/register-user-google.dto';
 
 @Controller('user')
 export class UserController {
@@ -54,6 +55,20 @@ export class UserController {
     } catch (error) {
       console.error(
         `Erreur lors de la création de l'utilisateur: ${registerUserDto.email}`,
+        error.stack,
+      );
+    }
+  }
+
+  @Public()
+  @Post('register-google')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  registerGoogle(@Body() registerUserDto: RegisterUserGoogleDto) {
+    try {
+      return this.userService.registerWithGoogle(registerUserDto);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la création de l'utilisateur: ${registerUserDto.role}`,
         error.stack,
       );
     }
