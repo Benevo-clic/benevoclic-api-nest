@@ -108,7 +108,13 @@ export class UserService {
         createdAt: userRecord.metadata.creationTime,
       });
 
-      await this.updateConnectionStatus(userRecord.uid, true, userRecord.metadata.lastSignInTime);
+      await this.updateConnectionStatus(
+        userRecord.uid,
+        {
+          connected: true,
+        },
+        userRecord.metadata.lastSignInTime,
+      );
 
       return {
         token: customToken,
@@ -253,7 +259,7 @@ export class UserService {
       const firebaseUser = await this.firebaseInstance.getUserByEmail(payload.email);
       await this.updateConnectionStatus(
         firebaseUser.uid,
-        true,
+        { connected: true },
         firebaseUser.metadata.lastSignInTime,
       );
 
@@ -265,7 +271,11 @@ export class UserService {
     }
   }
 
-  async updateConnectionStatus(id: string, isConnected: boolean, lastSignInTime?: string) {
+  async updateConnectionStatus(
+    id: string,
+    isConnected: { connected: boolean },
+    lastSignInTime?: string,
+  ) {
     try {
       await this.userRepository.updateConnectionStatus(id, isConnected, lastSignInTime);
       return { message: 'Statut de connexion mis à jour avec succès' };
@@ -351,7 +361,7 @@ export class UserService {
 
   async logout(id: string) {
     try {
-      await this.updateConnectionStatus(id, false);
+      await this.updateConnectionStatus(id, { connected: false });
       return { message: 'Déconnexion réussie' };
     } catch (error) {
       throw new Error('Erreur lors de la déconnexion');

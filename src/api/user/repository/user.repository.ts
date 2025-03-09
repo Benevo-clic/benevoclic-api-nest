@@ -44,12 +44,16 @@ export class UserRepository {
     return this.collection.find().toArray();
   }
 
-  async updateConnectionStatus(id: string, isOnline: boolean, lastSignInTime = ''): Promise<void> {
+  async updateConnectionStatus(
+    id: string,
+    isOnline: { connected: boolean },
+    lastSignInTime = '',
+  ): Promise<void> {
     await this.collection.updateOne(
       { userId: id },
       {
         $set: {
-          isOnline,
+          isOnline: isOnline.connected,
           lastConnection: lastSignInTime,
           updatedAt: new Date(),
         },
