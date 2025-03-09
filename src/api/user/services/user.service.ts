@@ -108,11 +108,7 @@ export class UserService {
         createdAt: userRecord.metadata.creationTime,
       });
 
-      await this.userRepository.updateConnectionStatus(
-        userRecord.uid,
-        true,
-        userRecord.metadata.lastSignInTime,
-      );
+      await this.updateConnectionStatus(userRecord.uid, true, userRecord.metadata.lastSignInTime);
 
       return {
         token: customToken,
@@ -255,7 +251,7 @@ export class UserService {
       );
 
       const firebaseUser = await this.firebaseInstance.getUserByEmail(payload.email);
-      await this.userRepository.updateConnectionStatus(
+      await this.updateConnectionStatus(
         firebaseUser.uid,
         true,
         firebaseUser.metadata.lastSignInTime,
@@ -268,6 +264,16 @@ export class UserService {
       throw error;
     }
   }
+
+  async updateConnectionStatus(id: string, isConnected: boolean, lastSignInTime?: string) {
+    try {
+      await this.userRepository.updateConnectionStatus(id, isConnected, lastSignInTime);
+      return { message: 'Statut de connexion mis à jour avec succès' };
+    } catch (error) {
+      throw new Error('Erreur lors de la mise à jour du statut de connexion');
+    }
+  }
+
   private async signInWithEmailAndPassword(email: string, password: string) {
     const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${AuthConfig.apiKey}`;
     return await this.sendPostRequest(url, {
@@ -345,7 +351,7 @@ export class UserService {
 
   async logout(id: string) {
     try {
-      await this.userRepository.updateConnectionStatus(id, false);
+      await this.updateConnectionStatus(id, false);
       return { message: 'Déconnexion réussie' };
     } catch (error) {
       throw new Error('Erreur lors de la déconnexion');

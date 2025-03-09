@@ -233,4 +233,19 @@ export class UserController {
       );
     }
   }
+
+  @Patch(':id/update-connected')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  async updateConnected(@Param('id') id: string, @Body() connected: boolean) {
+    try {
+      return await this.userService.updateConnectionStatus(id, connected);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la mise à jour de la connexion de l'utilisateur: ${id}`,
+        error.stack,
+      );
+    }
+  }
 }
