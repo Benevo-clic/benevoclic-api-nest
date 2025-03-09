@@ -24,7 +24,7 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '../../../common/enums/roles.enum';
 import { Public } from '../../../common/decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Location } from '../../../common/type/usersInfo.type';
+import { Location, UpdateConnectedUser } from '../../../common/type/usersInfo.type';
 import { RegisterUserVerifiedDto } from '../dto/register-user-verified.dto';
 import { RegisterUserGoogleDto } from '../dto/register-user-google.dto';
 
@@ -238,7 +238,7 @@ export class UserController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  async updateConnected(@Param('id') id: string, @Body() connected: { connected: boolean }) {
+  async updateConnected(@Param('id') id: string, @Body() connected: UpdateConnectedUser) {
     try {
       return await this.userService.updateConnectionStatus(id, connected);
     } catch (error) {
