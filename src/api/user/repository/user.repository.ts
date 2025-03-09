@@ -4,7 +4,6 @@ import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { User } from '../entities/user.entity';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
-import { UpdateConnectedUser } from '../../../common/type/usersInfo.type';
 
 @Injectable()
 export class UserRepository {
@@ -45,16 +44,12 @@ export class UserRepository {
     return this.collection.find().toArray();
   }
 
-  async updateConnectionStatus(
-    id: string,
-    isOnline: UpdateConnectedUser,
-    lastSignInTime = '',
-  ): Promise<void> {
+  async updateConnectionStatus(id: string, isOnline: boolean, lastSignInTime = ''): Promise<void> {
     await this.collection.updateOne(
       { userId: id },
       {
         $set: {
-          isOnline: isOnline.isOnline,
+          isOnline: isOnline,
           lastConnection: lastSignInTime,
           updatedAt: new Date(),
         },

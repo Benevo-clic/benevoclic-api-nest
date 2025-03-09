@@ -8,7 +8,7 @@ import { UserRole } from '../../../common/enums/roles.enum';
 import { UserRecord } from 'firebase-admin/auth';
 import { UserRepository } from '../repository/user.repository';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
-import { Location, Image, UpdateConnectedUser } from '../../../common/type/usersInfo.type';
+import { Location, Image } from '../../../common/type/usersInfo.type';
 import { LoginResponseDto } from '../dto/login.response.dto';
 import { RegisterReponseDto } from '../dto/register.reponse.dto';
 import { RegisterUserVerifiedDto } from '../dto/register-user-verified.dto';
@@ -108,13 +108,7 @@ export class UserService {
         createdAt: userRecord.metadata.creationTime,
       });
 
-      await this.updateConnectionStatus(
-        userRecord.uid,
-        {
-          isOnline: true,
-        },
-        userRecord.metadata.lastSignInTime,
-      );
+      await this.updateConnectionStatus(userRecord.uid, true, userRecord.metadata.lastSignInTime);
 
       return {
         token: customToken,
@@ -259,7 +253,7 @@ export class UserService {
       const firebaseUser = await this.firebaseInstance.getUserByEmail(payload.email);
       await this.updateConnectionStatus(
         firebaseUser.uid,
-        { isOnline: true },
+        true,
         firebaseUser.metadata.lastSignInTime,
       );
 
@@ -271,11 +265,7 @@ export class UserService {
     }
   }
 
-  async updateConnectionStatus(
-    id: string,
-    isConnected: UpdateConnectedUser,
-    lastSignInTime?: string,
-  ) {
+  async updateConnectionStatus(id: string, isConnected: boolean, lastSignInTime?: string) {
     try {
       await this.userRepository.updateConnectionStatus(id, isConnected, lastSignInTime);
       return { message: 'Statut de connexion mis à jour avec succès' };
@@ -361,8 +351,7 @@ export class UserService {
 
   async logout(id: string) {
     try {
-      const isOnline: UpdateConnectedUser = { isOnline: false };
-      await this.updateConnectionStatus(id, isOnline);
+      await this.updateConnectionStatus(id, false);
       return { message: 'Déconnexion réussie' };
     } catch (error) {
       throw new Error('Erreur lors de la déconnexion');

@@ -9,7 +9,3 @@ export type Location = {
   latitude: number;
   longitude: number;
 };
-
-export type UpdateConnectedUser = {
-  isOnline: boolean;
-};
