@@ -267,6 +267,9 @@ export class UserService {
 
   async updateConnectionStatus(id: string, isConnected: boolean, lastSignInTime?: string) {
     try {
+      // const userRecord = await this.firebaseInstance.getUser(id);
+      // const signInTime = userRecord.metadata.lastSignInTime ?? lastSignInTime;
+
       await this.userRepository.updateConnectionStatus(id, isConnected, lastSignInTime);
       return { message: 'Statut de connexion mis à jour avec succès' };
     } catch (error) {
