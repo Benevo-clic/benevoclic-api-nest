@@ -238,9 +238,9 @@ export class UserController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  async updateConnected(@Param('id') id: string, @Param('connected') connected: boolean) {
+  async updateConnected(@Param('id') id: string, @Param('connected') connected: string) {
     try {
-      return await this.userService.updateConnectionStatus(id, connected);
+      return await this.userService.updateConnectionStatus(id, connected === 'true');
     } catch (error) {
       console.error(
         `Erreur lors de la mise à jour de la connexion de l'utilisateur: ${id}`,
