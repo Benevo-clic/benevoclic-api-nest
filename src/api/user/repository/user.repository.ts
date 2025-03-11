@@ -50,7 +50,7 @@ export class UserRepository {
       {
         $set: {
           isOnline: isOnline,
-          lastConnection: lastSignInTime,
+          lastConnection: lastSignInTime === '' ? new Date().toISOString() : lastSignInTime,
           updatedAt: new Date(),
         },
       },
