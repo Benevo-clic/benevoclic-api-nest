@@ -3,11 +3,11 @@ import { AssociationService } from './services/association.service';
 import { AssociationController } from './controllers/association.controller';
 import { AssociationRepository } from './repository/association.repository';
 import { DatabaseModule } from '../../database/database.module';
-import { UserService } from '../../common/services/user/user.service';
+import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, UserModule],
   controllers: [AssociationController],
-  providers: [AssociationService, AssociationRepository, UserService],
+  providers: [AssociationService, AssociationRepository],
 })
 export class AssociationModule {}
