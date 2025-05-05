@@ -9,8 +9,6 @@ import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
 import * as mockData from '../../../../test/testFiles/volunteer.data.json';
 import { CreateVolunteerDto } from '../dto/create-volunteer.dto';
-import { UserService } from '../../../common/services/user/user.service';
-import { UserRole } from '../../../common/enums/roles.enum';
 
 jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
   FirebaseAdminService: {
@@ -23,11 +21,6 @@ jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
   },
 }));
 
-// Mock du UserService
-const mockUserService = {
-  loginUser: jest.fn(),
-};
-
 describe('VolunteerController (Integration)', () => {
   let volunteerController: VolunteerController;
   let mongoClient: MongoClient;
@@ -37,14 +30,7 @@ describe('VolunteerController (Integration)', () => {
     module = await Test.createTestingModule({
       imports: [DatabaseModule],
       controllers: [VolunteerController],
-      providers: [
-        VolunteerService,
-        VolunteerRepository,
-        {
-          provide: UserService,
-          useValue: mockUserService,
-        },
-      ],
+      providers: [VolunteerService, VolunteerRepository],
     }).compile();
 
     volunteerController = module.get<VolunteerController>(VolunteerController);
@@ -85,53 +71,6 @@ describe('VolunteerController (Integration)', () => {
     it('should return null for an invalid ID', async () => {
       const volunteer = await volunteerController.findOne('invalidId');
       expect(volunteer).toBeNull();
-    });
-  });
-
-  describe('login', () => {
-    const loginDto = {
-      email: 'test@example.com',
-      password: 'password123',
-      role: 'VOLUNTEER' as UserRole,
-    };
-
-    beforeEach(() => {
-      jest.clearAllMocks();
-    });
-
-    it('should login an association successfully', async () => {
-      const expectedResponse = {
-        idToken: 'mock-id-token',
-        refreshToken: 'mock-refresh-token',
-        expiresIn: '3600',
-      };
-
-      mockUserService.loginUser.mockResolvedValueOnce(expectedResponse);
-
-      const result = await volunteerController.login(loginDto);
-
-      expect(result).toEqual(expectedResponse);
-      expect(mockUserService.loginUser).toHaveBeenCalledWith(loginDto);
-    });
-
-    it('should return error message for non-volunteer role', async () => {
-      const nonAssociationLoginDto = {
-        ...loginDto,
-        role: 'ASSOCIATION' as UserRole,
-      };
-
-      const result = await volunteerController.login(nonAssociationLoginDto);
-
-      expect(result).toEqual({
-        message: 'Vous devez être un bénévole pour vous connecter',
-      });
-      expect(mockUserService.loginUser).not.toHaveBeenCalled();
-    });
-
-    it('should handle login errors', async () => {
-      mockUserService.loginUser.mockRejectedValueOnce(new Error('Login failed'));
-
-      await expect(volunteerController.login(loginDto)).rejects.toThrow('Login failed');
     });
   });
 
