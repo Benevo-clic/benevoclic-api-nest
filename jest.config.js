@@ -10,4 +10,7 @@ module.exports = {
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/../test/setup.ts'],
   moduleDirectories: ['node_modules', 'src'],
+  moduleNameMapper: {
+    '^@config/(.*)$': '<rootDir>/config/$1',
+  },
 };

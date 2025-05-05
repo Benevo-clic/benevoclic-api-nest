@@ -1,7 +1,7 @@
 import { UserController } from './user.controller';
 import { MongoClient, ObjectId } from 'mongodb';
 import { Test, TestingModule } from '@nestjs/testing';
-import { UserService } from '../services/user.service';
+import { UserService } from '../../../common/services/user/user.service';
 import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { DatabaseModule } from '../../../database/database.module';
@@ -10,8 +10,6 @@ import { DatabaseCollection } from '../../../common/enums/database.collection';
 import { UserRepository } from '../repository/user.repository';
 import { UserRole } from '../../../common/enums/roles.enum';
 import * as admin from 'firebase-admin';
-import axios from 'axios';
-import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
 
 // Mock Firebase Admin
 jest.mock('firebase-admin', () => ({
@@ -182,62 +180,6 @@ describe('UserController', () => {
       await expect(userController.registerUser(existingUser)).rejects.toThrow(
         'User registration failed',
       );
-    });
-  });
-
-  describe('login', () => {
-    const loginCredentials = {
-      email: 'test@example.com',
-      password: 'password123',
-    };
-
-    beforeEach(() => {
-      // Mock axios pour la requête de login
-      jest.spyOn(axios, 'post').mockResolvedValue({
-        data: {
-          idToken: 'mock-id-token',
-          refreshToken: 'mock-refresh-token',
-          expiresIn: '3600',
-        },
-      });
-
-      // Mock getUserByEmail pour le login
-      const firebaseAdmin = FirebaseAdminService.getInstance();
-      jest.spyOn(firebaseAdmin, 'getUserByEmail').mockResolvedValue({
-        uid: 'mockUid123',
-        email: loginCredentials.email,
-        emailVerified: false,
-        disabled: false,
-        metadata: {
-          lastSignInTime: new Date().toISOString(),
-          creationTime: new Date().toISOString(),
-          toJSON: () => ({}),
-        },
-        providerData: [],
-        toJSON: () => ({}),
-      });
-    });
-
-    it('should login a user successfully', async () => {
-      const result = await userController.login(loginCredentials);
-
-      expect(result).toBeDefined();
-      expect(result).toEqual({
-        idToken: 'mock-id-token',
-        refreshToken: 'mock-refresh-token',
-        expiresIn: '3600',
-      });
-    });
-
-    it('should throw an error if login fails', async () => {
-      // Mock axios pour simuler une erreur
-      jest.spyOn(axios, 'post').mockRejectedValue(new Error('Invalid credentials'));
-
-      await expect(userController.login(loginCredentials)).rejects.toThrow();
-    });
-
-    afterEach(() => {
-      jest.clearAllMocks();
     });
   });
 

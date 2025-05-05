@@ -8,6 +8,8 @@ import {
   Delete,
   UseGuards,
   Logger,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { VolunteerService } from '../services/volunteer.service';
 import { CreateVolunteerDto } from '../dto/create-volunteer.dto';
@@ -16,11 +18,17 @@ import { AuthGuard } from '../../../guards/auth.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '../../../common/enums/roles.enum';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { Public } from '../../../common/decorators/public.decorator';
+import { LoginDto } from '../../user/dto/login.dto';
+import { UserService } from '../../../common/services/user/user.service';
 
 @Controller('volunteer')
 export class VolunteerController {
   private readonly logger = new Logger(VolunteerController.name);
-  constructor(private readonly volunteerService: VolunteerService) {}
+  constructor(
+    private readonly volunteerService: VolunteerService,
+    private readonly userService: UserService,
+  ) {}
 
   @Post()
   @UseGuards(AuthGuard)
@@ -34,6 +42,23 @@ export class VolunteerController {
         `Erreur lors de la création du bénévole: ${createVolunteerDto.email}`,
         error.stack,
       );
+    }
+  }
+
+  @Public()
+  @Post('login')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  login(@Body() loginDto: LoginDto) {
+    try {
+      if (loginDto.role === UserRole.VOLUNTEER) {
+        return this.userService.loginUser(loginDto);
+      } else {
+        return {
+          message: 'Vous devez être un bénévole pour vous connecter',
+        };
+      }
+    } catch (error) {
+      console.error(`Erreur lors de la connexion de l'utilisateur: ${loginDto.email}`, error.stack);
     }
   }
 

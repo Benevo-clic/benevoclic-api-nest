@@ -1,14 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
-import { UserRepository } from '../repository/user.repository';
-import { UserRole } from '../../../common/enums/roles.enum';
-import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
+import { UserRepository } from '../../../api/user/repository/user.repository';
+import { UserRole } from '../../enums/roles.enum';
+import { FirebaseAdminService } from '../../firebase/firebaseAdmin.service';
 import axios from 'axios';
 
 jest.mock('axios');
 
 // Mock FirebaseAdminService
-jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
+jest.mock('../../firebase/firebaseAdmin.service', () => ({
   FirebaseAdminService: {
     getInstance: jest.fn().mockReturnValue({
       getUserByEmail: jest.fn(),
