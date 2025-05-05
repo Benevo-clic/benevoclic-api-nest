@@ -7,8 +7,6 @@ import { MongoClient, ObjectId } from 'mongodb';
 import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import * as mockData from '../../../../test/testFiles/association.data.json';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
-import { UserService } from '../../../common/services/user/user.service';
-import { UserRole } from '../../../common/enums/roles.enum';
 
 // Mock FirebaseAdminService
 jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
@@ -22,11 +20,6 @@ jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
   },
 }));
 
-// Mock du UserService
-const mockUserService = {
-  loginUser: jest.fn(),
-};
-
 describe('AssociationController (Integration)', () => {
   let controller: AssociationController;
   let mongoClient: MongoClient;
@@ -36,14 +29,7 @@ describe('AssociationController (Integration)', () => {
     module = await Test.createTestingModule({
       imports: [DatabaseModule],
       controllers: [AssociationController],
-      providers: [
-        AssociationService,
-        AssociationRepository,
-        {
-          provide: UserService,
-          useValue: mockUserService,
-        },
-      ],
+      providers: [AssociationService, AssociationRepository],
     }).compile();
 
     controller = module.get<AssociationController>(AssociationController);
@@ -89,53 +75,6 @@ describe('AssociationController (Integration)', () => {
     it('should return null for non-existent association', async () => {
       const association = await controller.findOne('5f9d1a7b4f3c4b001f3f7b9d');
       expect(association).toBeNull();
-    });
-  });
-
-  describe('login', () => {
-    const loginDto = {
-      email: 'test@example.com',
-      password: 'password123',
-      role: 'ASSOCIATION' as UserRole,
-    };
-
-    beforeEach(() => {
-      jest.clearAllMocks();
-    });
-
-    it('should login an association successfully', async () => {
-      const expectedResponse = {
-        idToken: 'mock-id-token',
-        refreshToken: 'mock-refresh-token',
-        expiresIn: '3600',
-      };
-
-      mockUserService.loginUser.mockResolvedValueOnce(expectedResponse);
-
-      const result = await controller.login(loginDto);
-
-      expect(result).toEqual(expectedResponse);
-      expect(mockUserService.loginUser).toHaveBeenCalledWith(loginDto);
-    });
-
-    it('should return error message for non-association role', async () => {
-      const nonAssociationLoginDto = {
-        ...loginDto,
-        role: 'VOLUNTEER' as UserRole,
-      };
-
-      const result = await controller.login(nonAssociationLoginDto);
-
-      expect(result).toEqual({
-        message: 'Vous devez être une association pour vous connecter',
-      });
-      expect(mockUserService.loginUser).not.toHaveBeenCalled();
-    });
-
-    it('should handle login errors', async () => {
-      mockUserService.loginUser.mockRejectedValueOnce(new Error('Login failed'));
-
-      await expect(controller.login(loginDto)).rejects.toThrow('Login failed');
     });
   });
 
