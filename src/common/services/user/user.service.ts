@@ -1,21 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { UpdateUserDto } from '../dto/update-user.dto';
-import { RegisterUserDto } from '../dto/register-user.dto';
-import { LoginDto } from '../dto/login.dto';
+import { UpdateUserDto } from '../../../api/user/dto/update-user.dto';
+import { RegisterUserDto } from '../../../api/user/dto/register-user.dto';
+import { LoginDto } from '../../../api/user/dto/login.dto';
 import axios from 'axios';
-import { AuthConfig } from '../../../config/auth.config';
-import { UserRole } from '../../../common/enums/roles.enum';
+import { UserRole } from '../../enums/roles.enum';
 import { UserRecord } from 'firebase-admin/auth';
-import { UserRepository } from '../repository/user.repository';
-import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
-import { Location, Image } from '../../../common/type/usersInfo.type';
-import { LoginResponseDto } from '../dto/login.response.dto';
-import { RegisterReponseDto } from '../dto/register.reponse.dto';
-import { RegisterUserVerifiedDto } from '../dto/register-user-verified.dto';
+import { UserRepository } from '../../../api/user/repository/user.repository';
+import { FirebaseAdminService } from '../../firebase/firebaseAdmin.service';
+import { Location, Image } from '../../type/usersInfo.type';
+import { LoginResponseDto } from '../../../api/user/dto/login.response.dto';
+import { RegisterReponseDto } from '../../../api/user/dto/register.reponse.dto';
+import { RegisterUserVerifiedDto } from '../../../api/user/dto/register-user-verified.dto';
 import {
   RegisterUserGoogleDto,
   RegisterUserGoogleResponseDto,
-} from '../dto/register-user-google.dto';
+} from '../../../api/user/dto/register-user-google.dto';
+import { AuthConfig } from '@config/auth.config';
 
 @Injectable()
 export class UserService {
@@ -245,10 +245,15 @@ export class UserService {
     try {
       this.logger.log(`Tentative de connexion pour: ${payload.email}`);
 
-      const { idToken, refreshToken, expiresIn } = await this.signInWithEmailAndPassword(
-        payload.email,
-        payload.password,
-      );
+      const response = await this.signInWithEmailAndPassword(payload.email, payload.password);
+
+      if (!response || !response.idToken) {
+        this.logger.error(
+          `Identifiants invalides ou réponse Firebase incorrecte pour: ${payload.email}`,
+        );
+      }
+
+      const { idToken, refreshToken, expiresIn } = response;
 
       const firebaseUser = await this.firebaseInstance.getUserByEmail(payload.email);
       await this.updateConnectionStatus(

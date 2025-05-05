@@ -14,7 +14,7 @@ import {
   UseInterceptors,
   UploadedFile,
 } from '@nestjs/common';
-import { UserService } from '../services/user.service';
+import { UserService } from '../../../common/services/user/user.service';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { RegisterUserDto } from '../dto/register-user.dto';
 import { LoginDto } from '../dto/login.dto';

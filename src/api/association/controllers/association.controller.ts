@@ -9,6 +9,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { AssociationService } from '../services/association.service';
 import { CreateAssociationDto } from '../dto/create-association.dto';
@@ -19,10 +21,16 @@ import { UserRole } from '../../../common/enums/roles.enum';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { Association } from '../entities/association.entity';
 import { InfoUserDto } from '../dto/info-user.dto';
+import { UserService } from '../../../common/services/user/user.service';
+import { Public } from '../../../common/decorators/public.decorator';
+import { LoginDto } from '../../user/dto/login.dto';
 
 @Controller('/api/v2/association')
 export class AssociationController {
-  constructor(private readonly associationService: AssociationService) {}
+  constructor(
+    private readonly associationService: AssociationService,
+    private readonly userService: UserService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.OK)
@@ -37,6 +45,23 @@ export class AssociationController {
         `Erreur lors de la création de l'association: ${createAssociationDto.email}`,
         error.stack,
       );
+    }
+  }
+
+  @Public()
+  @Post('login')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  login(@Body() loginDto: LoginDto) {
+    try {
+      if (loginDto.role === UserRole.ASSOCIATION) {
+        return this.userService.loginUser(loginDto);
+      } else {
+        return {
+          message: 'Vous devez être une association pour vous connecter',
+        };
+      }
+    } catch (error) {
+      console.error(`Erreur lors de la connexion de l'utilisateur: ${loginDto.email}`, error.stack);
     }
   }
 
