@@ -14,6 +14,7 @@ describe('AssociationRepository', () => {
   const mockAssociation: Association = {
     associationId: 'test123',
     associationName: 'Test Association',
+    phone: '0123456789',
     bio: 'Test Bio',
     city: 'Test City',
     type: 'Test Type',

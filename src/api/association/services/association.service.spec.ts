@@ -27,6 +27,7 @@ describe('AssociationService', () => {
   const mockAssociation: Association = {
     associationId: 'mockFirebaseUid123',
     associationName: 'Test Association',
+    phone: '0123456789',
     bio: 'Test Bio',
     city: 'Test City',
     type: 'Test Type',
