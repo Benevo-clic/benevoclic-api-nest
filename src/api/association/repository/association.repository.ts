@@ -67,6 +67,6 @@ export class AssociationRepository {
   }
 
   async findByEmail(email: string) {
-    return this.collection.findOne({ email: email });
+    return this.collection.findOne({ email: { $eq: email } });
   }
 }
