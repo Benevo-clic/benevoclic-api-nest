@@ -33,6 +33,7 @@ export class AssociationService {
     return this.associationRepository.create({
       associationId: firebaseUser.uid,
       bio: createAssociationDto.bio,
+      phone: createAssociationDto.phone,
       associationName: createAssociationDto.associationName,
       city: createAssociationDto.city,
       country: createAssociationDto.country,
