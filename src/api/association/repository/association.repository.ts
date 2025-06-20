@@ -65,4 +65,8 @@ export class AssociationRepository {
       { $pull: { volunteersWaiting: { id: volunteerId } } },
     );
   }
+
+  async findByEmail(email: string) {
+    return this.collection.findOne({ email: { $eq: email } });
+  }
 }

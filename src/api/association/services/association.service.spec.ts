@@ -40,6 +40,7 @@ describe('AssociationService', () => {
     create: jest.fn(),
     findAll: jest.fn(),
     findById: jest.fn(),
+    findByEmail: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
     findAssociationsByVolunteer: jest.fn(),
@@ -91,6 +92,7 @@ describe('AssociationService', () => {
       });
 
       mockRepository.findById.mockResolvedValue(null);
+      mockRepository.findByEmail.mockResolvedValue(null);
       mockRepository.create.mockResolvedValue(mockAssociation);
 
       const result = await associationService.create(createDto);

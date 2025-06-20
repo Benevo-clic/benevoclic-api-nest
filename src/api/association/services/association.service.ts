@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateAssociationDto } from '../dto/create-association.dto';
 import { UpdateAssociationDto } from '../dto/update-association.dto';
 import { Association } from '../entities/association.entity';
@@ -9,7 +9,6 @@ import { FindAssociationDto } from '../dto/find-association.dto';
 
 @Injectable()
 export class AssociationService {
-  private readonly logger = new Logger(AssociationService.name);
   firebaseInstance: FirebaseAdminService = FirebaseAdminService.getInstance();
 
   constructor(private readonly associationRepository: AssociationRepository) {}
@@ -23,6 +22,11 @@ export class AssociationService {
     const isExist: Association = await this.associationRepository.findById(firebaseUser.uid);
 
     if (isExist) {
+      throw new Error('Email already exist');
+    }
+
+    const emailExist = await this.associationRepository.findByEmail(createAssociationDto.email);
+    if (emailExist) {
       throw new Error('Email already exist');
     }
 
