@@ -6,6 +6,9 @@ export type Image = {
 
 export type Location = {
   address: string;
-  latitude: number;
-  longitude: number;
+  city: string;
+  postalCode: string;
+  country: string;
+  lat?: number;
+  lng?: number;
 };
