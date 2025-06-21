@@ -212,7 +212,7 @@ export class AnnouncementController {
       return await this.service.updateProfilePicture(id, file);
     } catch (error) {
       console.error(
-        `Erreur lors de la mise à jour de l'image de profil de l'utilisateur: ${id}`,
+        `Erreur lors de la mise à jour de l'image de profil d'annonce: ${id}`,
         error.stack,
       );
     }
