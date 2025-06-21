@@ -175,9 +175,12 @@ describe('UserService', () => {
 
   describe('updateLocation', () => {
     const location = {
-      latitude: 48.8566,
-      longitude: 2.3522,
-      address: '75001 Paris, France',
+      address: '123 Main St',
+      city: 'Paris',
+      postalCode: '75001',
+      country: 'France',
+      lat: 48.8566,
+      lng: 2.3522,
     };
 
     it('should update user location', async () => {
