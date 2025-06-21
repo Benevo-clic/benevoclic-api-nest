@@ -44,6 +44,7 @@ export class AnnouncementService {
 
   async create(announcement: CreateAnnouncementDto): Promise<Announcement> {
     const associationLogo = await this.userService.getUserImageProfile(announcement.associationId);
+    this.logger.log('Creating announcement with association logo:', associationLogo.contentType);
 
     return this.announcementRepository.create({
       associationId: announcement.associationId,
@@ -193,7 +194,7 @@ export class AnnouncementService {
     return await this.announcementRepository.updateStatus(id, status);
   }
 
-  async updateProfilePicture(id: string, file: Express.Multer.File) {
+  async updateCover(id: string, file: Express.Multer.File) {
     try {
       if (!file) {
         throw new Error('Aucun fichier fourni.');

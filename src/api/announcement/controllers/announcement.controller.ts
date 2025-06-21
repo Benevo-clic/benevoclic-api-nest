@@ -204,14 +204,17 @@ export class AnnouncementController {
     return this.service.removeVolunteerWaiting(announcementId, volunteer);
   }
 
-  @Patch(':id/image-profile')
+  @Patch(':id/image-announcement')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('image'))
-  async updateProfileImage(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+  async updateImageCoverAnnouncement(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     try {
-      return await this.service.updateProfilePicture(id, file);
+      return await this.service.updateCover(id, file);
     } catch (error) {
       this.logger.error(
         "Erreur lors de la mise à jour de l'image de profil de l'annonce",
