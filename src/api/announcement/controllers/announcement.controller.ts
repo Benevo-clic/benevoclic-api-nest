@@ -9,6 +9,7 @@ import {
   Patch,
   UseInterceptors,
   UploadedFile,
+  Logger,
 } from '@nestjs/common';
 import { AnnouncementService } from '../services/announcement.service';
 import { Public } from '../../../common/decorators/public.decorator';
@@ -34,6 +35,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 @ApiTags('announcements')
 @Controller('announcements')
 export class AnnouncementController {
+  private readonly logger = new Logger('AnnouncementController');
   constructor(private readonly service: AnnouncementService) {}
 
   @Public()
@@ -211,8 +213,8 @@ export class AnnouncementController {
     try {
       return await this.service.updateProfilePicture(id, file);
     } catch (error) {
-      console.error(
-        `Erreur lors de la mise à jour de l'image de profil d'annonce: ${id}`,
+      this.logger.error(
+        "Erreur lors de la mise à jour de l'image de profil de l'annonce",
         error.stack,
       );
     }
