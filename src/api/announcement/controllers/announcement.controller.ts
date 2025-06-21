@@ -8,8 +8,8 @@ import {
   UseGuards,
   Patch,
   UseInterceptors,
-  UploadedFile
-} from "@nestjs/common";
+  UploadedFile,
+} from '@nestjs/common';
 import { AnnouncementService } from '../services/announcement.service';
 import { Public } from '../../../common/decorators/public.decorator';
 import { AuthGuard } from '../../../guards/auth.guard';
