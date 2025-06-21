@@ -65,6 +65,11 @@ export class UserRepository {
     await this.collection.deleteOne({ userId: id });
   }
 
+  async getUserImageProfileById(id: string): Promise<string | null> {
+    const user = await this.collection.findOne({ userId: id }, { projection: { imageProfile: 1 } });
+    return user?.imageProfile?.data || null;
+  }
+
   async update(id: string, updateData: Partial<User>): Promise<void> {
     await this.collection.updateOne(
       { userId: id },

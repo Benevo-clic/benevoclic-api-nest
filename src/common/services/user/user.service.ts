@@ -47,6 +47,19 @@ export class UserService {
     };
   }
 
+  async getUserImageProfile(id: string): Promise<Image> {
+    try {
+      const user = await this.userRepository.findByUid(id);
+      if (!user || !user.imageProfile) {
+        throw new Error('Aucune image de profil trouvée pour cet utilisateur.');
+      }
+      return user.imageProfile;
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération de l'image de profil: ${id}`, error.stack);
+      throw new Error("Erreur lors de la récupération de l'image de profil");
+    }
+  }
+
   async updateProfilePicture(id: string, file: Express.Multer.File) {
     try {
       if (!file) {

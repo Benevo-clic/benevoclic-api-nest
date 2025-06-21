@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AnnouncementRepository } from '../repositories/announcement.repository';
 import { CreateAnnouncementDto } from '../dto/create-announcement.dto';
 import { Announcement } from '../entities/announcement.entity';
@@ -6,10 +6,15 @@ import { UpdateAnnouncementDto } from '../dto/update-announcement.dto';
 import { InfoVolunteer } from '../../association/type/association.type';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { Image } from '../../../common/type/usersInfo.type';
+import { UserService } from '../../../common/services/user/user.service';
 
 @Injectable()
 export class AnnouncementService {
-  constructor(private readonly announcementRepository: AnnouncementRepository) {}
+  private readonly logger = new Logger(AnnouncementService.name);
+  constructor(
+    private readonly announcementRepository: AnnouncementRepository,
+    private readonly userService: UserService,
+  ) {}
 
   async findAll(): Promise<Announcement[]> {
     return this.announcementRepository.findAll();
@@ -37,10 +42,9 @@ export class AnnouncementService {
     };
   }
 
-  async create(
-    announcement: CreateAnnouncementDto,
-    files: Array<Express.Multer.File>,
-  ): Promise<Announcement> {
+  async create(announcement: CreateAnnouncementDto): Promise<Announcement> {
+    const associationLogo = await this.userService.getUserImageProfile(announcement.associationId);
+
     return this.announcementRepository.create({
       associationId: announcement.associationId,
       description: announcement.description,
@@ -50,15 +54,14 @@ export class AnnouncementService {
       nameEvent: announcement.nameEvent,
       tags: announcement.tags || [],
       associationName: announcement.associationName,
-      associationLogo: await this.uploadProfileImage(files[0]),
-      announcementImage: await this.uploadProfileImage(files[1]),
+      associationLogo: associationLogo,
       locationAnnouncement: announcement.locationAnnouncement,
       participants: [],
       volunteers: [],
       volunteersWaiting: [],
       nbParticipants: 0,
       maxParticipants: announcement.maxParticipants,
-      status: AnnouncementStatus.INACTIVE,
+      status: announcement.status,
       nbVolunteers: 0,
       maxVolunteers: announcement.maxVolunteers,
     });
@@ -188,5 +191,21 @@ export class AnnouncementService {
 
   async updateStatus(id: string, status: AnnouncementStatus) {
     return await this.announcementRepository.updateStatus(id, status);
+  }
+
+  async updateProfilePicture(id: string, file: Express.Multer.File) {
+    try {
+      if (!file) {
+        throw new Error('Aucun fichier fourni.');
+      }
+
+      await this.announcementRepository.update(id, {
+        imageProfile: await this.uploadProfileImage(file),
+      });
+      return { message: 'Photo de profil mise à jour avec succès' };
+    } catch (error) {
+      this.logger.error(`Erreur lors de la mise à jour de la photo de profil: ${id}`, error.stack);
+      throw new Error('Erreur lors de la mise à jour de la photo de profil');
+    }
   }
 }
