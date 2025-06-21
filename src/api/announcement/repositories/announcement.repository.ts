@@ -3,6 +3,7 @@ import { Collection, MongoClient, ObjectId, ClientSession } from 'mongodb';
 import { Announcement } from '../entities/announcement.entity';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
+import { User } from '../../user/entities/user.entity';
 
 @Injectable()
 export class AnnouncementRepository {
@@ -86,5 +87,17 @@ export class AnnouncementRepository {
   async updateStatus(id: string, status: AnnouncementStatus) {
     await this.collection.updateOne({ _id: new ObjectId(id) }, { $set: { status } });
     return this.findById(id);
+  }
+
+  async update(id: string, updateData: Partial<User>): Promise<void> {
+    await this.collection.updateOne(
+      { userId: id },
+      {
+        $set: {
+          ...updateData,
+          updatedAt: new Date(),
+        },
+      },
+    );
   }
 }

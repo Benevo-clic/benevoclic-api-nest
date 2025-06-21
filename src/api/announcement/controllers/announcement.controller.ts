@@ -7,8 +7,9 @@ import {
   Param,
   UseGuards,
   Patch,
-  UploadedFiles,
   UseInterceptors,
+  UploadedFile,
+  Logger,
 } from '@nestjs/common';
 import { AnnouncementService } from '../services/announcement.service';
 import { Public } from '../../../common/decorators/public.decorator';
@@ -29,11 +30,12 @@ import { UpdateAnnouncementDto } from '../dto/update-announcement.dto';
 import { InfoVolunteer } from '../../association/type/association.type';
 import { InfoVolunteerDto } from '../../association/dto/info-volunteer.dto';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
-import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('announcements')
 @Controller('announcements')
 export class AnnouncementController {
+  private readonly logger = new Logger('AnnouncementController');
   constructor(private readonly service: AnnouncementService) {}
 
   @Public()
@@ -67,12 +69,8 @@ export class AnnouncementController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new announcement' })
   @ApiBody({ type: CreateAnnouncementDto })
-  @UseInterceptors(AnyFilesInterceptor())
-  async create(
-    @UploadedFiles() files: Array<Express.Multer.File>,
-    @Body() announcement: CreateAnnouncementDto,
-  ): Promise<Announcement> {
-    return this.service.create(announcement, files);
+  async create(@Body() announcement: CreateAnnouncementDto): Promise<Announcement> {
+    return this.service.create(announcement);
   }
 
   @Get('association/:associationId')
@@ -204,6 +202,22 @@ export class AnnouncementController {
     @Param('volunteer') volunteer: string,
   ): Promise<string> {
     return this.service.removeVolunteerWaiting(announcementId, volunteer);
+  }
+
+  @Patch(':id/image-profile')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ASSOCIATION)
+  @ApiBearerAuth()
+  @UseInterceptors(FileInterceptor('image'))
+  async updateProfileImage(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+    try {
+      return await this.service.updateProfilePicture(id, file);
+    } catch (error) {
+      this.logger.error(
+        "Erreur lors de la mise à jour de l'image de profil de l'annonce",
+        error.stack,
+      );
+    }
   }
 
   @Patch('/updateStatus/:announcementId')
