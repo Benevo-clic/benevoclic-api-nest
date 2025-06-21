@@ -69,7 +69,7 @@ export class AnnouncementController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new announcement' })
   @ApiBody({ type: CreateAnnouncementDto })
-  async create(@Body() announcement: CreateAnnouncementDto): Promise<Announcement> {
+  async create(@Body() announcement: CreateAnnouncementDto): Promise<string> {
     return this.service.create(announcement);
   }
 

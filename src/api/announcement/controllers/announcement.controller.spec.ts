@@ -136,9 +136,6 @@ describe('AnnouncementController', () => {
       });
       const createdAnnouncement = await announcementController.create(announcement);
       expect(createdAnnouncement).toBeDefined();
-      expect(createdAnnouncement.associationId).toBe(announcement.associationId);
-      expect(createdAnnouncement.description).toBe(announcement.description);
-      expect(createdAnnouncement.status).toBe(announcement.status);
     });
   });
 
