@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Patch,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
 import { AnnouncementService } from '../services/announcement.service';
 import { Public } from '../../../common/decorators/public.decorator';
 import { AuthGuard } from '../../../guards/auth.guard';
@@ -18,6 +29,7 @@ import { UpdateAnnouncementDto } from '../dto/update-announcement.dto';
 import { InfoVolunteer } from '../../association/type/association.type';
 import { InfoVolunteerDto } from '../../association/dto/info-volunteer.dto';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('announcements')
 @Controller('announcements')
@@ -55,8 +67,12 @@ export class AnnouncementController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new announcement' })
   @ApiBody({ type: CreateAnnouncementDto })
-  async create(@Body() announcement: CreateAnnouncementDto): Promise<Announcement> {
-    return this.service.create(announcement);
+  @UseInterceptors(AnyFilesInterceptor())
+  async create(
+    @UploadedFiles() files: Array<Express.Multer.File>,
+    @Body() announcement: CreateAnnouncementDto,
+  ): Promise<Announcement> {
+    return this.service.create(announcement, files);
   }
 
   @Get('association/:associationId')
