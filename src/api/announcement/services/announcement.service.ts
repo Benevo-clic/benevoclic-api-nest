@@ -42,7 +42,7 @@ export class AnnouncementService {
     };
   }
 
-  async create(announcement: CreateAnnouncementDto): Promise<Announcement> {
+  async create(announcement: CreateAnnouncementDto): Promise<string> {
     const associationLogo = await this.userService.getUserImageProfile(announcement.associationId);
     this.logger.log('Creating announcement with association logo:', associationLogo.contentType);
 

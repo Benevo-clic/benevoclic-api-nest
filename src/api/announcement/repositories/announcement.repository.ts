@@ -27,12 +27,12 @@ export class AnnouncementRepository {
     return await this.collection.find({ associationId }).toArray();
   }
 
-  async create(announcement: Announcement): Promise<Announcement> {
+  async create(announcement: Announcement): Promise<string> {
     const result = await this.collection.insertOne({
       ...announcement,
     });
 
-    return await this.findById(result.insertedId.toString());
+    return result.insertedId.toString();
   }
 
   async updateVolunteer(
