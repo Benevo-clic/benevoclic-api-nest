@@ -5,6 +5,7 @@ import { Announcement } from '../entities/announcement.entity';
 import { UpdateAnnouncementDto } from '../dto/update-announcement.dto';
 import { InfoVolunteer } from '../../association/type/association.type';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
+import { Image } from '../../../common/type/usersInfo.type';
 
 @Injectable()
 export class AnnouncementService {
@@ -22,7 +23,24 @@ export class AnnouncementService {
     return this.announcementRepository.findByAssociationId(associationId);
   }
 
-  async create(announcement: CreateAnnouncementDto): Promise<Announcement> {
+  async uploadProfileImage(file: Express.Multer.File): Promise<Image> {
+    if (!file) {
+      return null;
+    }
+
+    const base64Image = file.buffer.toString('base64');
+
+    return {
+      data: base64Image, // Image encodée en Base64
+      contentType: file.mimetype,
+      uploadedAt: new Date(),
+    };
+  }
+
+  async create(
+    announcement: CreateAnnouncementDto,
+    files: Array<Express.Multer.File>,
+  ): Promise<Announcement> {
     return this.announcementRepository.create({
       associationId: announcement.associationId,
       description: announcement.description,
@@ -32,8 +50,8 @@ export class AnnouncementService {
       nameEvent: announcement.nameEvent,
       tags: announcement.tags || [],
       associationName: announcement.associationName,
-      associationLogo: announcement.associationLogo,
-      announcementImage: announcement.announcementImage,
+      associationLogo: await this.uploadProfileImage(files[0]),
+      announcementImage: await this.uploadProfileImage(files[1]),
       locationAnnouncement: announcement.locationAnnouncement,
       participants: [],
       volunteers: [],

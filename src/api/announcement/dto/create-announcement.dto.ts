@@ -46,14 +46,6 @@ export class CreateAnnouncementDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  associationLogo?: Image;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  announcementImage?: Image;
-
-  @ApiProperty()
-  @IsNotEmpty()
   locationAnnouncement?: Location;
 
   @ApiProperty()
