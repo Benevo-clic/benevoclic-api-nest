@@ -154,7 +154,7 @@ export class AnnouncementController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Enregistrer un participant à une annonce' })
+  @ApiOperation({ summary: 'Enregistrer un(e) participant(e) à une annonce' })
   @ApiParam({
     name: 'announcementId',
     required: true,
