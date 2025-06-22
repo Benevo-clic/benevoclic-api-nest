@@ -204,7 +204,7 @@ export class AnnouncementController {
     return this.service.removeVolunteerWaiting(announcementId, volunteer);
   }
 
-  @Patch(':id/image-announcement')
+  @Patch('/cover-announcement/:id')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
