@@ -89,7 +89,7 @@ export class AnnouncementRepository {
     return this.findById(id);
   }
 
-  async update(id: string, updateData: Partial<User>): Promise<void> {
+  async update(id: string, updateData: Partial<Announcement>): Promise<void> {
     await this.collection.updateOne(
       { userId: id },
       {
