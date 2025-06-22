@@ -90,7 +90,7 @@ export class AnnouncementRepository {
 
   async update(id: string, updateData: Partial<Announcement>): Promise<void> {
     await this.collection.updateOne(
-      { userId: id },
+      { _id: new ObjectId(id) },
       {
         $set: {
           ...updateData,
