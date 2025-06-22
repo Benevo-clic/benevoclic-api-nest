@@ -56,6 +56,7 @@ export class AnnouncementService {
       tags: announcement.tags || [],
       associationName: announcement.associationName,
       associationLogo: associationLogo,
+      announcementImage: null,
       locationAnnouncement: announcement.locationAnnouncement,
       participants: [],
       volunteers: [],
