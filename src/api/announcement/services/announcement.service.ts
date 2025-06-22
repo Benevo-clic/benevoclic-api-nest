@@ -204,7 +204,7 @@ export class AnnouncementService {
       await this.announcementRepository.update(id, {
         announcementImage: await this.uploadProfileImage(file),
       });
-      return { message: 'Photo de profil mise à jour avec succès' };
+      return { message: `Photo de profil mise à jour avec succès: ${id}` };
     } catch (error) {
       this.logger.error(`Erreur lors de la mise à jour de la photo de profil: ${id}`, error.stack);
       throw new Error('Erreur lors de la mise à jour de la photo de profil');
