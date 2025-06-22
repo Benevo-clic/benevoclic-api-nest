@@ -44,7 +44,6 @@ export class AnnouncementService {
 
   async create(announcement: CreateAnnouncementDto): Promise<string> {
     const associationLogo = await this.userService.getUserImageProfile(announcement.associationId);
-    this.logger.log('Creating announcement with association logo:', associationLogo.contentType);
 
     return this.announcementRepository.create({
       associationId: announcement.associationId,
@@ -200,10 +199,13 @@ export class AnnouncementService {
       if (!file) {
         throw new Error('Aucun fichier fourni.');
       }
-
+      const image = await this.uploadProfileImage(file);
       await this.announcementRepository.update(id, {
-        announcementImage: await this.uploadProfileImage(file),
+        announcementImage: image,
       });
+
+      this.logger.log(`Photo de profil mise à jour avec succès: ${image}`);
+
       return { message: `Photo de profil mise à jour avec succès: ${id}` };
     } catch (error) {
       this.logger.error(`Erreur lors de la mise à jour de la photo de profil: ${id}`, error.stack);
