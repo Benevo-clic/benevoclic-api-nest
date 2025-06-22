@@ -204,9 +204,9 @@ export class AnnouncementService {
         announcementImage: image,
       });
 
-      this.logger.log(`Photo de profil mise à jour avec succès: ${image}`);
+      this.logger.log(`Photo de profil mise à jour avec succès: ${id}`);
 
-      return { message: `Photo de profil mise à jour avec succès: ${id}` };
+      return image;
     } catch (error) {
       this.logger.error(`Erreur lors de la mise à jour de la photo de profil: ${id}`, error.stack);
       throw new Error('Erreur lors de la mise à jour de la photo de profil');
