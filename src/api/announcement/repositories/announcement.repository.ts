@@ -3,7 +3,6 @@ import { Collection, MongoClient, ObjectId, ClientSession } from 'mongodb';
 import { Announcement } from '../entities/announcement.entity';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
-import { User } from '../../user/entities/user.entity';
 
 @Injectable()
 export class AnnouncementRepository {
