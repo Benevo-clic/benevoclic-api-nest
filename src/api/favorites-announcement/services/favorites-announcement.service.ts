@@ -11,7 +11,7 @@ export class FavoritesAnnouncementService {
       favoritesAnnouncement.volunteerId,
       favoritesAnnouncement.announcementId,
     );
-    if (!_favoritesAnnouncement) {
+    if (_favoritesAnnouncement) {
       throw new Error('Favorite announcement already exists');
     }
     return this.favoritesAnnouncementRepository.create({

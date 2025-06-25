@@ -16,7 +16,13 @@ export class FavoritesAnnouncementRepository {
   }
 
   async findByVolunteerIdAndAnnouncementId(volunteerId: string, announcementId: string) {
-    return await this.collection.findOne({ volunteerId, announcementId });
+    if (typeof volunteerId !== 'string' || typeof announcementId !== 'string') {
+      throw new Error('Invalid input: volunteerId and announcementId must be strings');
+    }
+    return await this.collection.findOne(
+      { volunteerId: { $eq: volunteerId }, announcementId: { $eq: announcementId } },
+      { projection: { _id: 0, __v: 0 } },
+    );
   }
 
   async create(favoritesAnnouncement: FavoritesAnnouncement) {
