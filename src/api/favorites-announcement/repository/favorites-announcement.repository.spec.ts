@@ -72,7 +72,10 @@ describe('FavoritesAnnouncementRepository', () => {
       expect(mockMongoClient.db).toHaveBeenCalled();
       expect(mockMongoClient.db().collection).toHaveBeenCalledWith(DatabaseCollection.FAVORITES);
       expect(mockCollection.findOne).toHaveBeenCalledWith(
-        { volunteerId, announcementId },
+        {
+          volunteerId: { $eq: volunteerId },
+          announcementId: { $eq: announcementId },
+        },
         { projection: { _id: 0, __v: 0 } },
       );
       expect(result).toEqual(expectedResult);
@@ -92,7 +95,10 @@ describe('FavoritesAnnouncementRepository', () => {
 
       // Assert
       expect(mockCollection.findOne).toHaveBeenCalledWith(
-        { volunteerId, announcementId },
+        {
+          volunteerId: { $eq: volunteerId },
+          announcementId: { $eq: announcementId },
+        },
         { projection: { _id: 0, __v: 0 } },
       );
       expect(result).toBeNull();
