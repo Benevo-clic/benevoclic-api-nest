@@ -16,7 +16,10 @@ export class FavoritesAnnouncementRepository {
   }
 
   async findByVolunteerIdAndAnnouncementId(volunteerId: string, announcementId: string) {
-    return await this.collection.findOne({ volunteerId, announcementId });
+    return await this.collection.findOne(
+      { volunteerId, announcementId },
+      { projection: { _id: 0, __v: 0 } },
+    );
   }
 
   async create(favoritesAnnouncement: FavoritesAnnouncement) {
