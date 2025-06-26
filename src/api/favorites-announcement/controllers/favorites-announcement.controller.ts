@@ -65,7 +65,7 @@ export class FavoritesAnnouncementController {
     );
   }
 
-  @Get(':volunteerId')
+  @Get('/favoritesVolunteer/:volunteerId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
