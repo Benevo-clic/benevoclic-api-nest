@@ -9,5 +9,6 @@ import { UserModule } from '../user/user.module';
   imports: [DatabaseModule, UserModule],
   providers: [AnnouncementRepository, AnnouncementService],
   controllers: [AnnouncementController],
+  exports: [AnnouncementService, AnnouncementRepository],
 })
 export class AnnouncementModule {}

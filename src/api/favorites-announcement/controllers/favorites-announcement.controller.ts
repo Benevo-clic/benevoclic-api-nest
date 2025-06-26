@@ -65,6 +65,14 @@ export class FavoritesAnnouncementController {
     );
   }
 
+  @Get(':volunteerId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  findByVolunteerIdAllFavoritesAnnouncement(@Param('volunteerId') volunteerId: string) {
+    return this.favoritesAnnouncementService.findByVolunteerIdAllFavoritesAnnouncement(volunteerId);
+  }
+
   @Delete(':volunteerId/:announcementId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER)

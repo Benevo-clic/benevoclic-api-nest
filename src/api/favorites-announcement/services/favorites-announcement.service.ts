@@ -1,10 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { FavoritesAnnouncementRepository } from '../repository/favorites-announcement.repository';
 import { FavoritesAnnouncement } from '../entities/favorites-announcement.entity';
+import { AnnouncementService } from '../../announcement/services/announcement.service';
+import { Announcement } from 'src/api/announcement/entities/announcement.entity';
 
 @Injectable()
 export class FavoritesAnnouncementService {
-  constructor(private readonly favoritesAnnouncementRepository: FavoritesAnnouncementRepository) {}
+  constructor(
+    private readonly favoritesAnnouncementRepository: FavoritesAnnouncementRepository,
+    private readonly announcementService: AnnouncementService,
+  ) {}
 
   async create(favoritesAnnouncement: FavoritesAnnouncement) {
     const _favoritesAnnouncement = await this.findByVolunteerIdAndAnnouncementId(
@@ -50,6 +55,15 @@ export class FavoritesAnnouncementService {
     return this.favoritesAnnouncementRepository.findByVolunteerIdAndAnnouncementId(
       volunteerId,
       announcementId,
+    );
+  }
+
+  async findByVolunteerIdAllFavoritesAnnouncement(volunteerId: string): Promise<Announcement[]> {
+    const favorites = await this.favoritesAnnouncementRepository.findAllByVolunteerId(volunteerId);
+    return await Promise.all(
+      favorites.map(async favorite => {
+        return await this.announcementService.findById(favorite.announcementId);
+      }),
     );
   }
 }
