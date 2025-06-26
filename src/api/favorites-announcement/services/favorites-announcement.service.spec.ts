@@ -2,10 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { FavoritesAnnouncementService } from './favorites-announcement.service';
 import { FavoritesAnnouncementRepository } from '../repository/favorites-announcement.repository';
 import { FavoritesAnnouncement } from '../entities/favorites-announcement.entity';
+import { AnnouncementService } from '../../announcement/services/announcement.service';
 
 describe('FavoritesAnnouncementService', () => {
   let service: FavoritesAnnouncementService;
   let repository: FavoritesAnnouncementRepository;
+  let announcementService: AnnouncementService;
 
   const mockFavoritesAnnouncementRepository = {
     create: jest.fn(),
@@ -18,6 +20,10 @@ describe('FavoritesAnnouncementService', () => {
     findByVolunteerIdAndAnnouncementId: jest.fn(),
   };
 
+  const mockAnnouncementService = {
+    findById: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -26,11 +32,16 @@ describe('FavoritesAnnouncementService', () => {
           provide: FavoritesAnnouncementRepository,
           useValue: mockFavoritesAnnouncementRepository,
         },
+        {
+          provide: AnnouncementService,
+          useValue: mockAnnouncementService,
+        },
       ],
     }).compile();
 
     service = module.get<FavoritesAnnouncementService>(FavoritesAnnouncementService);
     repository = module.get<FavoritesAnnouncementRepository>(FavoritesAnnouncementRepository);
+    announcementService = module.get<AnnouncementService>(AnnouncementService);
   });
 
   afterEach(() => {
@@ -235,6 +246,80 @@ describe('FavoritesAnnouncementService', () => {
         announcementId,
       );
       expect(result).toBeNull();
+    });
+  });
+
+  describe('findByVolunteerIdAllFavoritesAnnouncement', () => {
+    it('should return all favorite announcements with their associated announcement data for a volunteer', async () => {
+      // Arrange
+      const volunteerId = 'volunteer-123';
+      const mockFavorites = [
+        { volunteerId: 'volunteer-123', announcementId: 'announcement-1' },
+        { volunteerId: 'volunteer-123', announcementId: 'announcement-2' },
+      ];
+      const mockAnnouncement1 = {
+        id: 'announcement-1',
+        nameEvent: 'Event 1',
+        description: 'Description 1',
+        associationId: 'association-1',
+      };
+      const mockAnnouncement2 = {
+        id: 'announcement-2',
+        nameEvent: 'Event 2',
+        description: 'Description 2',
+        associationId: 'association-2',
+      };
+
+      mockFavoritesAnnouncementRepository.findAllByVolunteerId.mockResolvedValue(mockFavorites);
+      mockAnnouncementService.findById
+        .mockResolvedValueOnce(mockAnnouncement1)
+        .mockResolvedValueOnce(mockAnnouncement2);
+
+      // Act
+      const result = await service.findByVolunteerIdAllFavoritesAnnouncement(volunteerId);
+
+      // Assert
+      expect(repository.findAllByVolunteerId).toHaveBeenCalledWith(volunteerId);
+      expect(announcementService.findById).toHaveBeenCalledWith('announcement-1');
+      expect(announcementService.findById).toHaveBeenCalledWith('announcement-2');
+      expect(result).toEqual([mockAnnouncement1, mockAnnouncement2]);
+    });
+
+    it('should return empty array when volunteer has no favorite announcements', async () => {
+      // Arrange
+      const volunteerId = 'volunteer-123';
+      mockFavoritesAnnouncementRepository.findAllByVolunteerId.mockResolvedValue([]);
+
+      // Act
+      const result = await service.findByVolunteerIdAllFavoritesAnnouncement(volunteerId);
+
+      // Assert
+      expect(repository.findAllByVolunteerId).toHaveBeenCalledWith(volunteerId);
+      expect(announcementService.findById).not.toHaveBeenCalled();
+      expect(result).toEqual([]);
+    });
+
+    it('should handle case when announcement is not found', async () => {
+      // Arrange
+      const volunteerId = 'volunteer-123';
+      const mockFavorites = [{ volunteerId: 'volunteer-123', announcementId: 'announcement-1' }];
+      const mockAnnouncement1 = {
+        id: 'announcement-1',
+        nameEvent: 'Event 1',
+        description: 'Description 1',
+        associationId: 'association-1',
+      };
+
+      mockFavoritesAnnouncementRepository.findAllByVolunteerId.mockResolvedValue(mockFavorites);
+      mockAnnouncementService.findById.mockResolvedValue(mockAnnouncement1);
+
+      // Act
+      const result = await service.findByVolunteerIdAllFavoritesAnnouncement(volunteerId);
+
+      // Assert
+      expect(repository.findAllByVolunteerId).toHaveBeenCalledWith(volunteerId);
+      expect(announcementService.findById).toHaveBeenCalledWith('announcement-1');
+      expect(result).toEqual([mockAnnouncement1]);
     });
   });
 });
