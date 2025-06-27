@@ -60,7 +60,6 @@ export class FavoritesAnnouncementService {
 
   async findByVolunteerIdAllFavoritesAnnouncement(volunteerId: string): Promise<Announcement[]> {
     const favorites = await this.favoritesAnnouncementRepository.findAllByVolunteerId(volunteerId);
-    console.log(`Favorites for volunteer ${volunteerId}:`, favorites);
     return await Promise.all(
       favorites.map(async favorite => {
         return await this.announcementService.findById(favorite.announcementId);

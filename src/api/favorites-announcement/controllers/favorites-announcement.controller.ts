@@ -75,7 +75,7 @@ export class FavoritesAnnouncementController {
         volunteerId,
       );
     this.logger.log(`Favorites for volunteer ${volunteerId}:`, favorites.length);
-    return favorites;
+    return favorites || [];
   }
 
   @Delete(':volunteerId/:announcementId')
