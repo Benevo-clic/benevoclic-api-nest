@@ -65,6 +65,7 @@ export class FavoritesAnnouncementController {
     );
   }
 
+
   @Get(':volunteerId/favoritesVolunteer')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
