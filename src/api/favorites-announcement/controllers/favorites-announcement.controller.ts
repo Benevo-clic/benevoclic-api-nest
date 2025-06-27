@@ -5,6 +5,7 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '../../../common/enums/roles.enum';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { CreateFavoritesAnnouncementDto } from '../dto/create-favorites-announcement.dto';
+import { Announcement } from '../../announcement/entities/announcement.entity';
 
 @Controller('favorites-announcement')
 export class FavoritesAnnouncementController {
@@ -69,13 +70,18 @@ export class FavoritesAnnouncementController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  async findByVolunteerIdAllFavoritesAnnouncement(@Param('volunteerId') volunteerId: string) {
+  async findByVolunteerIdAllFavoritesAnnouncement(
+    @Param('volunteerId') volunteerId: string,
+  ): Promise<Announcement[]> {
     const favorites =
       await this.favoritesAnnouncementService.findByVolunteerIdAllFavoritesAnnouncement(
         volunteerId,
       );
-    this.logger.log(`Favorites for volunteer ${volunteerId}:`, favorites.length);
-    return favorites || [];
+    if (!favorites || favorites.length === 0) {
+      this.logger.warn(`No favorites found for volunteer ${volunteerId}`);
+      return [];
+    }
+    return favorites;
   }
 
   @Delete(':volunteerId/:announcementId')
