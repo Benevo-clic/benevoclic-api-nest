@@ -69,8 +69,13 @@ export class FavoritesAnnouncementController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  findByVolunteerIdAllFavoritesAnnouncement(@Param('volunteerId') volunteerId: string) {
-    return this.favoritesAnnouncementService.findByVolunteerIdAllFavoritesAnnouncement(volunteerId);
+  async findByVolunteerIdAllFavoritesAnnouncement(@Param('volunteerId') volunteerId: string) {
+    const favorites =
+      await this.favoritesAnnouncementService.findByVolunteerIdAllFavoritesAnnouncement(
+        volunteerId,
+      );
+    this.logger.log(`Favorites for volunteer ${volunteerId}:`, favorites.length);
+    return favorites;
   }
 
   @Delete(':volunteerId/:announcementId')
