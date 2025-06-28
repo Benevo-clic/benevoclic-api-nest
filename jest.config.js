@@ -9,8 +9,12 @@ module.exports = {
   coverageDirectory: '../coverage',
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/../test/setup.ts'],
+  globalTeardown: '<rootDir>/../test/teardown.ts',
   moduleDirectories: ['node_modules', 'src'],
   moduleNameMapper: {
     '^@config/(.*)$': '<rootDir>/config/$1',
   },
+  forceExit: true,
+  detectOpenHandles: true,
+  testTimeout: 30000,
 };

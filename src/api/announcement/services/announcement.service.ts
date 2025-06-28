@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { AnnouncementRepository } from '../repositories/announcement.repository';
 import { CreateAnnouncementDto } from '../dto/create-announcement.dto';
 import { Announcement } from '../entities/announcement.entity';
@@ -11,21 +13,80 @@ import { UserService } from '../../../common/services/user/user.service';
 @Injectable()
 export class AnnouncementService {
   private readonly logger = new Logger(AnnouncementService.name);
+  private readonly CACHE_KEYS = {
+    ALL_ANNOUNCEMENTS: 'allAnnouncements',
+    ANNOUNCEMENT_BY_ID: (id: string) => `announcement:${id}`,
+    ANNOUNCEMENTS_BY_ASSOCIATION: (associationId: string) =>
+      `announcements:association:${associationId}`,
+  };
+
   constructor(
     private readonly announcementRepository: AnnouncementRepository,
     private readonly userService: UserService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async findAll(): Promise<Announcement[]> {
-    return this.announcementRepository.findAll();
+    // Cache-aside pattern: check cache first
+    const cachedAnnouncements = await this.cacheManager.get<Announcement[]>(
+      this.CACHE_KEYS.ALL_ANNOUNCEMENTS,
+    );
+
+    if (cachedAnnouncements) {
+      this.logger.log('Cache hit for all announcements');
+      return cachedAnnouncements;
+    }
+
+    // Cache miss: query database
+    this.logger.log('Cache miss for all announcements, querying database');
+    const announcements = await this.announcementRepository.findAll();
+
+    // Cache the result
+    await this.cacheManager.set(this.CACHE_KEYS.ALL_ANNOUNCEMENTS, announcements);
+
+    return announcements;
   }
 
   async findById(id: string): Promise<Announcement> {
-    return this.announcementRepository.findById(id);
+    // Cache-aside pattern for individual announcements
+    const cacheKey = this.CACHE_KEYS.ANNOUNCEMENT_BY_ID(id);
+    const cachedAnnouncement = await this.cacheManager.get<Announcement>(cacheKey);
+
+    if (cachedAnnouncement) {
+      this.logger.log(`Cache hit for announcement ${id}`);
+      return cachedAnnouncement;
+    }
+
+    // Cache miss: query database
+    this.logger.log(`Cache miss for announcement ${id}, querying database`);
+    const announcement = await this.announcementRepository.findById(id);
+
+    if (announcement) {
+      // Cache the result
+      await this.cacheManager.set(cacheKey, announcement);
+    }
+
+    return announcement;
   }
 
   async findByAssociationId(associationId: string): Promise<Announcement[]> {
-    return this.announcementRepository.findByAssociationId(associationId);
+    // Cache-aside pattern for association announcements
+    const cacheKey = this.CACHE_KEYS.ANNOUNCEMENTS_BY_ASSOCIATION(associationId);
+    const cachedAnnouncements = await this.cacheManager.get<Announcement[]>(cacheKey);
+
+    if (cachedAnnouncements) {
+      this.logger.log(`Cache hit for association announcements ${associationId}`);
+      return cachedAnnouncements;
+    }
+
+    // Cache miss: query database
+    this.logger.log(`Cache miss for association announcements ${associationId}, querying database`);
+    const announcements = await this.announcementRepository.findByAssociationId(associationId);
+
+    // Cache the result
+    await this.cacheManager.set(cacheKey, announcements);
+
+    return announcements;
   }
 
   async uploadProfileImage(file: Express.Multer.File): Promise<Image> {
@@ -45,7 +106,7 @@ export class AnnouncementService {
   async create(announcement: CreateAnnouncementDto): Promise<string> {
     const associationLogo = await this.userService.getUserImageProfile(announcement.associationId);
 
-    return this.announcementRepository.create({
+    const result = await this.announcementRepository.create({
       associationId: announcement.associationId,
       description: announcement.description,
       datePublication: announcement.datePublication,
@@ -66,18 +127,38 @@ export class AnnouncementService {
       nbVolunteers: 0,
       maxVolunteers: announcement.maxVolunteers,
     });
+
+    // Invalidate cache after creation
+    await this.invalidateCache();
+
+    return result;
   }
 
   async update(id: string, announcement: UpdateAnnouncementDto): Promise<Partial<Announcement>> {
-    return this.announcementRepository.updateVolunteer(id, announcement);
+    const result = await this.announcementRepository.updateVolunteer(id, announcement);
+
+    // Invalidate cache after update
+    await this.invalidateCache(id);
+
+    return result;
   }
 
   async delete(id: string): Promise<boolean> {
-    return this.announcementRepository.delete(id);
+    const result = await this.announcementRepository.delete(id);
+
+    // Invalidate cache after deletion
+    await this.invalidateCache(id);
+
+    return result;
   }
 
   async deleteByAssociationId(associationId: string): Promise<boolean> {
-    return this.announcementRepository.deleteByAssociationId(associationId);
+    const result = await this.announcementRepository.deleteByAssociationId(associationId);
+
+    // Invalidate cache after deletion
+    await this.invalidateCache(null, associationId);
+
+    return result;
   }
 
   async isCompletedVolunteer(announcement: Announcement): Promise<boolean> {
@@ -113,6 +194,9 @@ export class AnnouncementService {
     announcement.volunteers.push(volunteer);
     announcement.nbVolunteers++;
     await this.announcementRepository.updateVolunteer(id, announcement);
+
+    // Invalidate cache after volunteer addition
+    await this.invalidateCache(id);
   }
 
   async registerVolunteerWaiting(id: string, volunteer: InfoVolunteer): Promise<InfoVolunteer> {
@@ -125,6 +209,10 @@ export class AnnouncementService {
     }
     announcement.volunteersWaiting.push(volunteer);
     await this.announcementRepository.updateVolunteer(id, announcement);
+
+    // Invalidate cache after volunteer waiting registration
+    await this.invalidateCache(id);
+
     return volunteer;
   }
 
@@ -137,6 +225,10 @@ export class AnnouncementService {
       throw new Error('Volunteer not registered');
     }
     await this.announcementRepository.removeVolunteerWaiting(id, volunteerId);
+
+    // Invalidate cache after volunteer waiting removal
+    await this.invalidateCache(id);
+
     return volunteerId;
   }
 
@@ -154,6 +246,10 @@ export class AnnouncementService {
       volunteerId,
       announcement.nbVolunteers - 1,
     );
+
+    // Invalidate cache after volunteer removal
+    await this.invalidateCache(id);
+
     return volunteerId;
   }
 
@@ -166,6 +262,10 @@ export class AnnouncementService {
     announcement.participants.push(participant);
     announcement.nbParticipants++;
     await this.announcementRepository.updateVolunteer(id, announcement);
+
+    // Invalidate cache after participant registration
+    await this.invalidateCache(id);
+
     return participant;
   }
 
@@ -187,11 +287,20 @@ export class AnnouncementService {
       participantId,
       announcement.nbParticipants - 1,
     );
+
+    // Invalidate cache after participant removal
+    await this.invalidateCache(id);
+
     return participantId;
   }
 
   async updateStatus(id: string, status: AnnouncementStatus) {
-    return await this.announcementRepository.updateStatus(id, status);
+    const result = await this.announcementRepository.updateStatus(id, status);
+
+    // Invalidate cache after status update
+    await this.invalidateCache(id);
+
+    return result;
   }
 
   async updateCover(id: string, file: Express.Multer.File) {
@@ -204,6 +313,9 @@ export class AnnouncementService {
         announcementImage: image,
       });
 
+      // Invalidate cache after cover update
+      await this.invalidateCache(id);
+
       this.logger.log(`Photo de profil mise à jour avec succès: ${id}`);
 
       return image;
@@ -211,5 +323,15 @@ export class AnnouncementService {
       this.logger.error(`Erreur lors de la mise à jour de la photo de profil: ${id}`, error.stack);
       throw new Error('Erreur lors de la mise à jour de la photo de profil');
     }
+  }
+
+  private async invalidateCache(id?: string, associationId?: string) {
+    if (id) {
+      await this.cacheManager.del(this.CACHE_KEYS.ANNOUNCEMENT_BY_ID(id));
+    }
+    if (associationId) {
+      await this.cacheManager.del(this.CACHE_KEYS.ANNOUNCEMENTS_BY_ASSOCIATION(associationId));
+    }
+    await this.cacheManager.del(this.CACHE_KEYS.ALL_ANNOUNCEMENTS);
   }
 }
