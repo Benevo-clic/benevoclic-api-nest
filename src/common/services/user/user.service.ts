@@ -124,6 +124,7 @@ export class UserService {
       await this.updateConnectionStatus(userRecord.uid, true, userRecord.metadata.lastSignInTime);
 
       return {
+        idUser: userRecord.uid,
         token: customToken,
         expiresIn: 3600,
       };
@@ -276,7 +277,7 @@ export class UserService {
       );
 
       this.logger.log(`Connexion réussie pour: ${payload.email}`);
-      return { idToken, refreshToken, expiresIn };
+      return { idUser: firebaseUser.uid, idToken, refreshToken, expiresIn };
     } catch (error) {
       this.logger.error(`Erreur de connexion pour: ${payload.email}`, error.stack);
       throw error;
@@ -285,9 +286,6 @@ export class UserService {
 
   async updateConnectionStatus(id: string, isConnected: boolean, lastSignInTime?: string) {
     try {
-      // const userRecord = await this.firebaseInstance.getUser(id);
-      // const signInTime = userRecord.metadata.lastSignInTime ?? lastSignInTime;
-
       await this.userRepository.updateConnectionStatus(id, isConnected, lastSignInTime);
       return { message: 'Statut de connexion mis à jour avec succès' };
     } catch (error) {
