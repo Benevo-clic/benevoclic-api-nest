@@ -111,6 +111,7 @@ describe('UserService', () => {
     it('should login a user successfully', async () => {
       const mockResponse = {
         data: {
+          idUser: 'mockUid',
           idToken: 'mock-token',
           refreshToken: 'mock-refresh',
           expiresIn: '3600',

@@ -56,7 +56,6 @@ describe('VolunteerController (Integration)', () => {
     it('should return all volunteers', async () => {
       const volunteers = await volunteerController.findAll();
       expect(volunteers).toBeDefined();
-      console.log(volunteers.length);
       expect(Array.isArray(volunteers)).toBe(true);
     });
   });
@@ -66,7 +65,6 @@ describe('VolunteerController (Integration)', () => {
       const volunteerId = 'Si8gVTUm7at9EjuXsM8cdyOusUc2';
       const volunteer = await volunteerController.findOne(volunteerId);
       expect(volunteer).toBeDefined();
-      console.log(volunteer);
     });
     it('should return null for an invalid ID', async () => {
       const volunteer = await volunteerController.findOne('invalidId');

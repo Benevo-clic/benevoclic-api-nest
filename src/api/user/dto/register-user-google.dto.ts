@@ -14,6 +14,7 @@ export class RegisterUserGoogleDto {
 }
 
 export class RegisterUserGoogleResponseDto {
+  idUser: string;
   token: string;
   expiresIn: number;
 }
