@@ -82,9 +82,7 @@ describe('AnnouncementController', () => {
     it('should return an announcement by id', async () => {
       announcementService.findById = jest.fn().mockReturnValue(mockData.announcements[0]);
       const announcement = await announcementController.findById('67a89edbafdcf40d022aac89');
-      console.log(announcement);
       expect(announcement).toBeDefined();
-      // expect(announcement.associationId).toBe(mockData.announcements[0].associationId);
     });
   });
 
@@ -100,7 +98,6 @@ describe('AnnouncementController', () => {
       const announcements = await announcementController.findByAssociationId(
         'Um7at9Si8gVTEjuXsM8cdyOushc2',
       );
-      console.log(announcements.length);
       expect(announcements).toBeDefined();
       expect(Array.isArray(announcements)).toBe(true);
     });
