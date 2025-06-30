@@ -197,8 +197,12 @@ describe('AssociationService', () => {
 
     describe('removeVolunteer', () => {
       it('should remove a volunteer from an association', async () => {
-        mockRepository.findById.mockResolvedValue(mockAssociation);
-        mockRepository.findAssociationsByVolunteer.mockResolvedValue([mockAssociation]);
+        // Préparer une association avec le bénévole dans la liste
+        const associationWithVolunteer = {
+          ...mockAssociation,
+          volunteers: [mockVolunteer],
+        };
+        mockRepository.findById.mockResolvedValue(associationWithVolunteer);
         mockRepository.removeVolunteerFromAssociation.mockResolvedValue(mockVolunteer.id);
 
         const result = await associationService.removeVolunteer(
@@ -208,12 +212,29 @@ describe('AssociationService', () => {
         expect(result).toBe(mockVolunteer.id);
         expect(associationRepository.removeVolunteerFromAssociation).toHaveBeenCalled();
       });
+
+      it('should throw error if volunteer does not exist', async () => {
+        // Préparer une association sans le bénévole dans la liste
+        const associationWithoutVolunteer = {
+          ...mockAssociation,
+          volunteers: [],
+        };
+        mockRepository.findById.mockResolvedValue(associationWithoutVolunteer);
+
+        await expect(
+          associationService.removeVolunteer('mockFirebaseUid123', mockVolunteer.id),
+        ).rejects.toThrow('Volunteer not exist');
+      });
     });
 
     describe('removeVolunteerWaiting', () => {
       it('should remove a volunteer from the waiting list of an association', async () => {
-        mockRepository.findById.mockResolvedValue(mockAssociation);
-        mockRepository.findAssociationsByVolunteerWaiting.mockResolvedValue([mockAssociation]);
+        // Préparer une association avec le bénévole dans la liste d'attente
+        const associationWithWaiting = {
+          ...mockAssociation,
+          volunteersWaiting: [mockVolunteer],
+        };
+        mockRepository.findById.mockResolvedValue(associationWithWaiting);
         mockRepository.removeVolunteerWaitingFromAssociation.mockResolvedValue(mockVolunteer.id);
 
         const result = await associationService.removeVolunteerWaiting(
@@ -221,22 +242,45 @@ describe('AssociationService', () => {
           mockVolunteer.id,
         );
         expect(result).toBe(mockVolunteer.id);
+        expect(associationRepository.removeVolunteerWaitingFromAssociation).toHaveBeenCalled();
+      });
+
+      it('should throw error if volunteer does not exist in waiting list', async () => {
+        // Préparer une association sans le bénévole dans la liste d'attente
+        const associationWithoutWaiting = {
+          ...mockAssociation,
+          volunteersWaiting: [],
+        };
+        mockRepository.findById.mockResolvedValue(associationWithoutWaiting);
+
+        await expect(
+          associationService.removeVolunteerWaiting('mockFirebaseUid123', mockVolunteer.id),
+        ).rejects.toThrow('Volunteer not exist');
       });
     });
 
     describe('addVolunteer', () => {
       it('should add a volunteer to an association', async () => {
-        mockRepository.findById.mockResolvedValue(mockAssociation);
-        mockRepository.findAssociationsByVolunteer.mockResolvedValue([]);
-        mockRepository.findAssociationsByVolunteerWaiting.mockResolvedValue(mockAssociation);
+        // Préparer une association sans le bénévole dans la liste
+        const associationWithoutVolunteer = {
+          ...mockAssociation,
+          volunteers: [],
+        };
+        mockRepository.findById.mockResolvedValue(associationWithoutVolunteer);
         mockRepository.update.mockResolvedValue(undefined);
 
         const result = await associationService.addVolunteer('mockFirebaseUid123', mockVolunteer);
         expect(result).toEqual(mockVolunteer);
+        expect(associationRepository.update).toHaveBeenCalled();
       });
 
       it('should throw error if volunteer already exists', async () => {
-        mockRepository.findAssociationsByVolunteer.mockResolvedValue([mockAssociation]);
+        // Préparer une association avec le bénévole déjà dans la liste
+        const associationWithVolunteer = {
+          ...mockAssociation,
+          volunteers: [mockVolunteer],
+        };
+        mockRepository.findById.mockResolvedValue(associationWithVolunteer);
 
         await expect(
           associationService.addVolunteer('mockFirebaseUid123', mockVolunteer),
@@ -246,16 +290,29 @@ describe('AssociationService', () => {
 
     describe('addVolunteerWaiting', () => {
       it('should add a volunteer to the waiting list of an association', async () => {
-        mockRepository.findById.mockResolvedValue(mockAssociation);
-        mockRepository.findAssociationsByVolunteerWaiting.mockResolvedValue([]);
+        // Préparer une association sans le bénévole dans la liste d'attente
+        const associationWithoutWaiting = {
+          ...mockAssociation,
+          volunteersWaiting: [],
+        };
+        mockRepository.findById.mockResolvedValue(associationWithoutWaiting);
         mockRepository.update.mockResolvedValue(undefined);
 
-        await associationService.addVolunteerWaiting('mockFirebaseUid123', mockVolunteer);
+        const result = await associationService.addVolunteerWaiting(
+          'mockFirebaseUid123',
+          mockVolunteer,
+        );
+        expect(result).toEqual(mockVolunteer);
         expect(associationRepository.update).toHaveBeenCalled();
       });
 
       it('should throw error if volunteer already exists', async () => {
-        mockRepository.findAssociationsByVolunteerWaiting.mockResolvedValue([mockAssociation]);
+        // Préparer une association avec le bénévole déjà dans la liste d'attente
+        const associationWithWaiting = {
+          ...mockAssociation,
+          volunteersWaiting: [mockVolunteer],
+        };
+        mockRepository.findById.mockResolvedValue(associationWithWaiting);
 
         await expect(
           associationService.addVolunteerWaiting('mockFirebaseUid123', mockVolunteer),

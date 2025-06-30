@@ -88,8 +88,8 @@ export class AssociationService {
       throw new Error('Association not found');
     }
 
-    const isExist = await this.associationRepository.findAssociationsByVolunteer(volunteerInfo.id);
-    if (isExist.length > 0) {
+    const isExist = association.volunteers.find(volunteer => volunteer.id === volunteerInfo.id);
+    if (isExist) {
       throw new Error('Volunteer already exist');
     }
 
@@ -105,10 +105,10 @@ export class AssociationService {
       throw new Error('Association not found');
     }
 
-    const isExist = await this.associationRepository.findAssociationsByVolunteerWaiting(
-      volunteerInfo.id,
+    const isExist = association.volunteersWaiting.find(
+      volunteer => volunteer.id === volunteerInfo.id,
     );
-    if (isExist.length > 0) {
+    if (isExist) {
       throw new Error('Volunteer already exist');
     }
 
@@ -123,9 +123,9 @@ export class AssociationService {
       throw new Error('Association not found');
     }
 
-    const isExist: FindAssociationDto[] =
-      await this.associationRepository.findAssociationsByVolunteerWaiting(volunteerId);
-    if (isExist.length === 0) {
+    const isExist = association.volunteersWaiting.find(volunteer => volunteer.id === volunteerId);
+    console.log(`isExist: ${isExist}`);
+    if (!isExist) {
       throw new Error('Volunteer not exist');
     }
 
@@ -142,8 +142,8 @@ export class AssociationService {
       throw new Error('Association not found');
     }
 
-    const isExist = await this.associationRepository.findAssociationsByVolunteer(volunteerId);
-    if (isExist.length === 0) {
+    const isExist = association.volunteers.find(volunteer => volunteer.id === volunteerId);
+    if (!isExist) {
       throw new Error('Volunteer not exist');
     }
 

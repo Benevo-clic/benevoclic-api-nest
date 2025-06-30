@@ -149,10 +149,34 @@ describe('AssociationController (Integration)', () => {
         name: 'John Doe',
       };
 
+      // D'abord, ajouter le bénévole à la liste d'attente
+      await controller.addAssociationVolunteersWaiting(associationId, volunteer);
+
+      // Vérifier qu'il est bien dans la liste d'attente
+      let association = await controller.findOne(associationId);
+      expect(association.volunteersWaiting).toContainEqual(
+        expect.objectContaining({ id: volunteer.id, name: volunteer.name }),
+      );
+
+      // Vérifier qu'il n'est pas encore dans la liste des bénévoles actifs
+      expect(association.volunteers).not.toContainEqual(
+        expect.objectContaining({ id: volunteer.id }),
+      );
+
+      // Maintenant, l'ajouter comme bénévole actif (ce qui le transfère de la liste d'attente)
       const updated = await controller.addAssociationVolunteers(associationId, volunteer);
 
       expect(updated).toBeDefined();
       expect(updated).toMatchObject(volunteer);
+
+      // Vérifier qu'il a bien été transféré : supprimé de la liste d'attente et ajouté aux bénévoles actifs
+      association = await controller.findOne(associationId);
+      expect(association.volunteersWaiting).not.toContainEqual(
+        expect.objectContaining({ id: volunteer.id }),
+      );
+      expect(association.volunteers).toContainEqual(
+        expect.objectContaining({ id: volunteer.id, name: volunteer.name }),
+      );
     });
   });
 
