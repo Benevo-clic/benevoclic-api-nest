@@ -89,7 +89,7 @@ export class AssociationController {
     }
   }
 
-  @Patch(':associationId/addAssociationVolunteers/:volunteers')
+  @Patch(':associationId/addAssociationVolunteers')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
@@ -125,7 +125,7 @@ export class AssociationController {
     }
   }
 
-  @Patch(':associationId/addAssociationVolunteersWaiting/:volunteers')
+  @Patch(':associationId/addAssociationVolunteersWaiting')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
