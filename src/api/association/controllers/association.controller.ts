@@ -162,6 +162,36 @@ export class AssociationController {
     }
   }
 
+  @Get(':volunteerId/AllAssociationsVolunteerFromWaitingList')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  getAllAssociationsVolunteerFromWaitingList(@Param('volunteerId') volunteerId: string) {
+    try {
+      return this.associationService.getAllAssociationsVolunteerFromWaitingList(volunteerId);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la récupération des associations du bénévole depuis la liste d'attente: ${volunteerId}`,
+        error.stack,
+      );
+    }
+  }
+
+  @Get(':volunteerId/getAssociationVolunteersList')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  getAssociationVolunteersList(@Param('volunteerId') volunteerId: string) {
+    try {
+      return this.associationService.getAllAssociationsVolunteerFromList(volunteerId);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la récupération de la liste des bénévoles de l'association: ${volunteerId}`,
+        error.stack,
+      );
+    }
+  }
+
   @Patch(':associationId/addAssociationVolunteersWaiting')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)

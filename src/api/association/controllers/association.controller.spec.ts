@@ -330,4 +330,41 @@ describe('AssociationController (Integration)', () => {
       expect(result).toBeNull();
     });
   });
+
+  describe('getAllAssociationsVolunteerFromWaitingList', () => {
+    it('should return all associations where the volunteer is in the waiting list', async () => {
+      const volunteerId = 'volunteer123';
+      const expectedAssociations = [
+        { associationId: 'asso1', associationName: 'Asso 1' },
+        { associationId: 'asso2', associationName: 'Asso 2' },
+      ];
+      jest
+        .spyOn(AssociationService.prototype, 'getAllAssociationsVolunteerFromWaitingList')
+        .mockResolvedValue(expectedAssociations);
+
+      const result = await controller.getAllAssociationsVolunteerFromWaitingList(volunteerId);
+
+      expect(result).toEqual(expectedAssociations);
+      expect(
+        AssociationService.prototype.getAllAssociationsVolunteerFromWaitingList,
+      ).toHaveBeenCalledWith(volunteerId);
+    });
+  });
+
+  describe('getAssociationVolunteersList', () => {
+    it('should return all associations where the volunteer is in the volunteers list', async () => {
+      const volunteerId = 'volunteer456';
+      const expectedAssociations = [{ associationId: 'asso3', associationName: 'Asso 3' }];
+      jest
+        .spyOn(AssociationService.prototype, 'getAllAssociationsVolunteerFromList')
+        .mockResolvedValue(expectedAssociations);
+
+      const result = await controller.getAssociationVolunteersList(volunteerId);
+
+      expect(result).toEqual(expectedAssociations);
+      expect(AssociationService.prototype.getAllAssociationsVolunteerFromList).toHaveBeenCalledWith(
+        volunteerId,
+      );
+    });
+  });
 });

@@ -4,7 +4,7 @@ import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { Association } from '../entities/association.entity';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
 import { FindAssociationDto } from '../dto/find-association.dto';
-import { InfoVolunteer } from '../type/association.type';
+import { InfoAssociation, InfoVolunteer } from '../type/association.type';
 
 @Injectable()
 export class AssociationRepository {
@@ -98,5 +98,25 @@ export class AssociationRepository {
     }
 
     return association.volunteers.find(volunteer => volunteer.id === volunteerId) || null;
+  }
+
+  async findAllAssociationsVolunteerFromWaitingList(
+    volunteerId: string,
+  ): Promise<InfoAssociation[]> {
+    return this.collection
+      .find(
+        { 'volunteersWaiting.id': volunteerId },
+        { projection: { _id: 0, associationId: 1, associationName: 1 } },
+      )
+      .toArray();
+  }
+
+  async findAllAssociationsVolunteerFromList(volunteerId: string): Promise<InfoAssociation[]> {
+    return this.collection
+      .find(
+        { 'volunteers.id': volunteerId },
+        { projection: { _id: 0, associationId: 1, associationName: 1 } },
+      )
+      .toArray();
   }
 }

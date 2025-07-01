@@ -166,4 +166,14 @@ export class AssociationService {
   async getAssociationsVolunteerList(associationId: string, volunteerId: string) {
     return await this.associationRepository.findVolunteersList(associationId, volunteerId);
   }
+
+  async getAllAssociationsVolunteerFromWaitingList(volunteerId: string) {
+    return await this.associationRepository.findAllAssociationsVolunteerFromWaitingList(
+      volunteerId,
+    );
+  }
+
+  async getAllAssociationsVolunteerFromList(volunteerId: string) {
+    return await this.associationRepository.findAllAssociationsVolunteerFromList(volunteerId);
+  }
 }
