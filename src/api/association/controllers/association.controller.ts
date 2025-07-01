@@ -68,7 +68,8 @@ export class AssociationController {
       return this.associationService.getVolunteersInWaitingList(associationId, volunteerId);
     } catch (error) {
       console.error(
-        `Erreur lors de la récupération de la liste d'attente des associations: ${associationId}`,
+        "Erreur lors de la récupération de la liste d'attente des associations: %s",
+        associationId,
         error.stack,
       );
     }
