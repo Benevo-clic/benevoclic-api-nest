@@ -197,5 +197,39 @@ describe('AssociationRepository', () => {
         await repository.removeVolunteerWaitingFromAssociation('test123', 'vol123');
       });
     });
+
+    describe('findVolunteersInWaitingList', () => {
+      it('should return the volunteer in the waiting list', async () => {
+        const association = {
+          ...mockAssociation,
+          volunteersWaiting: [{ id: 'vol1', name: 'Jane' }],
+        };
+        jest.spyOn(collection, 'findOne').mockResolvedValue(association);
+        const result = await repository.findVolunteersInWaitingList('test123', 'vol1');
+        expect(result).toEqual({ id: 'vol1', name: 'Jane' });
+      });
+      it('should return null if the volunteer is not in the waiting list', async () => {
+        jest.spyOn(collection, 'findOne').mockResolvedValue(null);
+        const result = await repository.findVolunteersInWaitingList('test123', 'notFound');
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('findVolunteersList', () => {
+      it('should return the volunteer in the active list', async () => {
+        const association = {
+          ...mockAssociation,
+          volunteers: [{ id: 'vol2', name: 'John' }],
+        };
+        jest.spyOn(collection, 'findOne').mockResolvedValue(association);
+        const result = await repository.findVolunteersList('test123', 'vol2');
+        expect(result).toEqual({ id: 'vol2', name: 'John' });
+      });
+      it('should return null if the volunteer is not in the active list', async () => {
+        jest.spyOn(collection, 'findOne').mockResolvedValue(null);
+        const result = await repository.findVolunteersList('test123', 'notFound');
+        expect(result).toBeNull();
+      });
+    });
   });
 });

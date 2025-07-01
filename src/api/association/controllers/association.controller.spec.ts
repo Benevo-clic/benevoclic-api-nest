@@ -267,5 +267,67 @@ describe('AssociationController (Integration)', () => {
       expect(Array.isArray(associations)).toBe(true);
       expect(associations.length).toBe(0);
     });
+
+    it('should allow a volunteer to be added to two different associations', async () => {
+      // On prend deux associations différentes
+      const associationId1 = mockData.associations[1].associationId;
+      const associationId2 = mockData.associations[2].associationId;
+      const volunteer = { id: 'multiAssocVolunteer', name: 'Jane Doe' };
+
+      // Ajouter le bénévole à la waiting list des deux associations
+      await controller.addAssociationVolunteersWaiting(associationId1, volunteer);
+      await controller.addAssociationVolunteersWaiting(associationId2, volunteer);
+
+      // Vérifier qu'il est bien dans la waiting list des deux
+      let assoc1 = await controller.findOne(associationId1);
+      let assoc2 = await controller.findOne(associationId2);
+      expect(assoc1.volunteersWaiting).toContainEqual(
+        expect.objectContaining({ id: volunteer.id }),
+      );
+      expect(assoc2.volunteersWaiting).toContainEqual(
+        expect.objectContaining({ id: volunteer.id }),
+      );
+
+      // Promouvoir le bénévole dans les deux associations
+      await controller.addAssociationVolunteers(associationId1, volunteer);
+      await controller.addAssociationVolunteers(associationId2, volunteer);
+
+      // Vérifier qu'il est bien bénévole actif dans les deux, et plus dans la waiting list
+      assoc1 = await controller.findOne(associationId1);
+      assoc2 = await controller.findOne(associationId2);
+      expect(assoc1.volunteers).toContainEqual(expect.objectContaining({ id: volunteer.id }));
+      expect(assoc2.volunteers).toContainEqual(expect.objectContaining({ id: volunteer.id }));
+      expect(assoc1.volunteersWaiting).not.toContainEqual(
+        expect.objectContaining({ id: volunteer.id }),
+      );
+      expect(assoc2.volunteersWaiting).not.toContainEqual(
+        expect.objectContaining({ id: volunteer.id }),
+      );
+    });
+  });
+
+  describe('getAssociationsWaitingList', () => {
+    it('should return null if the volunteer is not in the waiting list', async () => {
+      const associationId = mockData.associations[0].associationId;
+      const result = await controller.getAssociationsWaitingList(associationId, 'notInWaiting');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getAssociationsVolunteerList', () => {
+    it('should return the volunteer in the active list for the association', async () => {
+      const associationId = mockData.associations[1].associationId;
+      const volunteer = { id: 'volTest', name: 'Test User' };
+      await controller.addAssociationVolunteersWaiting(associationId, volunteer);
+      await controller.addAssociationVolunteers(associationId, volunteer);
+      const result = await controller.getAssociationsVolunteerList(associationId, volunteer.id);
+      expect(result).toBeDefined();
+      expect(result).toMatchObject(volunteer);
+    });
+    it('should return null if the volunteer is not in the active list', async () => {
+      const associationId = mockData.associations[1].associationId;
+      const result = await controller.getAssociationsVolunteerList(associationId, 'notInActive');
+      expect(result).toBeNull();
+    });
   });
 });

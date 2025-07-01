@@ -4,6 +4,7 @@ import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { Association } from '../entities/association.entity';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
 import { FindAssociationDto } from '../dto/find-association.dto';
+import { InfoVolunteer } from '../type/association.type';
 
 @Injectable()
 export class AssociationRepository {
@@ -45,6 +46,22 @@ export class AssociationRepository {
     return await this.collection.find({ 'volunteersWaiting.id': volunteerId }).toArray();
   }
 
+  async findVolunteersInWaitingList(
+    associationId: string,
+    volunteerId: string,
+  ): Promise<InfoVolunteer | null> {
+    const association = await this.collection.findOne({
+      associationId: associationId,
+      'volunteersWaiting.id': volunteerId,
+    });
+
+    if (!association) {
+      return null;
+    }
+
+    return association.volunteersWaiting.find(volunteer => volunteer.id === volunteerId) || null;
+  }
+
   async removeVolunteerFromAssociation(
     associationId: string,
     volunteerId: string,
@@ -68,5 +85,18 @@ export class AssociationRepository {
 
   async findByEmail(email: string) {
     return this.collection.findOne({ email: { $eq: email } });
+  }
+
+  async findVolunteersList(associationId: string, volunteerId: string) {
+    const association = await this.collection.findOne({
+      associationId: associationId,
+      'volunteers.id': volunteerId,
+    });
+
+    if (!association) {
+      return null;
+    }
+
+    return association.volunteers.find(volunteer => volunteer.id === volunteerId) || null;
   }
 }
