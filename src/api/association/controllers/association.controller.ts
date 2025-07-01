@@ -186,7 +186,8 @@ export class AssociationController {
       return this.associationService.getAllAssociationsVolunteerFromList(volunteerId);
     } catch (error) {
       console.error(
-        `Erreur lors de la récupération de la liste des bénévoles de l'association: ${volunteerId}`,
+        "Erreur lors de la récupération de la liste des bénévoles de l'association: %s",
+        volunteerId,
         error.stack,
       );
     }
