@@ -152,7 +152,6 @@ describe('AnnouncementController', () => {
         volunteers: [volunteer],
       });
       const result = await announcementController.addVolunteer(announcementId, volunteer);
-      console.log(result);
       expect(result).toBeDefined();
     });
 

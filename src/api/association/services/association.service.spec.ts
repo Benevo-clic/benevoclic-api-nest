@@ -48,6 +48,10 @@ describe('AssociationService', () => {
     findAssociationsByVolunteerWaiting: jest.fn(),
     removeVolunteerFromAssociation: jest.fn(),
     removeVolunteerWaitingFromAssociation: jest.fn(),
+    findVolunteersInWaitingList: jest.fn(),
+    findVolunteersList: jest.fn(),
+    findAllAssociationsVolunteerFromWaitingList: jest.fn(),
+    findAllAssociationsVolunteerFromList: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -319,6 +323,56 @@ describe('AssociationService', () => {
         ).rejects.toThrow('Volunteer already exist');
       });
     });
+
+    it('should allow a volunteer to be added to two different associations (service)', async () => {
+      // Préparer deux associations différentes
+      const associationId1 = 'assoc1';
+      const associationId2 = 'assoc2';
+      const volunteer = { id: 'multiAssocVolunteer', name: 'Jane Doe' };
+
+      // Association 1 : waiting puis promotion
+      const assoc1 = {
+        ...mockAssociation,
+        associationId: associationId1,
+        volunteers: [],
+        volunteersWaiting: [volunteer],
+      };
+      mockRepository.findById.mockImplementation(id => {
+        if (id === associationId1) return Promise.resolve(assoc1);
+        if (id === associationId2) return Promise.resolve(assoc2);
+        return Promise.resolve(null);
+      });
+      mockRepository.removeVolunteerWaitingFromAssociation.mockResolvedValue(undefined);
+      mockRepository.update.mockResolvedValue(undefined);
+      // Promotion dans la première association
+      await associationService.removeVolunteerWaiting(associationId1, volunteer.id);
+      assoc1.volunteersWaiting = [];
+      await associationService.addVolunteer(associationId1, volunteer);
+      assoc1.volunteers = [volunteer];
+
+      // Association 2 : waiting puis promotion
+      const assoc2 = {
+        ...mockAssociation,
+        associationId: associationId2,
+        volunteers: [],
+        volunteersWaiting: [volunteer],
+      };
+      // Promotion dans la deuxième association
+      await associationService.removeVolunteerWaiting(associationId2, volunteer.id);
+      assoc2.volunteersWaiting = [];
+      await associationService.addVolunteer(associationId2, volunteer);
+      assoc2.volunteers = [volunteer];
+
+      // Vérifier que le bénévole est bien dans les deux associations
+      expect(assoc1.volunteers).toContainEqual(expect.objectContaining({ id: volunteer.id }));
+      expect(assoc2.volunteers).toContainEqual(expect.objectContaining({ id: volunteer.id }));
+      expect(assoc1.volunteersWaiting).not.toContainEqual(
+        expect.objectContaining({ id: volunteer.id }),
+      );
+      expect(assoc2.volunteersWaiting).not.toContainEqual(
+        expect.objectContaining({ id: volunteer.id }),
+      );
+    });
   });
 
   describe('remove', () => {
@@ -335,6 +389,67 @@ describe('AssociationService', () => {
 
       await expect(associationService.remove('nonexistent')).rejects.toThrow(
         'Association not found',
+      );
+    });
+  });
+
+  describe('getVolunteersInWaitingList', () => {
+    it('should return the volunteer in the waiting list', async () => {
+      mockRepository.findVolunteersInWaitingList.mockResolvedValue({ id: 'vol1', name: 'Jane' });
+      const result = await associationService.getVolunteersInWaitingList('assoc1', 'vol1');
+      expect(result).toEqual({ id: 'vol1', name: 'Jane' });
+    });
+    it('should return null if the volunteer is not in the waiting list', async () => {
+      mockRepository.findVolunteersInWaitingList.mockResolvedValue(null);
+      const result = await associationService.getVolunteersInWaitingList('assoc1', 'notFound');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getAssociationsVolunteerList', () => {
+    it('should return the volunteer in the active list', async () => {
+      mockRepository.findVolunteersList.mockResolvedValue({ id: 'vol2', name: 'John' });
+      const result = await associationService.getAssociationsVolunteerList('assoc2', 'vol2');
+      expect(result).toEqual({ id: 'vol2', name: 'John' });
+    });
+    it('should return null if the volunteer is not in the active list', async () => {
+      mockRepository.findVolunteersList.mockResolvedValue(null);
+      const result = await associationService.getAssociationsVolunteerList('assoc2', 'notFound');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getAllAssociationsVolunteerFromWaitingList', () => {
+    it('should return all associations from repository for waiting list', async () => {
+      const volunteerId = 'volunteer123';
+      const expected = [{ associationId: 'asso1', associationName: 'Asso 1' }];
+      jest
+        .spyOn(associationRepository, 'findAllAssociationsVolunteerFromWaitingList')
+        .mockResolvedValue(expected);
+
+      const result =
+        await associationService.getAllAssociationsVolunteerFromWaitingList(volunteerId);
+
+      expect(result).toEqual(expected);
+      expect(
+        associationRepository.findAllAssociationsVolunteerFromWaitingList,
+      ).toHaveBeenCalledWith(volunteerId);
+    });
+  });
+
+  describe('getAllAssociationsVolunteerFromList', () => {
+    it('should return all associations from repository for volunteers list', async () => {
+      const volunteerId = 'volunteer456';
+      const expected = [{ associationId: 'asso2', associationName: 'Asso 2' }];
+      jest
+        .spyOn(associationRepository, 'findAllAssociationsVolunteerFromList')
+        .mockResolvedValue(expected);
+
+      const result = await associationService.getAllAssociationsVolunteerFromList(volunteerId);
+
+      expect(result).toEqual(expected);
+      expect(associationRepository.findAllAssociationsVolunteerFromList).toHaveBeenCalledWith(
+        volunteerId,
       );
     });
   });

@@ -197,5 +197,80 @@ describe('AssociationRepository', () => {
         await repository.removeVolunteerWaitingFromAssociation('test123', 'vol123');
       });
     });
+
+    describe('findVolunteersInWaitingList', () => {
+      it('should return the volunteer in the waiting list', async () => {
+        const association = {
+          ...mockAssociation,
+          volunteersWaiting: [{ id: 'vol1', name: 'Jane' }],
+        };
+        jest.spyOn(collection, 'findOne').mockResolvedValue(association);
+        const result = await repository.findVolunteersInWaitingList('test123', 'vol1');
+        expect(result).toEqual({ id: 'vol1', name: 'Jane' });
+      });
+      it('should return null if the volunteer is not in the waiting list', async () => {
+        jest.spyOn(collection, 'findOne').mockResolvedValue(null);
+        const result = await repository.findVolunteersInWaitingList('test123', 'notFound');
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('findVolunteersList', () => {
+      it('should return the volunteer in the active list', async () => {
+        const association = {
+          ...mockAssociation,
+          volunteers: [{ id: 'vol2', name: 'John' }],
+        };
+        jest.spyOn(collection, 'findOne').mockResolvedValue(association);
+        const result = await repository.findVolunteersList('test123', 'vol2');
+        expect(result).toEqual({ id: 'vol2', name: 'John' });
+      });
+      it('should return null if the volunteer is not in the active list', async () => {
+        jest.spyOn(collection, 'findOne').mockResolvedValue(null);
+        const result = await repository.findVolunteersList('test123', 'notFound');
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('findAllAssociationsVolunteerFromWaitingList', () => {
+      it('should return associations where volunteer is in waiting list', async () => {
+        const repository = new AssociationRepository(mockMongoClient as any);
+        const volunteerId = 'volunteer123';
+        const mockAssociations = [
+          { associationId: 'asso1', associationName: 'Asso 1' },
+          { associationId: 'asso2', associationName: 'Asso 2' },
+        ];
+        const toArrayMock = jest.fn().mockResolvedValue(mockAssociations);
+        const findMock = jest.fn().mockReturnValue({ toArray: toArrayMock });
+        Object.defineProperty(repository, 'collection', { get: () => ({ find: findMock }) });
+
+        const result = await repository.findAllAssociationsVolunteerFromWaitingList(volunteerId);
+
+        expect(findMock).toHaveBeenCalledWith(
+          { 'volunteersWaiting.id': volunteerId },
+          { projection: { _id: 0, associationId: 1, associationName: 1 } },
+        );
+        expect(result).toEqual(mockAssociations);
+      });
+    });
+
+    describe('findAllAssociationsVolunteerFromList', () => {
+      it('should return associations where volunteer is in volunteers list', async () => {
+        const repository = new AssociationRepository(mockMongoClient as any);
+        const volunteerId = 'volunteer456';
+        const mockAssociations = [{ associationId: 'asso3', associationName: 'Asso 3' }];
+        const toArrayMock = jest.fn().mockResolvedValue(mockAssociations);
+        const findMock = jest.fn().mockReturnValue({ toArray: toArrayMock });
+        Object.defineProperty(repository, 'collection', { get: () => ({ find: findMock }) });
+
+        const result = await repository.findAllAssociationsVolunteerFromList(volunteerId);
+
+        expect(findMock).toHaveBeenCalledWith(
+          { 'volunteers.id': volunteerId },
+          { projection: { _id: 0, associationId: 1, associationName: 1 } },
+        );
+        expect(result).toEqual(mockAssociations);
+      });
+    });
   });
 });

@@ -13,6 +13,10 @@
         {
           "id": "mockVolunteerId123",
           "name": "Jean Dupont"
+        },
+        {
+          "id": "volTest",
+          "name": "Test User"
         }
       ]
     },
@@ -28,6 +32,10 @@
         {
           "id": "mockVolunteerId1234",
           "name": "Jean Dupont"
+        },
+        {
+          "id": "volTest",
+          "name": "Test User"
         }
       ],
       "volunteersWaiting": []

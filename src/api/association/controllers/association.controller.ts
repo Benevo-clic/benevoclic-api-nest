@@ -56,6 +56,43 @@ export class AssociationController {
     return this.associationService.findOne(associationId);
   }
 
+  @Get(':associationId/getAssociationsWaitingListVolunteer/:volunteerId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  getAssociationsWaitingList(
+    @Param('associationId') associationId: string,
+    @Param('volunteerId') volunteerId: string,
+  ) {
+    try {
+      return this.associationService.getVolunteersInWaitingList(associationId, volunteerId);
+    } catch (error) {
+      console.error(
+        "Erreur lors de la récupération de la liste d'attente des associations: %s",
+        associationId,
+        error.stack,
+      );
+    }
+  }
+
+  @Get(':associationId/getAssociationsVolunteerList/:volunteerId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  getAssociationsVolunteerList(
+    @Param('associationId') associationId: string,
+    @Param('volunteerId') volunteerId: string,
+  ) {
+    try {
+      return this.associationService.getAssociationsVolunteerList(associationId, volunteerId);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la récupération de la liste d'attente des associations: ${associationId}`,
+        error.stack,
+      );
+    }
+  }
+
   @Patch(':associationId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION)
@@ -120,6 +157,37 @@ export class AssociationController {
     } catch (error) {
       console.error(
         `Erreur lors de la suppression de bénévoles de l'association: ${associationId}`,
+        error.stack,
+      );
+    }
+  }
+
+  @Get(':volunteerId/AllAssociationsVolunteerFromWaitingList')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  getAllAssociationsVolunteerFromWaitingList(@Param('volunteerId') volunteerId: string) {
+    try {
+      return this.associationService.getAllAssociationsVolunteerFromWaitingList(volunteerId);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la récupération des associations du bénévole depuis la liste d'attente: ${volunteerId}`,
+        error.stack,
+      );
+    }
+  }
+
+  @Get(':volunteerId/getAssociationVolunteersList')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  getAssociationVolunteersList(@Param('volunteerId') volunteerId: string) {
+    try {
+      return this.associationService.getAllAssociationsVolunteerFromList(volunteerId);
+    } catch (error) {
+      console.error(
+        "Erreur lors de la récupération de la liste des bénévoles de l'association: %s",
+        volunteerId,
         error.stack,
       );
     }

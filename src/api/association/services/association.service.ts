@@ -20,7 +20,6 @@ export class AssociationService {
     }
 
     const isExist: Association = await this.associationRepository.findById(firebaseUser.uid);
-
     if (isExist) {
       throw new Error('Email already exist');
     }
@@ -124,7 +123,6 @@ export class AssociationService {
     }
 
     const isExist = association.volunteersWaiting.find(volunteer => volunteer.id === volunteerId);
-    console.log(`isExist: ${isExist}`);
     if (!isExist) {
       throw new Error('Volunteer not exist');
     }
@@ -159,5 +157,23 @@ export class AssociationService {
 
   getAssociationByVolunteer(volunteerId: string) {
     return this.associationRepository.findAssociationsByVolunteer(volunteerId);
+  }
+
+  async getVolunteersInWaitingList(associationId: string, volunteerId: string) {
+    return await this.associationRepository.findVolunteersInWaitingList(associationId, volunteerId);
+  }
+
+  async getAssociationsVolunteerList(associationId: string, volunteerId: string) {
+    return await this.associationRepository.findVolunteersList(associationId, volunteerId);
+  }
+
+  async getAllAssociationsVolunteerFromWaitingList(volunteerId: string) {
+    return await this.associationRepository.findAllAssociationsVolunteerFromWaitingList(
+      volunteerId,
+    );
+  }
+
+  async getAllAssociationsVolunteerFromList(volunteerId: string) {
+    return await this.associationRepository.findAllAssociationsVolunteerFromList(volunteerId);
   }
 }
