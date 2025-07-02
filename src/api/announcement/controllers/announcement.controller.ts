@@ -111,7 +111,7 @@ export class AnnouncementController {
 
   @Patch('/register/volunteer/:announcementId')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.VOLUNTEER)
+  @Roles(UserRole.VOLUNTEER, UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Inscrire un bénévole à une annonce' })
   @ApiParam({
@@ -173,7 +173,7 @@ export class AnnouncementController {
 
   @Patch('/unregister/volunteer/:volunteer/:announcementId')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.VOLUNTEER)
+  @Roles(UserRole.VOLUNTEER, UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiBearerAuth()
   async removeVolunteer(
     @Param('announcementId') announcementId: string,
@@ -195,7 +195,7 @@ export class AnnouncementController {
 
   @Patch('/unregister/volunteerWaiting/:volunteer/:announcementId')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.VOLUNTEER)
+  @Roles(UserRole.VOLUNTEER, UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiBearerAuth()
   async removeVolunteerWaiting(
     @Param('announcementId') announcementId: string,
