@@ -184,7 +184,7 @@ export class AnnouncementController {
 
   @Patch('/unregister/participant/:participant/:announcementId')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.VOLUNTEER)
+  @Roles(UserRole.VOLUNTEER, UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiBearerAuth()
   async removeParticipant(
     @Param('announcementId') announcementId: string,
