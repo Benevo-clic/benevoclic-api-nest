@@ -10,6 +10,7 @@ import { DatabaseCollection } from '../../../common/enums/database.collection';
 import { UserRepository } from '../repository/user.repository';
 import { UserRole } from '../../../common/enums/roles.enum';
 import * as admin from 'firebase-admin';
+import { NotFoundException, InternalServerErrorException, Logger } from '@nestjs/common';
 
 // Mock Firebase Admin
 jest.mock('firebase-admin', () => ({
@@ -178,7 +179,7 @@ describe('UserController', () => {
       };
 
       await expect(userController.registerUser(existingUser)).rejects.toThrow(
-        'User registration failed',
+        InternalServerErrorException,
       );
     });
   });
@@ -205,10 +206,10 @@ describe('UserController', () => {
     it('should throw error if user not found', async () => {
       jest
         .spyOn(userService, 'update')
-        .mockRejectedValue(new Error("Erreur lors de la mise à jour de l'utilisateur"));
+        .mockRejectedValue(new NotFoundException("Erreur lors de la mise à jour de l'utilisateur"));
 
       await expect(userController.update('nonexistent-id', updateData)).rejects.toThrow(
-        "Erreur lors de la mise à jour de l'utilisateur",
+        NotFoundException,
       );
     });
   });
@@ -227,11 +228,8 @@ describe('UserController', () => {
     it('should throw error if user not found', async () => {
       jest
         .spyOn(userService, 'remove')
-        .mockRejectedValue(new Error("Erreur lors de la suppression de l'utilisateur"));
-
-      await expect(userController.remove('nonexistent-id')).rejects.toThrow(
-        "Erreur lors de la suppression de l'utilisateur",
-      );
+        .mockRejectedValue(new NotFoundException("Erreur lors de la suppression de l'utilisateur"));
+      await expect(userController.remove('nonexistent-id')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -248,9 +246,10 @@ describe('UserController', () => {
       const req = { user: { uid: 'nonexistent-id' } };
       jest
         .spyOn(userService, 'logout')
-        .mockRejectedValue(new Error('Erreur lors de la déconnexion'));
-
-      await expect(userController.logout(req)).rejects.toThrow('Erreur lors de la déconnexion');
+        .mockRejectedValue(new NotFoundException('Erreur lors de la déconnexion'));
+      await expect(userController.logout(req)).rejects.toThrow(NotFoundException);
     });
   });
 });
+
+jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});

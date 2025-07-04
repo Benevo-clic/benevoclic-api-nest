@@ -9,6 +9,8 @@ import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
 import * as mockData from '../../../../test/testFiles/volunteer.data.json';
 import { CreateVolunteerDto } from '../dto/create-volunteer.dto';
+import { FavoritesAnnouncementService } from '../../favorites-announcement/services/favorites-announcement.service';
+import { AnnouncementService } from '../../announcement/services/announcement.service';
 
 jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
   FirebaseAdminService: {
@@ -26,11 +28,29 @@ describe('VolunteerController (Integration)', () => {
   let mongoClient: MongoClient;
   let module: TestingModule;
 
+  const favoritesAnnouncementServiceMock = {
+    removeByVolunteerId: jest.fn().mockResolvedValue({ deletedCount: 1 }),
+  };
+  const announcementServiceMock = {
+    removeVolunteerEverywhere: jest.fn().mockResolvedValue(1),
+  };
+
   beforeAll(async () => {
     module = await Test.createTestingModule({
       imports: [DatabaseModule],
       controllers: [VolunteerController],
-      providers: [VolunteerService, VolunteerRepository],
+      providers: [
+        VolunteerService,
+        VolunteerRepository,
+        {
+          provide: FavoritesAnnouncementService,
+          useValue: favoritesAnnouncementServiceMock,
+        },
+        {
+          provide: AnnouncementService,
+          useValue: announcementServiceMock,
+        },
+      ],
     }).compile();
 
     volunteerController = module.get<VolunteerController>(VolunteerController);

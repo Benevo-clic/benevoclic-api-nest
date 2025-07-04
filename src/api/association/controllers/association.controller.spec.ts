@@ -7,6 +7,8 @@ import { MongoClient, ObjectId } from 'mongodb';
 import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import * as mockData from '../../../../test/testFiles/association.data.json';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
+import { BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { AnnouncementService } from '../../announcement/services/announcement.service';
 
 // Mock FirebaseAdminService
 jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
@@ -20,6 +22,8 @@ jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
   },
 }));
 
+jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+
 describe('AssociationController (Integration)', () => {
   let controller: AssociationController;
   let mongoClient: MongoClient;
@@ -29,7 +33,16 @@ describe('AssociationController (Integration)', () => {
     module = await Test.createTestingModule({
       imports: [DatabaseModule],
       controllers: [AssociationController],
-      providers: [AssociationService, AssociationRepository],
+      providers: [
+        AssociationService,
+        AssociationRepository,
+        {
+          provide: AnnouncementService,
+          useValue: {
+            deleteByAssociationId: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+      ],
     }).compile();
 
     controller = module.get<AssociationController>(AssociationController);
@@ -72,9 +85,10 @@ describe('AssociationController (Integration)', () => {
       expect(found.associationName).toBe(mockData.associations[0].associationName);
     });
 
-    it('should return null for non-existent association', async () => {
-      const association = await controller.findOne('5f9d1a7b4f3c4b001f3f7b9d');
-      expect(association).toBeNull();
+    it('should throw NotFoundException for non-existent association', async () => {
+      await expect(controller.findOne('5f9d1a7b4f3c4b001f3f7b9d')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -125,7 +139,7 @@ describe('AssociationController (Integration)', () => {
         country: 'France',
       };
 
-      await expect(controller.create(existingAssociation)).rejects.toThrow('Email already exist');
+      await expect(controller.create(existingAssociation)).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -256,8 +270,13 @@ describe('AssociationController (Integration)', () => {
     describe('remove', () => {
       it('should remove an association', async () => {
         await controller.remove(mockData.associations[0].associationId);
-        const found = await controller.findOne(mockData.associations[0].associationId);
-        expect(found).toBeNull();
+        await expect(controller.findOne(mockData.associations[0].associationId)).rejects.toThrow(
+          NotFoundException,
+        );
+      });
+
+      it('should throw NotFoundException if association not found', async () => {
+        await expect(controller.remove('nonexistent')).rejects.toThrow(NotFoundException);
       });
     });
 
@@ -315,9 +334,10 @@ describe('AssociationController (Integration)', () => {
   });
 
   describe('getAssociationsVolunteerList', () => {
-    it('should return the volunteer in the active list for the association', async () => {
+    it('should add the volunteer to the active list for the association', async () => {
       const associationId = mockData.associations[1].associationId;
-      const volunteer = { id: 'volTest', name: 'Test User' };
+      // Utilise un id unique pour ce test
+      const volunteer = { id: 'volTest_' + Date.now(), name: 'Test User' };
       await controller.addAssociationVolunteersWaiting(associationId, volunteer);
       await controller.addAssociationVolunteers(associationId, volunteer);
       const result = await controller.getAssociationsVolunteerList(associationId, volunteer.id);

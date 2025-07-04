@@ -3,6 +3,10 @@ import { FavoritesAnnouncementService } from './favorites-announcement.service';
 import { FavoritesAnnouncementRepository } from '../repository/favorites-announcement.repository';
 import { FavoritesAnnouncement } from '../entities/favorites-announcement.entity';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
+import { BadRequestException, Logger } from '@nestjs/common';
+
+// Mock logger to avoid polluting test output
+jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
 
 describe('FavoritesAnnouncementService', () => {
   let service: FavoritesAnnouncementService;
@@ -84,9 +88,7 @@ describe('FavoritesAnnouncementService', () => {
       );
 
       // Act & Assert
-      await expect(service.create(mockFavoritesAnnouncement)).rejects.toThrow(
-        'Favorite announcement already exists',
-      );
+      await expect(service.create(mockFavoritesAnnouncement)).rejects.toThrow(BadRequestException);
       expect(repository.findByVolunteerIdAndAnnouncementId).toHaveBeenCalledWith(
         mockFavoritesAnnouncement.volunteerId,
         mockFavoritesAnnouncement.announcementId,

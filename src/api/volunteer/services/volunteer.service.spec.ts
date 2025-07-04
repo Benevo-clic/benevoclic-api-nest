@@ -4,6 +4,9 @@ import { VolunteerRepository } from '../repository/volunteer.repository';
 import { Test, TestingModule } from '@nestjs/testing';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
 import { CreateVolunteerDto } from '../dto/create-volunteer.dto';
+import { BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { FavoritesAnnouncementService } from '../../favorites-announcement/services/favorites-announcement.service';
+import { AnnouncementService } from '../../announcement/services/announcement.service';
 
 jest.mock('../../../common/firebase/firebaseAdmin.service', () => {
   const mockFirebaseAdmin = {
@@ -16,6 +19,9 @@ jest.mock('../../../common/firebase/firebaseAdmin.service', () => {
     },
   };
 });
+
+// Mock logger to avoid polluting test output
+jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
 
 describe('VolunteerService', () => {
   let volunteerService: VolunteerService;
@@ -39,10 +45,28 @@ describe('VolunteerService', () => {
     remove: jest.fn(),
   };
 
+  const favoritesAnnouncementServiceMock = {
+    removeByVolunteerId: jest.fn().mockResolvedValue({ deletedCount: 1 }),
+  };
+  const announcementServiceMock = {
+    removeVolunteerEverywhere: jest.fn().mockResolvedValue(1),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [VolunteerService, { provide: VolunteerRepository, useValue: mockRepository }],
+      providers: [
+        VolunteerService,
+        { provide: VolunteerRepository, useValue: mockRepository },
+        {
+          provide: FavoritesAnnouncementService,
+          useValue: favoritesAnnouncementServiceMock,
+        },
+        {
+          provide: AnnouncementService,
+          useValue: announcementServiceMock,
+        },
+      ],
     }).compile();
 
     volunteerService = module.get<VolunteerService>(VolunteerService);
@@ -103,7 +127,7 @@ describe('VolunteerService', () => {
       mockRepository.findById.mockResolvedValue(mockVolunteer);
 
       await expect(volunteerService.create(createVolunteerDto)).rejects.toThrow(
-        'Email already exist',
+        BadRequestException,
       );
       expect(firebaseAdmin.getUserByEmail).toHaveBeenCalledTimes(1);
       expect(volunteerRepository.create).not.toHaveBeenCalled();
@@ -143,9 +167,8 @@ describe('VolunteerService', () => {
 
     it('should throw an error if volunteer not found', async () => {
       mockRepository.findById.mockResolvedValue(null);
-
       await expect(volunteerService.update('nonexistent', { bio: 'Updated Bio' })).rejects.toThrow(
-        'Volunteer not found',
+        NotFoundException,
       );
     });
   });
@@ -161,15 +184,13 @@ describe('VolunteerService', () => {
 
     it('should throw an error if volunteer not found', async () => {
       mockRepository.findById.mockResolvedValue(null);
-
-      await expect(volunteerService.remove('nonexistent')).rejects.toThrow('Volunteer not found');
+      await expect(volunteerService.remove('nonexistent')).rejects.toThrow(NotFoundException);
     });
 
     it('should throw an error if volunteer not deleted', async () => {
       mockRepository.findById.mockResolvedValue(mockVolunteer);
       mockRepository.remove.mockResolvedValue({ deletedCount: 0 });
-
-      await expect(volunteerService.remove('123')).rejects.toThrow('Volunteer not found');
+      await expect(volunteerService.remove('123')).rejects.toThrow(NotFoundException);
     });
   });
 });

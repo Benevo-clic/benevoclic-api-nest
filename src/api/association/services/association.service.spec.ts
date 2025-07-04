@@ -5,6 +5,8 @@ import { Association } from '../entities/association.entity';
 import { CreateAssociationDto } from '../dto/create-association.dto';
 import { UpdateAssociationDto } from '../dto/update-association.dto';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
+import { BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { AnnouncementService } from '../../announcement/services/announcement.service';
 
 // Mock FirebaseAdminService
 jest.mock('../../../common/firebase/firebaseAdmin.service', () => {
@@ -18,6 +20,8 @@ jest.mock('../../../common/firebase/firebaseAdmin.service', () => {
     },
   };
 });
+
+jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
 
 describe('AssociationService', () => {
   let associationService: AssociationService;
@@ -64,6 +68,12 @@ describe('AssociationService', () => {
         {
           provide: AssociationRepository,
           useValue: mockRepository,
+        },
+        {
+          provide: AnnouncementService,
+          useValue: {
+            deleteByAssociationId: jest.fn().mockResolvedValue(undefined),
+          },
         },
       ],
     }).compile();
@@ -122,7 +132,7 @@ describe('AssociationService', () => {
       // Mock Firebase response for non-existent email
       firebaseAdmin.getUserByEmail.mockResolvedValueOnce(null);
 
-      await expect(associationService.create(createDto)).rejects.toThrow('Email not found');
+      await expect(associationService.create(createDto)).rejects.toThrow(NotFoundException);
       expect(firebaseAdmin.getUserByEmail).toHaveBeenCalledWith(createDto.email);
       expect(associationRepository.create).not.toHaveBeenCalled();
     });
@@ -147,7 +157,7 @@ describe('AssociationService', () => {
 
       mockRepository.findById.mockResolvedValue(mockAssociation);
 
-      await expect(associationService.create(createDto)).rejects.toThrow('Email already exist');
+      await expect(associationService.create(createDto)).rejects.toThrow(BadRequestException);
       expect(firebaseAdmin.getUserByEmail).toHaveBeenCalledWith(createDto.email);
       expect(associationRepository.create).not.toHaveBeenCalled();
     });
@@ -192,7 +202,7 @@ describe('AssociationService', () => {
 
       await expect(
         associationService.update('nonexistent', { bio: 'Updated Bio' }),
-      ).rejects.toThrow('Association not found');
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -227,7 +237,7 @@ describe('AssociationService', () => {
 
         await expect(
           associationService.removeVolunteer('mockFirebaseUid123', mockVolunteer.id),
-        ).rejects.toThrow('Volunteer not exist');
+        ).rejects.toThrow(BadRequestException);
       });
     });
 
@@ -259,7 +269,7 @@ describe('AssociationService', () => {
 
         await expect(
           associationService.removeVolunteerWaiting('mockFirebaseUid123', mockVolunteer.id),
-        ).rejects.toThrow('Volunteer not exist');
+        ).rejects.toThrow(BadRequestException);
       });
     });
 
@@ -288,7 +298,7 @@ describe('AssociationService', () => {
 
         await expect(
           associationService.addVolunteer('mockFirebaseUid123', mockVolunteer),
-        ).rejects.toThrow('Volunteer already exist');
+        ).rejects.toThrow(BadRequestException);
       });
     });
 
@@ -320,7 +330,7 @@ describe('AssociationService', () => {
 
         await expect(
           associationService.addVolunteerWaiting('mockFirebaseUid123', mockVolunteer),
-        ).rejects.toThrow('Volunteer already exist');
+        ).rejects.toThrow(BadRequestException);
       });
     });
 
@@ -387,9 +397,7 @@ describe('AssociationService', () => {
     it('should throw error if association not found', async () => {
       mockRepository.findById.mockResolvedValue(null);
 
-      await expect(associationService.remove('nonexistent')).rejects.toThrow(
-        'Association not found',
-      );
+      await expect(associationService.remove('nonexistent')).rejects.toThrow(NotFoundException);
     });
   });
 

@@ -4,6 +4,7 @@ import { AnnouncementRepository } from '../repositories/announcement.repository'
 import { UserService } from '../../../common/services/user/user.service';
 import { Logger } from '@nestjs/common';
 import { Image } from '../../../common/type/usersInfo.type';
+import { FavoritesAnnouncementService } from '../../favorites-announcement/services/favorites-announcement.service';
 
 describe('AnnouncementService', () => {
   let service: AnnouncementService;
@@ -28,6 +29,7 @@ describe('AnnouncementService', () => {
             removeVolunteerWaiting: jest.fn(),
             removeParticipant: jest.fn(),
             updateStatus: jest.fn(),
+            removeVolunteerEverywhere: jest.fn(),
           },
         },
         {
@@ -41,6 +43,24 @@ describe('AnnouncementService', () => {
           useValue: {
             log: jest.fn(),
             error: jest.fn(),
+          },
+        },
+        {
+          provide: 'FavoritesAnnouncementService',
+          useValue: {
+            removeByAnnouncementId: jest.fn(),
+            removeByAssociationId: jest.fn(),
+            findAll: jest.fn(),
+            removeByVolunteerIdAndAnnouncementId: jest.fn(),
+          },
+        },
+        {
+          provide: FavoritesAnnouncementService,
+          useValue: {
+            removeByAnnouncementId: jest.fn(),
+            removeByAssociationId: jest.fn(),
+            findAll: jest.fn(),
+            removeByVolunteerIdAndAnnouncementId: jest.fn(),
           },
         },
       ],
@@ -85,7 +105,7 @@ describe('AnnouncementService', () => {
 
     it('should throw an error when no file is provided', async () => {
       await expect(service.updateCover(announcementId, null)).rejects.toThrow(
-        'Erreur lors de la mise à jour de la photo de profil',
+        'Aucun fichier fourni.',
       );
     });
 
@@ -120,6 +140,101 @@ describe('AnnouncementService', () => {
       expect(result.data).toBe('dGVzdC1pbWFnZS1kYXRh'); // Base64 encoded 'test-image-data'
       expect(result.contentType).toBe('image/jpeg');
       expect(result.uploadedAt).toBeDefined();
+    });
+  });
+
+  describe('delete', () => {
+    it('should call favoritesAnnouncementService and repository delete', async () => {
+      const id = 'test-id';
+      const favoritesAnnouncementService = {
+        removeByAnnouncementId: jest.fn().mockResolvedValue(undefined),
+      };
+      const announcementRepository = {
+        delete: jest.fn().mockResolvedValue(undefined),
+      };
+      const serviceTest = new AnnouncementService(
+        announcementRepository as any,
+        {} as any,
+        favoritesAnnouncementService as any,
+      );
+      await expect(serviceTest.delete(id)).resolves.toBeUndefined();
+      expect(favoritesAnnouncementService.removeByAnnouncementId).toHaveBeenCalledWith(id);
+      expect(announcementRepository.delete).toHaveBeenCalledWith(id);
+    });
+
+    it('should throw InternalServerErrorException if an error occurs', async () => {
+      const id = 'test-id';
+      const favoritesAnnouncementService = {
+        removeByAnnouncementId: jest.fn().mockRejectedValue(new Error('fail')),
+      };
+      const serviceTest = new AnnouncementService(
+        {} as any,
+        {} as any,
+        favoritesAnnouncementService as any,
+      );
+      await expect(serviceTest.delete(id)).rejects.toThrow(
+        "Erreur lors de la suppression de l'annonce",
+      );
+    });
+  });
+
+  describe('deleteByAssociationId', () => {
+    it('should call favoritesAnnouncementService and repository deleteByAssociationId', async () => {
+      const associationId = 'assoc-id';
+      const favoritesAnnouncementService = {
+        removeByAssociationId: jest.fn().mockResolvedValue(undefined),
+      };
+      const announcementRepository = {
+        deleteByAssociationId: jest.fn().mockResolvedValue(undefined),
+      };
+      const serviceTest = new AnnouncementService(
+        announcementRepository as any,
+        {} as any,
+        favoritesAnnouncementService as any,
+      );
+      await expect(serviceTest.deleteByAssociationId(associationId)).resolves.toBeUndefined();
+      expect(favoritesAnnouncementService.removeByAssociationId).toHaveBeenCalledWith(
+        associationId,
+      );
+      expect(announcementRepository.deleteByAssociationId).toHaveBeenCalledWith(associationId);
+    });
+
+    it('should throw InternalServerErrorException if an error occurs', async () => {
+      const associationId = 'assoc-id';
+      const favoritesAnnouncementService = {
+        removeByAssociationId: jest.fn().mockRejectedValue(new Error('fail')),
+      };
+      const serviceTest = new AnnouncementService(
+        {} as any,
+        {} as any,
+        favoritesAnnouncementService as any,
+      );
+      await expect(serviceTest.deleteByAssociationId(associationId)).rejects.toThrow(
+        "Erreur lors de la suppression des annonces de l'association",
+      );
+    });
+  });
+
+  describe('removeVolunteerEverywhere', () => {
+    it('should call repository and return modified count', async () => {
+      const volunteerId = 'vol-123';
+      const modifiedCount = 3;
+      // Mock la méthode du repository
+      repository.removeVolunteerEverywhere = jest.fn().mockResolvedValue(modifiedCount);
+
+      const result = await service.removeVolunteerEverywhere(volunteerId);
+
+      expect(repository.removeVolunteerEverywhere).toHaveBeenCalledWith(volunteerId);
+      expect(result).toBe(modifiedCount);
+    });
+
+    it('should throw InternalServerErrorException if repository throws', async () => {
+      const volunteerId = 'vol-123';
+      repository.removeVolunteerEverywhere = jest.fn().mockRejectedValue(new Error('fail'));
+
+      await expect(service.removeVolunteerEverywhere(volunteerId)).rejects.toThrow(
+        'Erreur lors de la suppression du bénévole dans toutes les annonces',
+      );
     });
   });
 });

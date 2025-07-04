@@ -99,4 +99,17 @@ export class AnnouncementRepository {
       },
     );
   }
+
+  async removeVolunteerEverywhere(volunteerId: string): Promise<number> {
+    const result = await this.collection.updateMany(
+      {},
+      {
+        $pull: {
+          volunteers: { id: volunteerId },
+          volunteersWaiting: { id: volunteerId },
+        },
+      },
+    );
+    return result.modifiedCount;
+  }
 }

@@ -34,6 +34,7 @@ export class VolunteerController {
         `Erreur lors de la création du bénévole: ${createVolunteerDto.email}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -62,6 +63,7 @@ export class VolunteerController {
       return this.volunteerService.update(id, updateVolunteerDto);
     } catch (error) {
       this.logger.error(`Erreur lors de la mise à jour du bénévole: ${id}`, error.stack);
+      throw error;
     }
   }
 
@@ -74,6 +76,7 @@ export class VolunteerController {
       return this.volunteerService.remove(id);
     } catch (error) {
       this.logger.error(`Erreur lors de la suppression du bénévole: ${id}`, error.stack);
+      throw error;
     }
   }
 }
