@@ -25,6 +25,7 @@ export class UserRepository {
       disabled: createUserDto.disabled,
       isVerified: createUserDto.isVerified,
       lastConnection: createUserDto.lastSignInTime,
+      isComplete: createUserDto.isCompleted,
       createdAt: createUserDto.createdAt,
       updatedAt: new Date(),
     };
@@ -51,6 +52,18 @@ export class UserRepository {
         $set: {
           isOnline: isOnline,
           lastConnection: lastSignInTime === '' ? new Date().toISOString() : lastSignInTime,
+          updatedAt: new Date(),
+        },
+      },
+    );
+  }
+
+  async updateIsComplete(id: string, isComplete: boolean): Promise<void> {
+    await this.collection.updateOne(
+      { userId: id },
+      {
+        $set: {
+          isComplete: isComplete,
           updatedAt: new Date(),
         },
       },

@@ -115,10 +115,24 @@ describe('UserService', () => {
           idToken: 'mock-token',
           refreshToken: 'mock-refresh',
           expiresIn: '3600',
+          isCompleted: true,
         },
       };
 
       (axios.post as jest.Mock).mockResolvedValue(mockResponse);
+      jest.spyOn(repository, 'findByUid').mockResolvedValue({
+        userId: 'mockUid',
+        email: loginData.email,
+        role: UserRole.VOLUNTEER,
+        isOnline: false,
+        disabled: false,
+        isVerified: false,
+        lastConnection: new Date().toISOString(),
+        isComplete: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date(),
+      });
+
       jest.spyOn(firebaseAdmin, 'getUserByEmail').mockResolvedValue({
         uid: 'mockUid',
         metadata: {

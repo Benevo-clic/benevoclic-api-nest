@@ -22,6 +22,7 @@ import {
   RegisterUserGoogleResponseDto,
 } from '../../../api/user/dto/register-user-google.dto';
 import { AuthConfig } from '@config/auth.config';
+import { User } from '../../../api/user/entities/user.entity';
 
 @Injectable()
 export class UserService {
@@ -147,6 +148,7 @@ export class UserService {
         disabled: userRecord.disabled,
         isVerified: userRecord.emailVerified,
         lastSignInTime: userRecord.metadata.lastRefreshTime,
+        isCompleted: false,
         createdAt: userRecord.metadata.creationTime,
       });
       await this.updateConnectionStatus(userRecord.uid, true, userRecord.metadata.lastSignInTime);
@@ -182,6 +184,7 @@ export class UserService {
         role: registerUser.role,
         disabled: userRecord.disabled,
         isVerified: userRecord.emailVerified,
+        isCompleted: false,
         lastSignInTime: userRecord.metadata.lastRefreshTime,
         createdAt: userRecord.metadata.creationTime,
       });
@@ -210,6 +213,7 @@ export class UserService {
         role: registerUser.role,
         disabled: userRecord.disabled,
         isVerified: userRecord.emailVerified,
+        isCompleted: false,
         lastSignInTime: userRecord.metadata.lastRefreshTime,
         createdAt: userRecord.metadata.creationTime,
       });
@@ -328,19 +332,43 @@ export class UserService {
       }
       const { idToken, refreshToken, expiresIn } = response;
       const firebaseUser = await this.firebaseInstance.getUserByEmail(payload.email);
+
+      const stateCreated = await this.userRepository.findByUid(firebaseUser.uid);
+
       await this.updateConnectionStatus(
         firebaseUser.uid,
         true,
         firebaseUser.metadata.lastSignInTime,
       );
       this.logger.log(`Connexion réussie pour: ${payload.email}`);
-      return { idUser: firebaseUser.uid, idToken, refreshToken, expiresIn };
+      return {
+        idUser: firebaseUser.uid,
+        idToken,
+        refreshToken,
+        expiresIn,
+        isCompleted: stateCreated.isComplete,
+      };
     } catch (error) {
       this.logger.error(`Erreur de connexion pour: ${payload.email}`, error.stack);
       if (error instanceof BadRequestException) {
         throw error;
       }
       throw new InternalServerErrorException('Erreur de connexion');
+    }
+  }
+
+  async updateIsCompleted(id: string, isCompleted: boolean): Promise<User | null> {
+    try {
+      await this.userRepository.updateIsComplete(id, isCompleted);
+      return await this.userRepository.findByUid(id);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la mise à jour de l'état de complétion: ${id}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la mise à jour de l'état de complétion",
+      );
     }
   }
 
