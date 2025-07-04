@@ -375,7 +375,7 @@ export class UserService {
   async updateConnectionStatus(id: string, isConnected: boolean, lastSignInTime?: string) {
     try {
       await this.userRepository.updateConnectionStatus(id, isConnected, lastSignInTime);
-      return { message: 'Statut de connexion mis à jour avec succès' };
+      return this.userRepository.findByUid(id);
     } catch (error) {
       this.logger.error(`Erreur lors de la mise à jour du statut de connexion: ${id}`, error.stack);
       throw new InternalServerErrorException(
