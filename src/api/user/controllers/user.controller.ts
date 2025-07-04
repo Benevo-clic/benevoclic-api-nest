@@ -168,17 +168,19 @@ export class UserController {
     return this.userService.findOne(id);
   }
 
-  @Patch('isCompleted')
+  @Patch(':id/isCompleted/:isCompleted')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  async updateIsCompleted(@Body() updateDto: UpdateUserCompletionDto): Promise<User | null> {
+  async updateIsCompleted(
+    @Param('id') id: string,
+    @Param('isCompleted') isCompleted: string,
+  ): Promise<User | null> {
     try {
-      const { id, isCompleted } = updateDto;
-      return this.userService.updateIsCompleted(id, isCompleted);
+      return this.userService.updateIsCompleted(id, isCompleted === 'true');
     } catch (error) {
       this.logger.error(
-        `Erreur lors de la mise à jour de l'état de complétion de l'utilisateur: ${updateDto.id}`,
+        `Erreur lors de la mise à jour de l'état de complétion de l'utilisateur: ${id}`,
         error.stack,
       );
       throw error;
