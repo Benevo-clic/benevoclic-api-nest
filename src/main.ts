@@ -1,11 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { initializeFirebase } from './config/firebase.config';
+import { initializeFirebase } from '@config/firebase.config';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+    }),
+  );
   const config = new DocumentBuilder()
     .setTitle('User Authentication')
     .setDescription('The API details for the User Authentication Demo application.')
@@ -17,10 +23,10 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   app.enableCors({
-    origin: 'http://localhost:5482', // Correction des origines
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS', // Ajout de OPTIONS pour les requêtes preflight
+    origin: 'http://localhost:5482',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'], // Ajout des headers autorisés
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Initialize Firebase

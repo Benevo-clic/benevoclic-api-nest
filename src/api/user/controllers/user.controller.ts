@@ -30,6 +30,13 @@ import { RegisterUserVerifiedDto } from '../dto/register-user-verified.dto';
 import { RegisterUserGoogleDto } from '../dto/register-user-google.dto';
 import { User } from '../entities/user.entity';
 
+import { IsBoolean } from 'class-validator';
+
+export class UpdateUserCompletionDto {
+  @IsBoolean()
+  isCompleted: boolean;
+}
+
 @Controller('user')
 export class UserController {
   private readonly logger = new Logger(UserController.name);
@@ -162,10 +169,11 @@ export class UserController {
   @ApiBearerAuth()
   async updateIsCompleted(
     @Param('id') id: string,
-    @Body() isCompleted: boolean,
+    @Body() updateDto: UpdateUserCompletionDto,
   ): Promise<User | null> {
     try {
-      return await this.userService.updateIsCompleted(id, isCompleted);
+      const { isCompleted } = updateDto;
+      return this.userService.updateIsCompleted(id, isCompleted);
     } catch (error) {
       this.logger.error(
         `Erreur lors de la mise à jour de l'état de complétion de l'utilisateur: ${id}`,
