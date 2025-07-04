@@ -25,6 +25,7 @@ export class FavoritesAnnouncementController {
         `Erreur lors de la création de l'annonce favorite: ${createFavoritesAnnouncementDto.announcementId}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -102,6 +103,7 @@ export class FavoritesAnnouncementController {
         `Erreur lors de la suppression de l'annonce favorite: ${announcementId}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -117,6 +119,7 @@ export class FavoritesAnnouncementController {
         `Erreur lors de la suppression de l'annonce favorite: ${volunteerId}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -132,6 +135,7 @@ export class FavoritesAnnouncementController {
         `Erreur lors de la suppression de l'annonce favorite: ${announcementId}`,
         error.stack,
       );
+      throw error;
     }
   }
 }

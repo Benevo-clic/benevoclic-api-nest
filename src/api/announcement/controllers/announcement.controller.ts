@@ -47,7 +47,12 @@ export class AnnouncementController {
     type: [Announcement],
   })
   async findAll(): Promise<Announcement[]> {
-    return this.service.findAll();
+    try {
+      return await this.service.findAll();
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des annonces', error.stack);
+      throw error;
+    }
   }
 
   @Get(':id')
@@ -60,7 +65,12 @@ export class AnnouncementController {
   })
   @ApiResponse({ status: 404, description: 'Annonce non trouvée' })
   async findById(@Param('id') id: string): Promise<Announcement> {
-    return this.service.findById(id);
+    try {
+      return await this.service.findById(id);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération de l'annonce: ${id}`, error.stack);
+      throw error;
+    }
   }
 
   @Post()
@@ -70,7 +80,12 @@ export class AnnouncementController {
   @ApiOperation({ summary: 'Create a new announcement' })
   @ApiBody({ type: CreateAnnouncementDto })
   async create(@Body() announcement: CreateAnnouncementDto): Promise<string> {
-    return this.service.create(announcement);
+    try {
+      return await this.service.create(announcement);
+    } catch (error) {
+      this.logger.error("Erreur lors de la création de l'annonce", error.stack);
+      throw error;
+    }
   }
 
   @Get('association/:associationId')
@@ -80,7 +95,15 @@ export class AnnouncementController {
   async findByAssociationId(
     @Param('associationId') associationId: string,
   ): Promise<Announcement[]> {
-    return this.service.findByAssociationId(associationId);
+    try {
+      return await this.service.findByAssociationId(associationId);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la récupération des annonces de l'association: ${associationId}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
 
   @Patch(':id')
@@ -93,20 +116,38 @@ export class AnnouncementController {
     @Param('id') id: string,
     @Body() announcement: UpdateAnnouncementDto,
   ): Promise<Partial<Announcement>> {
-    return this.service.update(id, announcement);
+    try {
+      return await this.service.update(id, announcement);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la mise à jour de l'annonce: ${id}`, error.stack);
+      throw error;
+    }
   }
 
   @Delete(':id')
-  async delete(@Param('id') id: string): Promise<boolean> {
-    return this.service.delete(id);
+  async delete(@Param('id') id: string): Promise<void> {
+    try {
+      await this.service.delete(id);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la suppression de l'annonce: ${id}`, error.stack);
+      throw error;
+    }
   }
 
   @Delete('association/:associationId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
-  async deleteByAssociationId(@Param('associationId') associationId: string): Promise<boolean> {
-    return this.service.deleteByAssociationId(associationId);
+  async deleteByAssociationId(@Param('associationId') associationId: string): Promise<void> {
+    try {
+      await this.service.deleteByAssociationId(associationId);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la suppression des annonces de l'association: ${associationId}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
 
   @Patch('/register/volunteer/:announcementId')
@@ -134,7 +175,12 @@ export class AnnouncementController {
     @Param('announcementId') announcementId: string,
     @Body() volunteer: InfoVolunteerDto,
   ): Promise<InfoVolunteer> {
-    return this.service.registerVolunteer(announcementId, volunteer);
+    try {
+      return await this.service.registerVolunteer(announcementId, volunteer);
+    } catch (error) {
+      this.logger.error(`Erreur lors de l'inscription du bénévole: ${announcementId}`, error.stack);
+      throw error;
+    }
   }
 
   @Patch('/register/volunteerWaiting/:announcementId')
@@ -147,7 +193,15 @@ export class AnnouncementController {
     @Param('announcementId') announcementId: string,
     @Body() volunteer: InfoVolunteer,
   ): Promise<InfoVolunteer> {
-    return this.service.registerVolunteerWaiting(announcementId, volunteer);
+    try {
+      return await this.service.registerVolunteerWaiting(announcementId, volunteer);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de l'inscription du bénévole en attente: ${announcementId}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
 
   @Patch('/register/participant/:announcementId')
@@ -168,7 +222,15 @@ export class AnnouncementController {
     @Param('announcementId') announcementId: string,
     @Body() participant: InfoVolunteerDto,
   ): Promise<InfoVolunteer> {
-    return this.service.registerParticipant(announcementId, participant);
+    try {
+      return await this.service.registerParticipant(announcementId, participant);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de l'inscription du participant: ${announcementId}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
 
   @Patch('/unregister/volunteer/:volunteer/:announcementId')
@@ -179,7 +241,15 @@ export class AnnouncementController {
     @Param('announcementId') announcementId: string,
     @Param('volunteer') volunteer: string,
   ): Promise<string> {
-    return this.service.removeVolunteer(announcementId, volunteer);
+    try {
+      return await this.service.removeVolunteer(announcementId, volunteer);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la désinscription du bénévole: ${announcementId}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
 
   @Patch('/unregister/participant/:participant/:announcementId')
@@ -190,7 +260,15 @@ export class AnnouncementController {
     @Param('announcementId') announcementId: string,
     @Param('participant') participant: string,
   ): Promise<string> {
-    return this.service.removeParticipant(announcementId, participant);
+    try {
+      return await this.service.removeParticipant(announcementId, participant);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la désinscription du participant: ${announcementId}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
 
   @Patch('/unregister/volunteerWaiting/:volunteer/:announcementId')
@@ -201,7 +279,15 @@ export class AnnouncementController {
     @Param('announcementId') announcementId: string,
     @Param('volunteer') volunteer: string,
   ): Promise<string> {
-    return this.service.removeVolunteerWaiting(announcementId, volunteer);
+    try {
+      return await this.service.removeVolunteerWaiting(announcementId, volunteer);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la désinscription du bénévole en attente: ${announcementId}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
 
   @Patch('/cover-announcement/:id')
@@ -220,6 +306,7 @@ export class AnnouncementController {
         "Erreur lors de la mise à jour de l'image de profil de l'annonce",
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -231,6 +318,11 @@ export class AnnouncementController {
     @Param('announcementId') announcementId: string,
     @Body('status') status: AnnouncementStatus,
   ) {
-    return this.service.updateStatus(announcementId, status);
+    try {
+      return await this.service.updateStatus(announcementId, status);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la mise à jour du statut: ${announcementId}`, error.stack);
+      throw error;
+    }
   }
 }

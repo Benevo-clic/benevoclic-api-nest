@@ -218,21 +218,19 @@ describe('AnnouncementController', () => {
 
   describe('delete', () => {
     it('should delete an announcement', async () => {
-      const announcementId = '67a89edbafdcf40d022aac89';
-      announcementService.delete = jest.fn().mockReturnValue(true);
+      const announcementId = 'test-id';
+      announcementService.delete = jest.fn().mockReturnValue(undefined);
       const result = await announcementController.delete(announcementId);
-      expect(result).toBeDefined();
-      expect(result).toBe(true);
+      expect(result).toBeUndefined();
     });
   });
 
   describe('deleteByAssociationId', () => {
     it('should delete announcements by associationId', async () => {
-      const associationId = 'Um7at9Si8gVTEjuXsM8cdyOushc2';
-      announcementService.deleteByAssociationId = jest.fn().mockReturnValue(true);
+      const associationId = 'assoc-id';
+      announcementService.deleteByAssociationId = jest.fn().mockReturnValue(undefined);
       const result = await announcementController.deleteByAssociationId(associationId);
-      expect(result).toBeDefined();
-      expect(result).toBe(true);
+      expect(result).toBeUndefined();
     });
   });
 

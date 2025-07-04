@@ -1,4 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { CreateAssociationDto } from '../dto/create-association.dto';
 import { UpdateAssociationDto } from '../dto/update-association.dto';
 import { Association } from '../entities/association.entity';
@@ -6,149 +12,218 @@ import { AssociationRepository } from '../repository/association.repository';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
 import { InfoVolunteer } from '../type/association.type';
 import { FindAssociationDto } from '../dto/find-association.dto';
+import { AnnouncementService } from '../../announcement/services/announcement.service';
 
 @Injectable()
 export class AssociationService {
+  private readonly logger = new Logger(AssociationService.name);
   firebaseInstance: FirebaseAdminService = FirebaseAdminService.getInstance();
 
-  constructor(private readonly associationRepository: AssociationRepository) {}
+  constructor(
+    private readonly associationRepository: AssociationRepository,
+    private readonly announcementService: AnnouncementService,
+  ) {}
 
   async create(createAssociationDto: CreateAssociationDto) {
-    const firebaseUser = await this.firebaseInstance.getUserByEmail(createAssociationDto.email);
-    if (!firebaseUser) {
-      throw new Error('Email not found');
+    try {
+      const firebaseUser = await this.firebaseInstance.getUserByEmail(createAssociationDto.email);
+      if (!firebaseUser) {
+        throw new NotFoundException('Email not found');
+      }
+      const isExist: Association = await this.associationRepository.findById(firebaseUser.uid);
+      if (isExist) {
+        throw new BadRequestException('Email already exist');
+      }
+      const emailExist = await this.associationRepository.findByEmail(createAssociationDto.email);
+      if (emailExist) {
+        throw new BadRequestException('Email already exist');
+      }
+      return await this.associationRepository.create({
+        associationId: firebaseUser.uid,
+        bio: createAssociationDto.bio,
+        phone: createAssociationDto.phone,
+        associationName: createAssociationDto.associationName,
+        city: createAssociationDto.city,
+        country: createAssociationDto.country,
+        postalCode: createAssociationDto.postalCode,
+        type: createAssociationDto.type,
+        volunteers: [],
+        volunteersWaiting: [],
+      });
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la création de l'association: ${createAssociationDto.email}`,
+        error.stack,
+      );
+      throw error instanceof BadRequestException || error instanceof NotFoundException
+        ? error
+        : new InternalServerErrorException("Erreur lors de la création de l'association");
     }
-
-    const isExist: Association = await this.associationRepository.findById(firebaseUser.uid);
-    if (isExist) {
-      throw new Error('Email already exist');
-    }
-
-    const emailExist = await this.associationRepository.findByEmail(createAssociationDto.email);
-    if (emailExist) {
-      throw new Error('Email already exist');
-    }
-
-    return this.associationRepository.create({
-      associationId: firebaseUser.uid,
-      bio: createAssociationDto.bio,
-      phone: createAssociationDto.phone,
-      associationName: createAssociationDto.associationName,
-      city: createAssociationDto.city,
-      country: createAssociationDto.country,
-      postalCode: createAssociationDto.postalCode,
-      type: createAssociationDto.type,
-      volunteers: [],
-      volunteersWaiting: [],
-    });
   }
 
   async findAll(): Promise<Association[]> {
-    return this.associationRepository.findAll();
+    try {
+      return await this.associationRepository.findAll();
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des associations', error.stack);
+      throw new InternalServerErrorException('Erreur lors de la récupération des associations');
+    }
   }
 
   async findOne(id: string): Promise<Association | null> {
-    return this.associationRepository.findById(id);
+    try {
+      const association = await this.associationRepository.findById(id);
+      if (!association) {
+        throw new NotFoundException('Association not found');
+      }
+      return association;
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération de l'association: ${id}`, error.stack);
+      throw error instanceof NotFoundException
+        ? error
+        : new InternalServerErrorException("Erreur lors de la récupération de l'association");
+    }
   }
 
   async update(id: string, updateAssociationDto: UpdateAssociationDto) {
-    const oldAssociation: Association = await this.associationRepository.findById(id);
-    if (!oldAssociation) {
-      throw new Error('Association not found');
+    try {
+      const oldAssociation: Association = await this.associationRepository.findById(id);
+      if (!oldAssociation) {
+        throw new NotFoundException('Association not found');
+      }
+      await this.associationRepository.update(id, {
+        ...updateAssociationDto,
+      });
+      return await this.associationRepository.findById(id);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la mise à jour de l'association: ${id}`, error.stack);
+      throw error instanceof NotFoundException
+        ? error
+        : new InternalServerErrorException("Erreur lors de la mise à jour de l'association");
     }
-
-    await this.associationRepository.update(id, {
-      ...updateAssociationDto,
-    });
-
-    return await this.associationRepository.findById(id);
   }
 
   async remove(id: string) {
-    const isExist: Association = await this.associationRepository.findById(id);
-    if (!isExist) {
-      throw new Error('Association not found');
+    try {
+      const isExist: Association = await this.associationRepository.findById(id);
+      if (!isExist) {
+        throw new NotFoundException('Association not found');
+      }
+      await this.announcementService.deleteByAssociationId(id);
+      await this.associationRepository.remove(id);
+      return `This action removes a #${id} association`;
+    } catch (error) {
+      this.logger.error(`Erreur lors de la suppression de l'association: ${id}`, error.stack);
+      throw error instanceof NotFoundException
+        ? error
+        : new InternalServerErrorException("Erreur lors de la suppression de l'association");
     }
-
-    await this.associationRepository.remove(id);
-
-    return `This action removes a #${id} association`;
   }
 
   async registerVolunteer(associationId: string, volunteer: InfoVolunteer) {
-    await this.removeVolunteerWaiting(associationId, volunteer.id);
-    await this.addVolunteer(associationId, volunteer);
-    return volunteer;
+    try {
+      await this.removeVolunteerWaiting(associationId, volunteer.id);
+      await this.addVolunteer(associationId, volunteer);
+      return volunteer;
+    } catch (error) {
+      this.logger.error(`Erreur lors de l'inscription du bénévole: ${associationId}`, error.stack);
+      throw new InternalServerErrorException("Erreur lors de l'inscription du bénévole");
+    }
   }
 
   async addVolunteer(associationId: string, volunteerInfo: InfoVolunteer) {
-    const association: Association = await this.associationRepository.findById(associationId);
-    if (!association) {
-      throw new Error('Association not found');
+    try {
+      const association: Association = await this.associationRepository.findById(associationId);
+      if (!association) {
+        throw new NotFoundException('Association not found');
+      }
+      const isExist = association.volunteers.find(volunteer => volunteer.id === volunteerInfo.id);
+      if (isExist) {
+        throw new BadRequestException('Volunteer already exist');
+      }
+      association.volunteers.push(volunteerInfo);
+      await this.associationRepository.update(associationId, association);
+      return volunteerInfo;
+    } catch (error) {
+      this.logger.error(`Erreur lors de l'ajout du bénévole: ${associationId}`, error.stack);
+      throw error instanceof NotFoundException || error instanceof BadRequestException
+        ? error
+        : new InternalServerErrorException("Erreur lors de l'ajout du bénévole");
     }
-
-    const isExist = association.volunteers.find(volunteer => volunteer.id === volunteerInfo.id);
-    if (isExist) {
-      throw new Error('Volunteer already exist');
-    }
-
-    association.volunteers.push(volunteerInfo);
-    await this.associationRepository.update(associationId, association);
-
-    return volunteerInfo;
   }
 
   async addVolunteerWaiting(associationId: string, volunteerInfo: InfoVolunteer) {
-    const association: Association = await this.associationRepository.findById(associationId);
-    if (!association) {
-      throw new Error('Association not found');
+    try {
+      const association: Association = await this.associationRepository.findById(associationId);
+      if (!association) {
+        throw new NotFoundException('Association not found');
+      }
+      const isExist = association.volunteersWaiting.find(
+        volunteer => volunteer.id === volunteerInfo.id,
+      );
+      if (isExist) {
+        throw new BadRequestException('Volunteer already exist');
+      }
+      association.volunteersWaiting.push(volunteerInfo);
+      await this.associationRepository.update(associationId, association);
+      return volunteerInfo;
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de l'ajout du bénévole en attente: ${associationId}`,
+        error.stack,
+      );
+      throw error instanceof NotFoundException || error instanceof BadRequestException
+        ? error
+        : new InternalServerErrorException("Erreur lors de l'ajout du bénévole en attente");
     }
-
-    const isExist = association.volunteersWaiting.find(
-      volunteer => volunteer.id === volunteerInfo.id,
-    );
-    if (isExist) {
-      throw new Error('Volunteer already exist');
-    }
-
-    association.volunteersWaiting.push(volunteerInfo);
-    await this.associationRepository.update(associationId, association);
-    return volunteerInfo;
   }
 
   async removeVolunteerWaiting(associationId: string, volunteerId: string) {
-    const association: Association = await this.associationRepository.findById(associationId);
-    if (!association) {
-      throw new Error('Association not found');
+    try {
+      const association: Association = await this.associationRepository.findById(associationId);
+      if (!association) {
+        throw new NotFoundException('Association not found');
+      }
+      const isExist = association.volunteersWaiting.find(volunteer => volunteer.id === volunteerId);
+      if (!isExist) {
+        throw new BadRequestException('Volunteer not exist');
+      }
+      await this.associationRepository.removeVolunteerWaitingFromAssociation(
+        associationId,
+        volunteerId,
+      );
+      return volunteerId;
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la suppression du bénévole en attente: ${associationId}`,
+        error.stack,
+      );
+      throw error instanceof NotFoundException || error instanceof BadRequestException
+        ? error
+        : new InternalServerErrorException('Erreur lors de la suppression du bénévole en attente');
     }
-
-    const isExist = association.volunteersWaiting.find(volunteer => volunteer.id === volunteerId);
-    if (!isExist) {
-      throw new Error('Volunteer not exist');
-    }
-
-    await this.associationRepository.removeVolunteerWaitingFromAssociation(
-      associationId,
-      volunteerId,
-    );
-    return volunteerId;
   }
 
   async removeVolunteer(associationId: string, volunteerId: string): Promise<string> {
-    const association: Association = await this.associationRepository.findById(associationId);
-    if (!association) {
-      throw new Error('Association not found');
+    try {
+      const association: Association = await this.associationRepository.findById(associationId);
+      if (!association) {
+        throw new NotFoundException('Association not found');
+      }
+      const isExist = association.volunteers.find(volunteer => volunteer.id === volunteerId);
+      if (!isExist) {
+        throw new BadRequestException('Volunteer not exist');
+      }
+      return await this.associationRepository.removeVolunteerFromAssociation(
+        associationId,
+        volunteerId,
+      );
+    } catch (error) {
+      this.logger.error(`Erreur lors de la suppression du bénévole: ${associationId}`, error.stack);
+      throw error instanceof NotFoundException || error instanceof BadRequestException
+        ? error
+        : new InternalServerErrorException('Erreur lors de la suppression du bénévole');
     }
-
-    const isExist = association.volunteers.find(volunteer => volunteer.id === volunteerId);
-    if (!isExist) {
-      throw new Error('Volunteer not exist');
-    }
-
-    return await this.associationRepository.removeVolunteerFromAssociation(
-      associationId,
-      volunteerId,
-    );
   }
 
   getAssociationWaitingByVolunteer(volunteerId: string): Promise<FindAssociationDto[]> {
@@ -160,20 +235,63 @@ export class AssociationService {
   }
 
   async getVolunteersInWaitingList(associationId: string, volunteerId: string) {
-    return await this.associationRepository.findVolunteersInWaitingList(associationId, volunteerId);
+    try {
+      return await this.associationRepository.findVolunteersInWaitingList(
+        associationId,
+        volunteerId,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la récupération de la liste d'attente: ${associationId}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la récupération de la liste d'attente",
+      );
+    }
   }
 
   async getAssociationsVolunteerList(associationId: string, volunteerId: string) {
-    return await this.associationRepository.findVolunteersList(associationId, volunteerId);
+    try {
+      return await this.associationRepository.findVolunteersList(associationId, volunteerId);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la récupération de la liste des bénévoles: ${associationId}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        'Erreur lors de la récupération de la liste des bénévoles',
+      );
+    }
   }
 
   async getAllAssociationsVolunteerFromWaitingList(volunteerId: string) {
-    return await this.associationRepository.findAllAssociationsVolunteerFromWaitingList(
-      volunteerId,
-    );
+    try {
+      return await this.associationRepository.findAllAssociationsVolunteerFromWaitingList(
+        volunteerId,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la récupération des associations du bénévole depuis la liste d'attente: ${volunteerId}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la récupération des associations du bénévole depuis la liste d'attente",
+      );
+    }
   }
 
   async getAllAssociationsVolunteerFromList(volunteerId: string) {
-    return await this.associationRepository.findAllAssociationsVolunteerFromList(volunteerId);
+    try {
+      return await this.associationRepository.findAllAssociationsVolunteerFromList(volunteerId);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la récupération des associations du bénévole: ${volunteerId}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        'Erreur lors de la récupération des associations du bénévole',
+      );
+    }
   }
 }

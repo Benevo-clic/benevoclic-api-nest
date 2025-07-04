@@ -13,6 +13,7 @@ import {
   Request,
   UseInterceptors,
   UploadedFile,
+  Logger,
 } from '@nestjs/common';
 import { UserService } from '../../../common/services/user/user.service';
 import { UpdateUserDto } from '../dto/update-user.dto';
@@ -30,6 +31,7 @@ import { RegisterUserGoogleDto } from '../dto/register-user-google.dto';
 
 @Controller('user')
 export class UserController {
+  private readonly logger = new Logger(UserController.name);
   constructor(private readonly userService: UserService) {}
 
   @Public()
@@ -39,10 +41,11 @@ export class UserController {
     try {
       return this.userService.registerUser(registerUserDto);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de la création de l'utilisateur: ${registerUserDto.email}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -53,10 +56,11 @@ export class UserController {
     try {
       return this.userService.registerWithEmailAndPasswordVerification(registerUserDto);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de la création de l'utilisateur: ${registerUserDto.email}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -67,10 +71,11 @@ export class UserController {
     try {
       return this.userService.registerWithGoogle(registerUserDto);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de la création de l'utilisateur: ${registerUserDto.role}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -82,7 +87,7 @@ export class UserController {
     try {
       return this.userService.getCurrentUser(req);
     } catch (error) {
-      console.error(`Erreur lors de la recuperation de l'utilisateur`, error.stack);
+      this.logger.error(`Erreur lors de la recuperation de l'utilisateur`, error.stack);
       throw error;
     }
   }
@@ -100,7 +105,11 @@ export class UserController {
     try {
       return this.userService.loginUser(loginDto);
     } catch (error) {
-      console.error(`Erreur lors de la connexion de l'utilisateur: ${loginDto.email}`, error.stack);
+      this.logger.error(
+        `Erreur lors de la connexion de l'utilisateur: ${loginDto.email}`,
+        error.stack,
+      );
+      throw error;
     }
   }
 
@@ -120,7 +129,8 @@ export class UserController {
     try {
       return this.userService.findByRole(UserRole.VOLUNTEER);
     } catch (error) {
-      console.error('Erreur lors de la récupération des bénévoles', error.stack);
+      this.logger.error('Erreur lors de la récupération des bénévoles', error.stack);
+      throw error;
     }
   }
 
@@ -132,7 +142,8 @@ export class UserController {
     try {
       return this.userService.findByRole(UserRole.ASSOCIATION);
     } catch (error) {
-      console.error('Erreur lors de la récupération des associations', error.stack);
+      this.logger.error('Erreur lors de la récupération des associations', error.stack);
+      throw error;
     }
   }
 
@@ -160,6 +171,7 @@ export class UserController {
     try {
       return await this.userService.update(id, updateUserDto);
     } catch (error) {
+      this.logger.error(`Erreur lors de la mise à jour de l'utilisateur: ${id}`, error.stack);
       throw error;
     }
   }
@@ -172,6 +184,7 @@ export class UserController {
     try {
       return await this.userService.remove(id);
     } catch (error) {
+      this.logger.error(`Erreur lors de la suppression de l'utilisateur: ${id}`, error.stack);
       throw error;
     }
   }
@@ -184,6 +197,10 @@ export class UserController {
     try {
       return await this.userService.logout(req.user.uid);
     } catch (error) {
+      this.logger.error(
+        `Erreur lors de la déconnexion de l'utilisateur: ${req.user.uid}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -197,10 +214,11 @@ export class UserController {
     try {
       return await this.userService.updateProfilePicture(id, file);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de la mise à jour de l'image de profil de l'utilisateur: ${id}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -212,10 +230,11 @@ export class UserController {
     try {
       return await this.userService.updateLocation(id, location);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de la mise à jour de la localisation de l'utilisateur: ${id}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -227,10 +246,11 @@ export class UserController {
     try {
       return await this.userService.getProfileImage(id);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de la récupération de l'image de profil de l'utilisateur: ${id}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -242,10 +262,11 @@ export class UserController {
     try {
       return await this.userService.updateConnectionStatus(id, connected === 'true');
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de la mise à jour de la connexion de l'utilisateur: ${id}`,
         error.stack,
       );
+      throw error;
     }
   }
 }

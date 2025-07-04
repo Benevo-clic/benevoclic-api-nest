@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { AssociationService } from '../services/association.service';
 import { CreateAssociationDto } from '../dto/create-association.dto';
@@ -22,6 +23,7 @@ import { InfoUserDto } from '../dto/info-user.dto';
 
 @Controller('/api/v2/association')
 export class AssociationController {
+  private readonly logger = new Logger(AssociationController.name);
   constructor(private readonly associationService: AssociationService) {}
 
   @Post()
@@ -33,7 +35,7 @@ export class AssociationController {
     try {
       return this.associationService.create(createAssociationDto);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de la création de l'association: ${createAssociationDto.email}`,
         error.stack,
       );
@@ -67,7 +69,7 @@ export class AssociationController {
     try {
       return this.associationService.getVolunteersInWaitingList(associationId, volunteerId);
     } catch (error) {
-      console.error(
+      this.logger.error(
         "Erreur lors de la récupération de la liste d'attente des associations: %s",
         associationId,
         error.stack,
@@ -86,7 +88,7 @@ export class AssociationController {
     try {
       return this.associationService.getAssociationsVolunteerList(associationId, volunteerId);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de la récupération de la liste d'attente des associations: ${associationId}`,
         error.stack,
       );
@@ -104,7 +106,7 @@ export class AssociationController {
     try {
       return this.associationService.update(associationId, updateAssociationDto);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de la mise à jour de l'association: ${associationId}`,
         error.stack,
       );
@@ -119,7 +121,7 @@ export class AssociationController {
     try {
       return this.associationService.remove(associationId);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de la suppression de l'association: ${associationId}`,
         error.stack,
       );
@@ -137,10 +139,11 @@ export class AssociationController {
     try {
       return await this.associationService.registerVolunteer(associationId, volunteers);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de l'ajout de bénévoles à l'association: ${associationId}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -155,10 +158,11 @@ export class AssociationController {
     try {
       return await this.associationService.removeVolunteer(associationId, volunteers);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de la suppression de bénévoles de l'association: ${associationId}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -170,10 +174,11 @@ export class AssociationController {
     try {
       return this.associationService.getAllAssociationsVolunteerFromWaitingList(volunteerId);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de la récupération des associations du bénévole depuis la liste d'attente: ${volunteerId}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -185,11 +190,12 @@ export class AssociationController {
     try {
       return this.associationService.getAllAssociationsVolunteerFromList(volunteerId);
     } catch (error) {
-      console.error(
+      this.logger.error(
         "Erreur lors de la récupération de la liste des bénévoles de l'association: %s",
         volunteerId,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -204,10 +210,11 @@ export class AssociationController {
     try {
       return this.associationService.addVolunteerWaiting(associationId, volunteers);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de l'ajout de bénévoles en attente à l'association: ${associationId}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -219,10 +226,11 @@ export class AssociationController {
     try {
       return this.associationService.getAssociationWaitingByVolunteer(volunteerId);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de la récupération des associations en attente du bénévole: ${volunteerId}`,
         error.stack,
       );
+      throw error;
     }
   }
 
@@ -245,10 +253,11 @@ export class AssociationController {
     try {
       return this.associationService.removeVolunteerWaiting(associationId, volunteer);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Erreur lors de la suppression de bénévoles en attente de l'association: ${associationId}`,
         error.stack,
       );
+      throw error;
     }
   }
 }

@@ -44,6 +44,10 @@ export class FavoritesAnnouncementRepository {
     return await this.collection.deleteMany({ volunteerId });
   }
 
+  async removeByAssociationId(associationId: string) {
+    return await this.collection.deleteMany({ associationId });
+  }
+
   async removeByAnnouncementId(announcementId: string) {
     return await this.collection.deleteMany({ announcementId });
   }

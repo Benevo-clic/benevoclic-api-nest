@@ -1,4 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+  NotFoundException,
+  BadRequestException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { AnnouncementRepository } from '../repositories/announcement.repository';
 import { CreateAnnouncementDto } from '../dto/create-announcement.dto';
 import { Announcement } from '../entities/announcement.entity';
@@ -7,6 +15,7 @@ import { InfoVolunteer } from '../../association/type/association.type';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { Image } from '../../../common/type/usersInfo.type';
 import { UserService } from '../../../common/services/user/user.service';
+import { FavoritesAnnouncementService } from '../../favorites-announcement/services/favorites-announcement.service';
 
 @Injectable()
 export class AnnouncementService {
@@ -14,202 +23,337 @@ export class AnnouncementService {
   constructor(
     private readonly announcementRepository: AnnouncementRepository,
     private readonly userService: UserService,
+    @Inject(forwardRef(() => FavoritesAnnouncementService))
+    private readonly favoritesAnnouncementService: FavoritesAnnouncementService,
   ) {}
 
   async findAll(): Promise<Announcement[]> {
-    return this.announcementRepository.findAll();
+    try {
+      return await this.announcementRepository.findAll();
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des annonces', error.stack);
+      throw new InternalServerErrorException('Erreur lors de la récupération des annonces');
+    }
   }
 
   async findById(id: string): Promise<Announcement> {
-    return this.announcementRepository.findById(id);
+    try {
+      const announcement = await this.announcementRepository.findById(id);
+      if (!announcement) {
+        throw new NotFoundException('Annonce non trouvée');
+      }
+      return announcement;
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      this.logger.error(`Erreur lors de la récupération de l'annonce: ${id}`, error.stack);
+      throw new InternalServerErrorException("Erreur lors de la récupération de l'annonce");
+    }
   }
 
   async findByAssociationId(associationId: string): Promise<Announcement[]> {
-    return this.announcementRepository.findByAssociationId(associationId);
+    try {
+      return await this.announcementRepository.findByAssociationId(associationId);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la récupération des annonces de l'association: ${associationId}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la récupération des annonces de l'association",
+      );
+    }
   }
 
   async uploadProfileImage(file: Express.Multer.File): Promise<Image> {
-    if (!file) {
-      return null;
+    try {
+      if (!file) {
+        return null;
+      }
+      const base64Image = file.buffer.toString('base64');
+      return {
+        data: base64Image,
+        contentType: file.mimetype,
+        uploadedAt: new Date(),
+      };
+    } catch (error) {
+      this.logger.error("Erreur lors de l'upload de l'image", error.stack);
+      throw new InternalServerErrorException("Erreur lors de l'upload de l'image");
     }
-
-    const base64Image = file.buffer.toString('base64');
-
-    return {
-      data: base64Image, // Image encodée en Base64
-      contentType: file.mimetype,
-      uploadedAt: new Date(),
-    };
   }
 
   async create(announcement: CreateAnnouncementDto): Promise<string> {
-    const associationLogo = await this.userService.getUserImageProfile(announcement.associationId);
-
-    return this.announcementRepository.create({
-      associationId: announcement.associationId,
-      description: announcement.description,
-      datePublication: announcement.datePublication,
-      dateEvent: announcement.dateEvent,
-      hoursEvent: announcement.hoursEvent,
-      nameEvent: announcement.nameEvent,
-      tags: announcement.tags || [],
-      associationName: announcement.associationName,
-      associationLogo: associationLogo,
-      announcementImage: null,
-      locationAnnouncement: announcement.locationAnnouncement,
-      participants: [],
-      volunteers: [],
-      volunteersWaiting: [],
-      nbParticipants: 0,
-      maxParticipants: announcement.maxParticipants,
-      status: announcement.status,
-      nbVolunteers: 0,
-      maxVolunteers: announcement.maxVolunteers,
-    });
+    try {
+      const associationLogo = await this.userService.getUserImageProfile(
+        announcement.associationId,
+      );
+      return await this.announcementRepository.create({
+        associationId: announcement.associationId,
+        description: announcement.description,
+        datePublication: announcement.datePublication,
+        dateEvent: announcement.dateEvent,
+        hoursEvent: announcement.hoursEvent,
+        nameEvent: announcement.nameEvent,
+        tags: announcement.tags || [],
+        associationName: announcement.associationName,
+        associationLogo: associationLogo,
+        announcementImage: null,
+        locationAnnouncement: announcement.locationAnnouncement,
+        participants: [],
+        volunteers: [],
+        volunteersWaiting: [],
+        nbParticipants: 0,
+        maxParticipants: announcement.maxParticipants,
+        status: announcement.status,
+        nbVolunteers: 0,
+        maxVolunteers: announcement.maxVolunteers,
+      });
+    } catch (error) {
+      this.logger.error("Erreur lors de la création de l'annonce", error.stack);
+      throw new InternalServerErrorException("Erreur lors de la création de l'annonce");
+    }
   }
 
   async update(id: string, announcement: UpdateAnnouncementDto): Promise<Partial<Announcement>> {
-    return this.announcementRepository.updateVolunteer(id, announcement);
+    try {
+      return await this.announcementRepository.updateVolunteer(id, announcement);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la mise à jour de l'annonce: ${id}`, error.stack);
+      throw new InternalServerErrorException("Erreur lors de la mise à jour de l'annonce");
+    }
   }
 
-  async delete(id: string): Promise<boolean> {
-    return this.announcementRepository.delete(id);
+  async delete(id: string): Promise<void> {
+    try {
+      await this.favoritesAnnouncementService.removeByAnnouncementId(id);
+      await this.announcementRepository.delete(id);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la suppression de l'annonce: ${id}`, error.stack);
+      throw new InternalServerErrorException("Erreur lors de la suppression de l'annonce");
+    }
   }
 
-  async deleteByAssociationId(associationId: string): Promise<boolean> {
-    return this.announcementRepository.deleteByAssociationId(associationId);
+  async deleteByAssociationId(associationId: string): Promise<void> {
+    try {
+      await this.favoritesAnnouncementService.removeByAssociationId(associationId);
+      await this.announcementRepository.deleteByAssociationId(associationId);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la suppression des annonces de l'association: ${associationId}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la suppression des annonces de l'association",
+      );
+    }
   }
 
   async isCompletedVolunteer(announcement: Announcement): Promise<boolean> {
-    return announcement.nbVolunteers >= announcement.maxVolunteers;
+    try {
+      return announcement.nbVolunteers >= announcement.maxVolunteers;
+    } catch (error) {
+      this.logger.error('Erreur lors de la vérification du nombre de bénévoles', error.stack);
+      throw new InternalServerErrorException(
+        'Erreur lors de la vérification du nombre de bénévoles',
+      );
+    }
   }
 
   async isCompletedParticipant(announcement: Announcement): Promise<boolean> {
-    return announcement.nbParticipants >= announcement.maxParticipants;
+    try {
+      return announcement.nbParticipants >= announcement.maxParticipants;
+    } catch (error) {
+      this.logger.error('Erreur lors de la vérification du nombre de participants', error.stack);
+      throw new InternalServerErrorException(
+        'Erreur lors de la vérification du nombre de participants',
+      );
+    }
   }
 
   async isVolunteer(announcement: Announcement, volunteerId: string): Promise<boolean> {
-    return announcement.volunteers.some(volunteer => volunteer.id === volunteerId);
+    try {
+      return announcement.volunteers.some(volunteer => volunteer.id === volunteerId);
+    } catch (error) {
+      this.logger.error('Erreur lors de la vérification du bénévole', error.stack);
+      throw new InternalServerErrorException('Erreur lors de la vérification du bénévole');
+    }
   }
 
   async isVolunteerWaiting(announcement: Announcement, volunteerId: string): Promise<boolean> {
-    return announcement.volunteersWaiting.some(volunteer => volunteer.id === volunteerId);
+    try {
+      return announcement.volunteersWaiting.some(volunteer => volunteer.id === volunteerId);
+    } catch (error) {
+      this.logger.error('Erreur lors de la vérification du bénévole en attente', error.stack);
+      throw new InternalServerErrorException(
+        'Erreur lors de la vérification du bénévole en attente',
+      );
+    }
   }
 
   async registerVolunteer(id: string, volunteer: InfoVolunteer) {
-    await this.removeVolunteerWaiting(id, volunteer.id);
-    await this.addVolunteer(id, volunteer);
-    return volunteer;
+    try {
+      await this.removeVolunteerWaiting(id, volunteer.id);
+      await this.addVolunteer(id, volunteer);
+      return volunteer;
+    } catch (error) {
+      this.logger.error(`Erreur lors de l'inscription du bénévole: ${id}`, error.stack);
+      throw new InternalServerErrorException("Erreur lors de l'inscription du bénévole");
+    }
   }
 
   async addVolunteer(id: string, volunteer: InfoVolunteer) {
-    const announcement = await this.announcementRepository.findById(id);
-    if (await this.isCompletedVolunteer(announcement)) {
-      throw new Error('Announcement is already completed');
+    try {
+      const announcement = await this.announcementRepository.findById(id);
+      if (await this.isCompletedVolunteer(announcement)) {
+        throw new BadRequestException('Announcement is already completed');
+      }
+      if (await this.isVolunteer(announcement, volunteer.id)) {
+        throw new BadRequestException('Volunteer already registered');
+      }
+      announcement.volunteers.push(volunteer);
+      announcement.nbVolunteers++;
+      await this.announcementRepository.updateVolunteer(id, announcement);
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      this.logger.error(`Erreur lors de l'ajout du bénévole: ${id}`, error.stack);
+      throw new InternalServerErrorException("Erreur lors de l'ajout du bénévole");
     }
-    if (await this.isVolunteer(announcement, volunteer.id)) {
-      throw new Error('Volunteer already registered');
-    }
-    announcement.volunteers.push(volunteer);
-    announcement.nbVolunteers++;
-    await this.announcementRepository.updateVolunteer(id, announcement);
   }
 
   async registerVolunteerWaiting(id: string, volunteer: InfoVolunteer): Promise<InfoVolunteer> {
-    const announcement = await this.announcementRepository.findById(id);
-    if (
-      (await this.isVolunteer(announcement, volunteer.id)) ||
-      (await this.isVolunteerWaiting(announcement, volunteer.id))
-    ) {
-      throw new Error('Volunteer already registered');
+    try {
+      const announcement = await this.announcementRepository.findById(id);
+      if (
+        (await this.isVolunteer(announcement, volunteer.id)) ||
+        (await this.isVolunteerWaiting(announcement, volunteer.id))
+      ) {
+        throw new BadRequestException('Volunteer already registered');
+      }
+      announcement.volunteersWaiting.push(volunteer);
+      await this.announcementRepository.updateVolunteer(id, announcement);
+      return volunteer;
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      this.logger.error(`Erreur lors de l'inscription du bénévole en attente: ${id}`, error.stack);
+      throw new InternalServerErrorException("Erreur lors de l'inscription du bénévole en attente");
     }
-    announcement.volunteersWaiting.push(volunteer);
-    await this.announcementRepository.updateVolunteer(id, announcement);
-    return volunteer;
   }
 
   async removeVolunteerWaiting(id: string, volunteerId: string): Promise<string> {
-    const announcement = await this.announcementRepository.findById(id);
-    if (!announcement) {
-      throw new Error('Announcement not found');
+    try {
+      const announcement = await this.announcementRepository.findById(id);
+      if (!announcement) {
+        throw new NotFoundException('Announcement not found');
+      }
+      if (!(await this.isVolunteerWaiting(announcement, volunteerId))) {
+        throw new BadRequestException('Volunteer not registered');
+      }
+      await this.announcementRepository.removeVolunteerWaiting(id, volunteerId);
+      return volunteerId;
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      this.logger.error(`Erreur lors de la suppression du bénévole en attente: ${id}`, error.stack);
+      throw new InternalServerErrorException(
+        'Erreur lors de la suppression du bénévole en attente',
+      );
     }
-    if (!(await this.isVolunteerWaiting(announcement, volunteerId))) {
-      throw new Error('Volunteer not registered');
-    }
-    await this.announcementRepository.removeVolunteerWaiting(id, volunteerId);
-    return volunteerId;
   }
 
   async removeVolunteer(id: string, volunteerId: string): Promise<string> {
-    const announcement = await this.announcementRepository.findById(id);
-    if (!announcement) {
-      throw new Error('Announcement not found');
+    try {
+      const announcement = await this.announcementRepository.findById(id);
+      if (!announcement) {
+        throw new NotFoundException('Announcement not found');
+      }
+      if (!(await this.isVolunteer(announcement, volunteerId))) {
+        throw new BadRequestException('Volunteer not registered');
+      }
+      await this.announcementRepository.removeVolunteer(
+        id,
+        volunteerId,
+        announcement.nbVolunteers - 1,
+      );
+      return volunteerId;
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      this.logger.error(`Erreur lors de la suppression du bénévole: ${id}`, error.stack);
+      throw new InternalServerErrorException('Erreur lors de la suppression du bénévole');
     }
-    if (!(await this.isVolunteer(announcement, volunteerId))) {
-      throw new Error('Volunteer not registered');
-    }
-
-    await this.announcementRepository.removeVolunteer(
-      id,
-      volunteerId,
-      announcement.nbVolunteers - 1,
-    );
-    return volunteerId;
   }
 
   async registerParticipant(id: string, participant: InfoVolunteer) {
-    const announcement = await this.announcementRepository.findById(id);
-    if (await this.isCompletedParticipant(announcement)) {
-      throw new Error('Announcement is already completed');
+    try {
+      const announcement = await this.announcementRepository.findById(id);
+      if (await this.isCompletedParticipant(announcement)) {
+        throw new BadRequestException('Announcement is already completed');
+      }
+      announcement.participants.push(participant);
+      announcement.nbParticipants++;
+      await this.announcementRepository.updateVolunteer(id, announcement);
+      return participant;
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      this.logger.error(`Erreur lors de l'inscription du participant: ${id}`, error.stack);
+      throw new InternalServerErrorException("Erreur lors de l'inscription du participant");
     }
-
-    announcement.participants.push(participant);
-    announcement.nbParticipants++;
-    await this.announcementRepository.updateVolunteer(id, announcement);
-    return participant;
   }
 
   async isParticipant(announcement: Announcement, participantId: string): Promise<boolean> {
-    return announcement.participants.some(participant => participant.id === participantId);
+    try {
+      return announcement.participants.some(participant => participant.id === participantId);
+    } catch (error) {
+      this.logger.error('Erreur lors de la vérification du participant', error.stack);
+      throw new InternalServerErrorException('Erreur lors de la vérification du participant');
+    }
   }
 
   async removeParticipant(id: string, participantId: string) {
-    const announcement = await this.announcementRepository.findById(id);
-    if (!announcement) {
-      throw new Error('Announcement not found');
+    try {
+      const announcement = await this.announcementRepository.findById(id);
+      if (!announcement) {
+        throw new NotFoundException('Announcement not found');
+      }
+      if (!(await this.isParticipant(announcement, participantId))) {
+        throw new BadRequestException('Participant not registered');
+      }
+      await this.announcementRepository.removeParticipant(
+        id,
+        participantId,
+        announcement.nbParticipants - 1,
+      );
+      return participantId;
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      this.logger.error(`Erreur lors de la suppression du participant: ${id}`, error.stack);
+      throw new InternalServerErrorException('Erreur lors de la suppression du participant');
     }
-    if (!(await this.isParticipant(announcement, participantId))) {
-      throw new Error('Participant not registered');
-    }
-
-    await this.announcementRepository.removeParticipant(
-      id,
-      participantId,
-      announcement.nbParticipants - 1,
-    );
-    return participantId;
   }
 
   async updateStatus(id: string, status: AnnouncementStatus) {
-    return await this.announcementRepository.updateStatus(id, status);
+    try {
+      return await this.announcementRepository.updateStatus(id, status);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la mise à jour du statut de l'annonce: ${id}`, error.stack);
+      throw new InternalServerErrorException(
+        "Erreur lors de la mise à jour du statut de l'annonce",
+      );
+    }
   }
 
   async updateCover(id: string, file: Express.Multer.File) {
     try {
       if (!file) {
-        throw new Error('Aucun fichier fourni.');
+        throw new BadRequestException('Aucun fichier fourni.');
       }
       const image = await this.uploadProfileImage(file);
       await this.announcementRepository.update(id, {
         announcementImage: image,
       });
-
       this.logger.log(`Photo de profil mise à jour avec succès: ${id}`);
-
       return image;
     } catch (error) {
+      if (error instanceof BadRequestException) throw error;
       this.logger.error(`Erreur lors de la mise à jour de la photo de profil: ${id}`, error.stack);
-      throw new Error('Erreur lors de la mise à jour de la photo de profil');
+      throw new InternalServerErrorException('Erreur lors de la mise à jour de la photo de profil');
     }
   }
 }
