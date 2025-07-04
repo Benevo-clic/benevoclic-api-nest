@@ -162,7 +162,7 @@ export class UserController {
   @ApiBearerAuth()
   async updateIsCompleted(
     @Param('id') id: string,
-    @Body('isCompleted') isCompleted: boolean,
+    @Body() isCompleted: boolean,
   ): Promise<User | null> {
     try {
       return await this.userService.updateIsCompleted(id, isCompleted);
