@@ -29,6 +29,7 @@ describe('AnnouncementService', () => {
             removeVolunteerWaiting: jest.fn(),
             removeParticipant: jest.fn(),
             updateStatus: jest.fn(),
+            removeVolunteerEverywhere: jest.fn(),
           },
         },
         {
@@ -210,6 +211,29 @@ describe('AnnouncementService', () => {
       );
       await expect(serviceTest.deleteByAssociationId(associationId)).rejects.toThrow(
         "Erreur lors de la suppression des annonces de l'association",
+      );
+    });
+  });
+
+  describe('removeVolunteerEverywhere', () => {
+    it('should call repository and return modified count', async () => {
+      const volunteerId = 'vol-123';
+      const modifiedCount = 3;
+      // Mock la méthode du repository
+      repository.removeVolunteerEverywhere = jest.fn().mockResolvedValue(modifiedCount);
+
+      const result = await service.removeVolunteerEverywhere(volunteerId);
+
+      expect(repository.removeVolunteerEverywhere).toHaveBeenCalledWith(volunteerId);
+      expect(result).toBe(modifiedCount);
+    });
+
+    it('should throw InternalServerErrorException if repository throws', async () => {
+      const volunteerId = 'vol-123';
+      repository.removeVolunteerEverywhere = jest.fn().mockRejectedValue(new Error('fail'));
+
+      await expect(service.removeVolunteerEverywhere(volunteerId)).rejects.toThrow(
+        'Erreur lors de la suppression du bénévole dans toutes les annonces',
       );
     });
   });

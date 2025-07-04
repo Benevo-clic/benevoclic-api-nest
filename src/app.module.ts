@@ -9,6 +9,8 @@ import { OrphanCleanupService } from './common/services/orphan-cleanup.service';
 import { ApiModule } from './api/api.module';
 import { FavoritesAnnouncementModule } from './api/favorites-announcement/favorites-announcement.module';
 import { AnnouncementModule } from './api/announcement/announcement.module';
+import { OrphanCleanupController } from './api/cleanup/controllers/orphan-cleanup.controller';
+import { VolunteerModule } from './api/volunteer/volunteer.module';
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { AnnouncementModule } from './api/announcement/announcement.module';
     ApiModule,
     forwardRef(() => FavoritesAnnouncementModule),
     forwardRef(() => AnnouncementModule),
+    forwardRef(() => VolunteerModule),
   ],
   providers: [
     {
@@ -29,6 +32,7 @@ import { AnnouncementModule } from './api/announcement/announcement.module';
     LoggerService,
     OrphanCleanupService,
   ],
+  controllers: [OrphanCleanupController],
   exports: [LoggerService, OrphanCleanupService],
 })
 export class AppModule {}

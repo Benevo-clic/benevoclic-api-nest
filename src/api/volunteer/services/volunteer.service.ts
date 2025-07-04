@@ -9,13 +9,19 @@ import { CreateVolunteerDto } from '../dto/create-volunteer.dto';
 import { UpdateVolunteerDto } from '../dto/update-volunteer.dto';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
 import { VolunteerRepository } from '../repository/volunteer.repository';
+import { FavoritesAnnouncementService } from '../../favorites-announcement/services/favorites-announcement.service';
+import { AnnouncementService } from '../../announcement/services/announcement.service';
 
 @Injectable()
 export class VolunteerService {
   private readonly logger = new Logger(VolunteerService.name);
   firebaseInstance: FirebaseAdminService = FirebaseAdminService.getInstance();
 
-  constructor(private readonly volunteerRepository: VolunteerRepository) {}
+  constructor(
+    private readonly volunteerRepository: VolunteerRepository,
+    private readonly favoritesAnnouncementService: FavoritesAnnouncementService,
+    private readonly announcementService: AnnouncementService,
+  ) {}
 
   async create(createVolunteerDto: CreateVolunteerDto) {
     try {
@@ -103,6 +109,8 @@ export class VolunteerService {
         this.logger.error(`Volunteer not found: ${id}`);
         throw new NotFoundException('Volunteer not found');
       }
+      await this.favoritesAnnouncementService.removeByVolunteerId(id);
+      await this.announcementService.removeVolunteerEverywhere(id);
       const deleteResult = await this.volunteerRepository.remove(id);
       if (!deleteResult.deletedCount) {
         this.logger.error(`Volunteer not found (delete): ${id}`);

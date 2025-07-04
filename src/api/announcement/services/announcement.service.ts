@@ -356,4 +356,18 @@ export class AnnouncementService {
       throw new InternalServerErrorException('Erreur lors de la mise à jour de la photo de profil');
     }
   }
+
+  async removeVolunteerEverywhere(volunteerId: string): Promise<number> {
+    try {
+      return await this.announcementRepository.removeVolunteerEverywhere(volunteerId);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la suppression du bénévole ${volunteerId} dans toutes les annonces`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        'Erreur lors de la suppression du bénévole dans toutes les annonces',
+      );
+    }
+  }
 }
