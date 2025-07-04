@@ -25,7 +25,7 @@ export class UserRepository {
       disabled: createUserDto.disabled,
       isVerified: createUserDto.isVerified,
       lastConnection: createUserDto.lastSignInTime,
-      isComplete: createUserDto.isCompleted,
+      isCompleted: createUserDto.isCompleted,
       createdAt: createUserDto.createdAt,
       updatedAt: new Date(),
     };
@@ -63,7 +63,7 @@ export class UserRepository {
       { userId: id },
       {
         $set: {
-          isComplete: isComplete,
+          isCompleted: isComplete,
           updatedAt: new Date(),
         },
       },

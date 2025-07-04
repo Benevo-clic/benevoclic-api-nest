@@ -346,7 +346,7 @@ export class UserService {
         idToken,
         refreshToken,
         expiresIn,
-        isCompleted: stateCreated.isComplete,
+        isCompleted: stateCreated.isCompleted,
       };
     } catch (error) {
       this.logger.error(`Erreur de connexion pour: ${payload.email}`, error.stack);

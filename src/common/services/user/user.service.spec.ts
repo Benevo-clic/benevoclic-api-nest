@@ -128,7 +128,7 @@ describe('UserService', () => {
         disabled: false,
         isVerified: false,
         lastConnection: new Date().toISOString(),
-        isComplete: true,
+        isCompleted: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date(),
       });
