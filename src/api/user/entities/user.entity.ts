@@ -8,6 +8,7 @@ export class User {
   isOnline: boolean;
   disabled: boolean;
   isVerified: boolean;
+  isCompleted?: boolean;
   location?: Location;
   imageProfile?: Image;
   lastConnection: string;

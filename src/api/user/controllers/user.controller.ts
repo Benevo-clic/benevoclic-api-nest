@@ -28,6 +28,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Location } from '../../../common/type/usersInfo.type';
 import { RegisterUserVerifiedDto } from '../dto/register-user-verified.dto';
 import { RegisterUserGoogleDto } from '../dto/register-user-google.dto';
+import { User } from '../entities/user.entity';
 
 @Controller('user')
 export class UserController {
@@ -153,6 +154,25 @@ export class UserController {
   @ApiBearerAuth()
   findOne(@Param('id') id: string) {
     return this.userService.findOne(id);
+  }
+
+  @Patch(':id/isCompleted')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  async updateIsCompleted(
+    @Param('id') id: string,
+    @Body('isCompleted') isCompleted: boolean,
+  ): Promise<User | null> {
+    try {
+      return await this.userService.updateIsCompleted(id, isCompleted);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la mise à jour de l'état de complétion de l'utilisateur: ${id}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
 
   @Get('email/:email')

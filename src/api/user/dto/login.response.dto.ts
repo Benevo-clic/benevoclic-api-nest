@@ -12,4 +12,7 @@ export class LoginResponseDto {
 
   @ApiPropertyOptional()
   expiresIn: string;
+
+  @ApiPropertyOptional()
+  isCompleted: boolean;
 }
