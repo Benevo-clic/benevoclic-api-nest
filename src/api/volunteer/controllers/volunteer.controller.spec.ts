@@ -11,6 +11,7 @@ import * as mockData from '../../../../test/testFiles/volunteer.data.json';
 import { CreateVolunteerDto } from '../dto/create-volunteer.dto';
 import { FavoritesAnnouncementService } from '../../favorites-announcement/services/favorites-announcement.service';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
+import { AssociationService } from '../../association/services/association.service';
 
 jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
   FirebaseAdminService: {
@@ -33,6 +34,10 @@ describe('VolunteerController (Integration)', () => {
   };
   const announcementServiceMock = {
     removeVolunteerEverywhere: jest.fn().mockResolvedValue(1),
+    removeParticipantEverywhere: jest.fn().mockResolvedValue(1),
+  };
+  const associationServiceMock = {
+    removeVolunteerFollowingEverywhere: jest.fn().mockResolvedValue(1),
   };
 
   beforeAll(async () => {
@@ -49,6 +54,10 @@ describe('VolunteerController (Integration)', () => {
         {
           provide: AnnouncementService,
           useValue: announcementServiceMock,
+        },
+        {
+          provide: AssociationService,
+          useValue: associationServiceMock,
         },
       ],
     }).compile();
