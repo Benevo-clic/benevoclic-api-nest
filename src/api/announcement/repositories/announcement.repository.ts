@@ -137,7 +137,12 @@ export class AnnouncementRepository {
   }
 
   async removeParticipantEverywhere(participantId: string): Promise<number> {
-    const result = await this.collection.updateMany({}, [
+    const pipeline = [
+      {
+        $set: {
+          hadInParticipants: { $in: [participantId, '$participants.id'] },
+        },
+      },
       {
         $set: {
           participants: {
@@ -151,15 +156,16 @@ export class AnnouncementRepository {
       {
         $set: {
           nbParticipants: {
-            $cond: [
-              { $in: [participantId, '$participants.id'] },
-              { $subtract: ['$nbParticipants', 1] },
-              '$nbParticipants',
-            ],
+            $cond: ['$hadInParticipants', { $subtract: ['$nbParticipants', 1] }, '$nbParticipants'],
           },
         },
       },
-    ]);
+      {
+        $unset: 'hadInParticipants',
+      },
+    ];
+
+    const result = await this.collection.updateMany({}, pipeline);
     return result.modifiedCount;
   }
 }
