@@ -4,6 +4,7 @@ import { UserRepository } from '../../../api/user/repository/user.repository';
 import { UserRole } from '../../enums/roles.enum';
 import { FirebaseAdminService } from '../../firebase/firebaseAdmin.service';
 import axios from 'axios';
+import { VolunteerService } from '../../../api/volunteer/services/volunteer.service';
 
 jest.mock('axios');
 
@@ -39,6 +40,16 @@ describe('UserService', () => {
             update: jest.fn(),
             remove: jest.fn(),
             updateConnectionStatus: jest.fn(),
+          },
+        },
+        {
+          provide: VolunteerService,
+          useValue: {
+            create: jest.fn(),
+            findAll: jest.fn(),
+            findById: jest.fn(),
+            update: jest.fn(),
+            remove: jest.fn(),
           },
         },
       ],

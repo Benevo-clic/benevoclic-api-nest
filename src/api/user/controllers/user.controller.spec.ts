@@ -1,16 +1,18 @@
-import { UserController } from './user.controller';
-import { MongoClient, ObjectId } from 'mongodb';
 import { Test, TestingModule } from '@nestjs/testing';
+import { UserController } from './user.controller';
 import { UserService } from '../../../common/services/user/user.service';
-import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
+import { UserRepository } from '../repository/user.repository';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { DatabaseModule } from '../../../database/database.module';
-import * as mockData from '../../../../test/testFiles/user.data.json';
+import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
+import { MongoClient, ObjectId } from 'mongodb';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
-import { UserRepository } from '../repository/user.repository';
 import { UserRole } from '../../../common/enums/roles.enum';
+import { InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import * as admin from 'firebase-admin';
-import { NotFoundException, InternalServerErrorException, Logger } from '@nestjs/common';
+import * as mockData from '../../../../test/testFiles/user.data.json';
+import { VolunteerService } from '../../volunteer/services/volunteer.service';
 
 // Mock Firebase Admin
 jest.mock('firebase-admin', () => ({
@@ -116,7 +118,20 @@ describe('UserController', () => {
         DatabaseModule,
       ],
       controllers: [UserController],
-      providers: [UserService, UserRepository],
+      providers: [
+        UserService,
+        UserRepository,
+        {
+          provide: VolunteerService,
+          useValue: {
+            create: jest.fn(),
+            findAll: jest.fn(),
+            findById: jest.fn(),
+            update: jest.fn(),
+            remove: jest.fn(),
+          },
+        },
+      ],
       exports: [UserService],
     }).compile();
 
@@ -124,18 +139,22 @@ describe('UserController', () => {
     mongoClient = testingModule.get<MongoClient>(MONGODB_CONNECTION);
     userService = testingModule.get<UserService>(UserService);
 
-    const users = mockData.users.map(user => ({
-      ...user,
-      _id: new ObjectId(),
-    }));
-    const db = mongoClient.db();
-    await db.collection(DatabaseCollection.USERS).deleteMany({});
-    await db.collection(DatabaseCollection.USERS).insertMany(users);
+    if (mongoClient) {
+      const users = mockData.users.map(user => ({
+        ...user,
+        _id: new ObjectId(),
+      }));
+      const db = mongoClient.db();
+      await db.collection(DatabaseCollection.USERS).deleteMany({});
+      await db.collection(DatabaseCollection.USERS).insertMany(users);
+    }
   });
 
   afterAll(async () => {
-    const db = mongoClient.db();
-    await db.collection(DatabaseCollection.USERS).deleteMany({});
+    if (mongoClient) {
+      const db = mongoClient.db();
+      await db.collection(DatabaseCollection.USERS).deleteMany({});
+    }
     await testingModule.close();
   });
 
