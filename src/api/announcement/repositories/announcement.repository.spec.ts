@@ -179,6 +179,11 @@ describe('AnnouncementRepository', () => {
       expect(mockCollection.updateMany).toHaveBeenCalledWith({}, [
         {
           $set: {
+            hadInParticipants: { $in: [participantId, '$participants.id'] },
+          },
+        },
+        {
+          $set: {
             participants: {
               $filter: {
                 input: '$participants',
@@ -191,12 +196,15 @@ describe('AnnouncementRepository', () => {
           $set: {
             nbParticipants: {
               $cond: [
-                { $in: [participantId, '$participants.id'] },
+                '$hadInParticipants',
                 { $subtract: ['$nbParticipants', 1] },
                 '$nbParticipants',
               ],
             },
           },
+        },
+        {
+          $unset: 'hadInParticipants',
         },
       ]);
       expect(result).toBe(expectedModifiedCount);
