@@ -23,13 +23,17 @@ import {
 } from '../../../api/user/dto/register-user-google.dto';
 import { AuthConfig } from '@config/auth.config';
 import { User } from '../../../api/user/entities/user.entity';
+import { VolunteerService } from '../../../api/volunteer/services/volunteer.service';
 
 @Injectable()
 export class UserService {
   private readonly logger = new Logger(UserService.name);
   firebaseInstance: FirebaseAdminService = FirebaseAdminService.getInstance();
 
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly volunteerService: VolunteerService,
+  ) {}
 
   async updateLocation(id: string, location: Location) {
     try {
@@ -308,6 +312,7 @@ export class UserService {
   async remove(id: string) {
     try {
       await this.removeInFirebase(id);
+      await this.volunteerService.remove(id);
       await this.userRepository.remove(id);
       this.logger.log(`Suppression réussie de l'utilisateur: ${id}`);
       return { message: 'Utilisateur supprimé avec succès' };
