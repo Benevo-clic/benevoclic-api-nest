@@ -4,6 +4,8 @@ import {
   NotFoundException,
   InternalServerErrorException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { CreateAssociationDto } from '../dto/create-association.dto';
 import { UpdateAssociationDto } from '../dto/update-association.dto';
@@ -21,6 +23,7 @@ export class AssociationService {
 
   constructor(
     private readonly associationRepository: AssociationRepository,
+    @Inject(forwardRef(() => AnnouncementService))
     private readonly announcementService: AnnouncementService,
   ) {}
 

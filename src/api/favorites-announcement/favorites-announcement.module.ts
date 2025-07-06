@@ -7,7 +7,7 @@ import { AnnouncementModule } from '../announcement/announcement.module';
 import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [DatabaseModule, forwardRef(() => AnnouncementModule), UserModule],
+  imports: [DatabaseModule, forwardRef(() => AnnouncementModule), forwardRef(() => UserModule)],
   controllers: [FavoritesAnnouncementController],
   providers: [FavoritesAnnouncementService, FavoritesAnnouncementRepository],
   exports: [FavoritesAnnouncementService],
