@@ -10,12 +10,12 @@ import { AssociationModule } from '../association/association.module';
 @Module({
   imports: [
     DatabaseModule,
-    FavoritesAnnouncementModule,
+    forwardRef(() => FavoritesAnnouncementModule),
     forwardRef(() => AnnouncementModule),
     forwardRef(() => AssociationModule),
   ],
   controllers: [VolunteerController],
   providers: [VolunteerService, VolunteerRepository],
-  exports: [VolunteerRepository],
+  exports: [VolunteerService, VolunteerRepository],
 })
 export class VolunteerModule {}

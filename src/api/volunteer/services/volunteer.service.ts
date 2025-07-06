@@ -4,6 +4,8 @@ import {
   BadRequestException,
   NotFoundException,
   InternalServerErrorException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { CreateVolunteerDto } from '../dto/create-volunteer.dto';
 import { UpdateVolunteerDto } from '../dto/update-volunteer.dto';
@@ -20,8 +22,11 @@ export class VolunteerService {
 
   constructor(
     private readonly volunteerRepository: VolunteerRepository,
+    @Inject(forwardRef(() => FavoritesAnnouncementService))
     private readonly favoritesAnnouncementService: FavoritesAnnouncementService,
+    @Inject(forwardRef(() => AnnouncementService))
     private readonly announcementService: AnnouncementService,
+    @Inject(forwardRef(() => AssociationService))
     private readonly associationService: AssociationService,
   ) {}
 
