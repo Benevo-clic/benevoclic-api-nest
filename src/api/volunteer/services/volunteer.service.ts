@@ -11,6 +11,7 @@ import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.ser
 import { VolunteerRepository } from '../repository/volunteer.repository';
 import { FavoritesAnnouncementService } from '../../favorites-announcement/services/favorites-announcement.service';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
+import { AssociationService } from '../../association/services/association.service';
 
 @Injectable()
 export class VolunteerService {
@@ -21,6 +22,7 @@ export class VolunteerService {
     private readonly volunteerRepository: VolunteerRepository,
     private readonly favoritesAnnouncementService: FavoritesAnnouncementService,
     private readonly announcementService: AnnouncementService,
+    private readonly associationService: AssociationService,
   ) {}
 
   async create(createVolunteerDto: CreateVolunteerDto) {
@@ -111,7 +113,11 @@ export class VolunteerService {
       }
       await this.favoritesAnnouncementService.removeByVolunteerId(id);
       await this.announcementService.removeVolunteerEverywhere(id);
+      await this.announcementService.removeParticipantEverywhere(id);
+      await this.associationService.removeVolunteerFollowingEverywhere(id);
+
       const deleteResult = await this.volunteerRepository.remove(id);
+
       if (!deleteResult.deletedCount) {
         this.logger.error(`Volunteer not found (delete): ${id}`);
         throw new NotFoundException('Volunteer not found');

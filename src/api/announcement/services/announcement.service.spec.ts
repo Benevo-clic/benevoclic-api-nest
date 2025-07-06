@@ -30,6 +30,7 @@ describe('AnnouncementService', () => {
             removeParticipant: jest.fn(),
             updateStatus: jest.fn(),
             removeVolunteerEverywhere: jest.fn(),
+            removeParticipantEverywhere: jest.fn(),
           },
         },
         {
@@ -230,11 +231,134 @@ describe('AnnouncementService', () => {
 
     it('should throw InternalServerErrorException if repository throws', async () => {
       const volunteerId = 'vol-123';
-      repository.removeVolunteerEverywhere = jest.fn().mockRejectedValue(new Error('fail'));
+      repository.removeVolunteerEverywhere = jest
+        .fn()
+        .mockRejectedValue(new Error('Database error'));
 
       await expect(service.removeVolunteerEverywhere(volunteerId)).rejects.toThrow(
         'Erreur lors de la suppression du bénévole dans toutes les annonces',
       );
+    });
+
+    it('should log error when repository throws', async () => {
+      const volunteerId = 'vol-456';
+      const error = new Error('Database connection failed');
+      repository.removeVolunteerEverywhere = jest.fn().mockRejectedValue(error);
+
+      // Mock le logger pour vérifier qu'il est appelé
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.removeVolunteerEverywhere(volunteerId)).rejects.toThrow(
+        'Erreur lors de la suppression du bénévole dans toutes les annonces',
+      );
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        `Erreur lors de la suppression du bénévole ${volunteerId} dans toutes les annonces`,
+        error.stack,
+      );
+    });
+
+    it('should return 0 when no volunteers are found', async () => {
+      const volunteerId = 'vol-789';
+      repository.removeVolunteerEverywhere = jest.fn().mockResolvedValue(0);
+
+      const result = await service.removeVolunteerEverywhere(volunteerId);
+
+      expect(repository.removeVolunteerEverywhere).toHaveBeenCalledWith(volunteerId);
+      expect(result).toBe(0);
+    });
+
+    it('should handle empty volunteerId', async () => {
+      const volunteerId = '';
+      repository.removeVolunteerEverywhere = jest.fn().mockResolvedValue(0);
+
+      const result = await service.removeVolunteerEverywhere(volunteerId);
+
+      expect(repository.removeVolunteerEverywhere).toHaveBeenCalledWith(volunteerId);
+      expect(result).toBe(0);
+    });
+
+    it('should handle null volunteerId', async () => {
+      const volunteerId = null;
+      repository.removeVolunteerEverywhere = jest.fn().mockResolvedValue(0);
+
+      const result = await service.removeVolunteerEverywhere(volunteerId);
+
+      expect(repository.removeVolunteerEverywhere).toHaveBeenCalledWith(volunteerId);
+      expect(result).toBe(0);
+    });
+
+    it('should handle undefined volunteerId', async () => {
+      const volunteerId = undefined;
+      repository.removeVolunteerEverywhere = jest.fn().mockResolvedValue(0);
+
+      const result = await service.removeVolunteerEverywhere(volunteerId);
+
+      expect(repository.removeVolunteerEverywhere).toHaveBeenCalledWith(volunteerId);
+      expect(result).toBe(0);
+    });
+  });
+
+  describe('removeParticipantEverywhere', () => {
+    it('should call repository and return modified count', async () => {
+      const participantId = 'participant-123';
+      const modifiedCount = 2;
+
+      repository.removeParticipantEverywhere = jest.fn().mockResolvedValue(modifiedCount);
+
+      const result = await service.removeParticipantEverywhere(participantId);
+
+      expect(repository.removeParticipantEverywhere).toHaveBeenCalledWith(participantId);
+      expect(result).toBe(modifiedCount);
+    });
+
+    it('should throw InternalServerErrorException if repository throws', async () => {
+      const participantId = 'participant-123';
+      repository.removeParticipantEverywhere = jest
+        .fn()
+        .mockRejectedValue(new Error('Database error'));
+
+      await expect(service.removeParticipantEverywhere(participantId)).rejects.toThrow(
+        'Erreur lors de la suppression du participant dans toutes les annonces',
+      );
+    });
+
+    it('should log error when repository throws', async () => {
+      const participantId = 'participant-456';
+      const error = new Error('Database connection failed');
+      repository.removeParticipantEverywhere = jest.fn().mockRejectedValue(error);
+
+      // Mock le logger pour vérifier qu'il est appelé
+      const loggerSpy = jest.spyOn(service['logger'], 'error');
+
+      await expect(service.removeParticipantEverywhere(participantId)).rejects.toThrow(
+        'Erreur lors de la suppression du participant dans toutes les annonces',
+      );
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        `Erreur lors de la suppression du participant ${participantId} dans toutes les annonces`,
+        error.stack,
+      );
+    });
+
+    it('should return 0 when no participants are found', async () => {
+      const participantId = 'participant-789';
+      repository.removeParticipantEverywhere = jest.fn().mockResolvedValue(0);
+
+      const result = await service.removeParticipantEverywhere(participantId);
+
+      expect(repository.removeParticipantEverywhere).toHaveBeenCalledWith(participantId);
+      expect(result).toBe(0);
+    });
+
+    it('should handle empty participantId', async () => {
+      const participantId = '';
+      repository.removeParticipantEverywhere = jest.fn().mockResolvedValue(0);
+
+      const result = await service.removeParticipantEverywhere(participantId);
+
+      expect(repository.removeParticipantEverywhere).toHaveBeenCalledWith(participantId);
+      expect(result).toBe(0);
     });
   });
 });

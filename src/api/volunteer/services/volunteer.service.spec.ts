@@ -7,6 +7,7 @@ import { CreateVolunteerDto } from '../dto/create-volunteer.dto';
 import { BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { FavoritesAnnouncementService } from '../../favorites-announcement/services/favorites-announcement.service';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
+import { AssociationService } from '../../association/services/association.service';
 
 jest.mock('../../../common/firebase/firebaseAdmin.service', () => {
   const mockFirebaseAdmin = {
@@ -50,6 +51,10 @@ describe('VolunteerService', () => {
   };
   const announcementServiceMock = {
     removeVolunteerEverywhere: jest.fn().mockResolvedValue(1),
+    removeParticipantEverywhere: jest.fn().mockResolvedValue(1),
+  };
+  const associationServiceMock = {
+    removeVolunteerFollowingEverywhere: jest.fn().mockResolvedValue(1),
   };
 
   beforeEach(async () => {
@@ -65,6 +70,10 @@ describe('VolunteerService', () => {
         {
           provide: AnnouncementService,
           useValue: announcementServiceMock,
+        },
+        {
+          provide: AssociationService,
+          useValue: associationServiceMock,
         },
       ],
     }).compile();

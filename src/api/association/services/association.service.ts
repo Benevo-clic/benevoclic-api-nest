@@ -294,4 +294,16 @@ export class AssociationService {
       );
     }
   }
+
+  async removeVolunteerFollowingEverywhere(volunteerId: string): Promise<number> {
+    try {
+      return await this.associationRepository.removeVolunteerEverywhere(volunteerId);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la suppression du bénévole partout: ${volunteerId}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException('Erreur lors de la suppression du bénévole partout');
+    }
+  }
 }

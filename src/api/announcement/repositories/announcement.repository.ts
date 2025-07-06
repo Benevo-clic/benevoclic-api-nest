@@ -101,15 +101,65 @@ export class AnnouncementRepository {
   }
 
   async removeVolunteerEverywhere(volunteerId: string): Promise<number> {
-    const result = await this.collection.updateMany(
-      {},
+    const result = await this.collection.updateMany({}, [
       {
-        $pull: {
-          volunteers: { id: volunteerId },
-          volunteersWaiting: { id: volunteerId },
+        $set: {
+          hadInVolunteers: { $in: [volunteerId, '$volunteers.id'] },
         },
       },
-    );
+      {
+        $set: {
+          volunteers: {
+            $filter: {
+              input: '$volunteers',
+              cond: { $ne: ['$$this.id', volunteerId] },
+            },
+          },
+          volunteersWaiting: {
+            $filter: {
+              input: '$volunteersWaiting',
+              cond: { $ne: ['$$this.id', volunteerId] },
+            },
+          },
+        },
+      },
+      {
+        $set: {
+          nbVolunteers: {
+            $cond: ['$hadInVolunteers', { $subtract: ['$nbVolunteers', 1] }, '$nbVolunteers'],
+          },
+        },
+      },
+      { $unset: 'hadInVolunteers' },
+    ]);
+
+    return result.modifiedCount;
+  }
+
+  async removeParticipantEverywhere(participantId: string): Promise<number> {
+    const result = await this.collection.updateMany({}, [
+      {
+        $set: {
+          participants: {
+            $filter: {
+              input: '$participants',
+              cond: { $ne: ['$$this.id', participantId] },
+            },
+          },
+        },
+      },
+      {
+        $set: {
+          nbParticipants: {
+            $cond: [
+              { $in: [participantId, '$participants.id'] },
+              { $subtract: ['$nbParticipants', 1] },
+              '$nbParticipants',
+            ],
+          },
+        },
+      },
+    ]);
     return result.modifiedCount;
   }
 }

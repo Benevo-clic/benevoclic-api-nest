@@ -370,4 +370,18 @@ export class AnnouncementService {
       );
     }
   }
+
+  async removeParticipantEverywhere(participantId: string): Promise<number> {
+    try {
+      return await this.announcementRepository.removeParticipantEverywhere(participantId);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la suppression du participant ${participantId} dans toutes les annonces`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        'Erreur lors de la suppression du participant dans toutes les annonces',
+      );
+    }
+  }
 }

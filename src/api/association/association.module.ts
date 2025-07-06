@@ -9,5 +9,6 @@ import { AnnouncementModule } from '../announcement/announcement.module';
   imports: [DatabaseModule, AnnouncementModule],
   controllers: [AssociationController],
   providers: [AssociationService, AssociationRepository],
+  exports: [AssociationService],
 })
 export class AssociationModule {}
