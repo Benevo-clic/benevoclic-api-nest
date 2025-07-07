@@ -13,6 +13,7 @@ import { Logger } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 import * as mockData from '../../../../test/testFiles/user.data.json';
 import { VolunteerService } from '../../volunteer/services/volunteer.service';
+import { AssociationService } from '../../association/services/association.service';
 
 // Mock Firebase Admin
 jest.mock('firebase-admin', () => ({
@@ -127,6 +128,16 @@ describe('UserController', () => {
             create: jest.fn(),
             findAll: jest.fn(),
             findById: jest.fn(),
+            update: jest.fn(),
+            remove: jest.fn(),
+          },
+        },
+        {
+          provide: AssociationService,
+          useValue: {
+            findAll: jest.fn(),
+            findById: jest.fn(),
+            create: jest.fn(),
             update: jest.fn(),
             remove: jest.fn(),
           },

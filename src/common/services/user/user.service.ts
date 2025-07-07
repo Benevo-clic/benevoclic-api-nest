@@ -24,6 +24,7 @@ import {
 import { AuthConfig } from '@config/auth.config';
 import { User } from '../../../api/user/entities/user.entity';
 import { VolunteerService } from '../../../api/volunteer/services/volunteer.service';
+import { AssociationService } from '../../../api/association/services/association.service';
 
 @Injectable()
 export class UserService {
@@ -33,6 +34,7 @@ export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly volunteerService: VolunteerService,
+    private readonly associationService: AssociationService,
   ) {}
 
   async updateLocation(id: string, location: Location) {
@@ -311,8 +313,20 @@ export class UserService {
 
   async remove(id: string) {
     try {
+      const user = await this.userRepository.findByUid(id);
+      if (!user) {
+        this.logger.error(`Utilisateur non trouvé: ${id}`);
+        throw new NotFoundException('Utilisateur non trouvé');
+      }
+      if (user.role === UserRole.ASSOCIATION) {
+        await this.associationService.remove(id);
+        this.logger.log(`Suppression réussie de l'association: ${id}`);
+      } else if (user.role === UserRole.VOLUNTEER) {
+        await this.volunteerService.remove(id);
+        this.logger.log(`Suppression réussie du bénévole: ${id}`);
+      }
+
       await this.removeInFirebase(id);
-      await this.volunteerService.remove(id);
       await this.userRepository.remove(id);
       this.logger.log(`Suppression réussie de l'utilisateur: ${id}`);
       return { message: 'Utilisateur supprimé avec succès' };
