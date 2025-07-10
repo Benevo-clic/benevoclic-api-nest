@@ -352,8 +352,6 @@ export class UserService {
       const { idToken, refreshToken, expiresIn } = response;
       const firebaseUser = await this.firebaseInstance.getUserByEmail(payload.email);
 
-      const stateCreated = await this.userRepository.findByUid(firebaseUser.uid);
-
       await this.updateConnectionStatus(
         firebaseUser.uid,
         true,
@@ -365,7 +363,6 @@ export class UserService {
         idToken,
         refreshToken,
         expiresIn,
-        isCompleted: stateCreated.isCompleted,
       };
     } catch (error) {
       this.logger.error(`Erreur de connexion pour: ${payload.email}`, error.stack);
