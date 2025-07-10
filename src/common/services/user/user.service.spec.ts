@@ -137,7 +137,6 @@ describe('UserService', () => {
           idToken: 'mock-token',
           refreshToken: 'mock-refresh',
           expiresIn: '3600',
-          isCompleted: true,
         },
       };
 
@@ -150,7 +149,6 @@ describe('UserService', () => {
         disabled: false,
         isVerified: false,
         lastConnection: new Date().toISOString(),
-        isCompleted: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date(),
       });
