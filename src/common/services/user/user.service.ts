@@ -211,6 +211,12 @@ export class UserService {
 
   async registerUser(registerUser: RegisterUserDto): Promise<RegisterReponseDto> {
     try {
+      const existingUser = await this.userRepository.findByEmail(registerUser.email);
+      if (existingUser) {
+        this.logger.error(`Email déjà utilisé: ${registerUser.email}`);
+        throw new BadRequestException('Email already exists');
+      }
+
       const userRecord = await this.registerUserInFirebase(registerUser);
       await this.setUserRole(userRecord.uid, registerUser.role);
       await this.userRepository.create({
