@@ -41,6 +41,7 @@ describe('UserService', () => {
             update: jest.fn(),
             remove: jest.fn(),
             updateConnectionStatus: jest.fn(),
+            findByEmail: jest.fn(),
           },
         },
         {
@@ -100,6 +101,7 @@ describe('UserService', () => {
       jest.spyOn(firebaseAdmin, 'getUserByEmail').mockResolvedValue(null);
       jest.spyOn(firebaseAdmin, 'createUser').mockResolvedValue(firebaseUser);
       jest.spyOn(repository, 'create').mockResolvedValue(undefined);
+      jest.spyOn(repository, 'findByEmail').mockReturnValue(undefined);
 
       const result = await service.registerUser(newUser);
       expect(result).toBeDefined();
@@ -121,6 +123,21 @@ describe('UserService', () => {
       });
 
       await expect(service.registerUser(newUser)).rejects.toThrow('User registration failed');
+    });
+    it('should throw if user already exists', async () => {
+      jest.spyOn(repository, 'findByEmail').mockResolvedValue({
+        userId: 'existingUid',
+        email: newUser.email,
+        role: UserRole.VOLUNTEER,
+        isOnline: false,
+        disabled: false,
+        isVerified: false,
+        lastConnection: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date(),
+      });
+
+      await expect(service.registerUser(newUser)).rejects.toThrow('Email already exists');
     });
   });
 
