@@ -199,6 +199,8 @@ describe('VolunteerService', () => {
     it('should throw an error if volunteer not deleted', async () => {
       mockRepository.findById.mockResolvedValue(mockVolunteer);
       mockRepository.remove.mockResolvedValue({ deletedCount: 0 });
+
+      // Maintenant que le service vérifie le deletedCount, il doit lever une exception
       await expect(volunteerService.remove('123')).rejects.toThrow(NotFoundException);
     });
   });

@@ -13,7 +13,7 @@ import { UserRole } from '../../enums/roles.enum';
 import { UserRecord } from 'firebase-admin/auth';
 import { UserRepository } from '../../../api/user/repository/user.repository';
 import { FirebaseAdminService } from '../../firebase/firebaseAdmin.service';
-import { Location, Image } from '../../type/usersInfo.type';
+import { Location } from '../../type/usersInfo.type';
 import { LoginResponseDto } from '../../../api/user/dto/login.response.dto';
 import { RegisterReponseDto } from '../../../api/user/dto/register.reponse.dto';
 import { RegisterUserVerifiedDto } from '../../../api/user/dto/register-user-verified.dto';
@@ -50,26 +50,6 @@ export class UserService {
       throw error instanceof BadRequestException || error instanceof NotFoundException
         ? error
         : new InternalServerErrorException('Erreur lors de la mise à jour de la localisation');
-    }
-  }
-
-  async uploadProfileImage(file: Express.Multer.File): Promise<Image> {
-    try {
-      if (!file) {
-        throw new BadRequestException('Aucun fichier fourni.');
-      }
-      const base64Image = file.buffer.toString('base64');
-      return {
-        data: base64Image,
-        contentType: file.mimetype,
-        uploadedAt: new Date(),
-      };
-    } catch (error) {
-      this.logger.error("Erreur lors de l'upload de la photo de profil", error.stack);
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new InternalServerErrorException("Erreur lors de l'upload de la photo de profil");
     }
   }
 
@@ -528,28 +508,6 @@ export class UserService {
     } catch (error) {
       this.logger.error(`Erreur lors de la déconnexion: ${id}`, error.stack);
       throw new InternalServerErrorException('Erreur lors de la déconnexion');
-    }
-  }
-
-  async getProfileImage(id: string) {
-    try {
-      const user = await this.userRepository.findByUid(id);
-      if (!user) {
-        throw new NotFoundException('Utilisateur non trouvé');
-      }
-      if (!user.imageProfile) {
-        throw new NotFoundException('Aucune image de profil trouvée');
-      }
-      return {
-        data: user.imageProfile.data,
-        contentType: user.imageProfile.contentType,
-      };
-    } catch (error) {
-      this.logger.error(`Erreur lors de la récupération de l'image de profil: ${id}`, error.stack);
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException("Erreur lors de la récupération de l'image de profil");
     }
   }
 }

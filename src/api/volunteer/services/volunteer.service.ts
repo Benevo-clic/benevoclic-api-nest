@@ -122,7 +122,12 @@ export class VolunteerService {
         this.associationService.removeVolunteerFollowingEverywhere(id),
       ]);
 
-      await this.volunteerRepository.remove(id);
+      const result = await this.volunteerRepository.remove(id);
+
+      // Vérifier si la suppression a réussi
+      if (result.deletedCount === 0) {
+        throw new NotFoundException('Volunteer not deleted');
+      }
 
       return { volunteerId: id };
     } catch (error) {

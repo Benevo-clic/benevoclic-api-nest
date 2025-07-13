@@ -272,22 +272,6 @@ export class UserController {
     }
   }
 
-  @Get(':id/profile-image')
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
-  @ApiBearerAuth()
-  async getProfileImage(@Param('id') id: string) {
-    try {
-      return await this.userService.getProfileImage(id);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la récupération de l'image de profil de l'utilisateur: ${id}`,
-        error.stack,
-      );
-      throw error;
-    }
-  }
-
   @Patch(':id/update-connected/:connected')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)

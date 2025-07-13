@@ -3,12 +3,13 @@ import { AnnouncementService } from './announcement.service';
 import { AnnouncementRepository } from '../repositories/announcement.repository';
 import { UserService } from '../../../common/services/user/user.service';
 import { Logger } from '@nestjs/common';
-import { Image } from '../../../common/type/usersInfo.type';
 import { FavoritesAnnouncementService } from '../../favorites-announcement/services/favorites-announcement.service';
+import { AwsS3Service } from '../../../common/aws/aws-s3.service';
 
 describe('AnnouncementService', () => {
   let service: AnnouncementService;
   let repository: AnnouncementRepository;
+  let awsS3Service: AwsS3Service;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -37,6 +38,7 @@ describe('AnnouncementService', () => {
           provide: UserService,
           useValue: {
             getUserImageProfile: jest.fn(),
+            getAvatarFileUrl: jest.fn(),
           },
         },
         {
@@ -44,15 +46,6 @@ describe('AnnouncementService', () => {
           useValue: {
             log: jest.fn(),
             error: jest.fn(),
-          },
-        },
-        {
-          provide: 'FavoritesAnnouncementService',
-          useValue: {
-            removeByAnnouncementId: jest.fn(),
-            removeByAssociationId: jest.fn(),
-            findAll: jest.fn(),
-            removeByVolunteerIdAndAnnouncementId: jest.fn(),
           },
         },
         {
@@ -64,83 +57,117 @@ describe('AnnouncementService', () => {
             removeByVolunteerIdAndAnnouncementId: jest.fn(),
           },
         },
+        {
+          provide: AwsS3Service,
+          useValue: {
+            uploadFileAnnouncement: jest.fn(),
+            deleteFile: jest.fn(),
+            getFileUrl: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<AnnouncementService>(AnnouncementService);
     repository = module.get<AnnouncementRepository>(AnnouncementRepository);
+    awsS3Service = module.get<AwsS3Service>(AwsS3Service);
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  describe('updateCover', () => {
+  describe('updateAvatar', () => {
     const announcementId = 'test-announcement-id';
     const mockFile = {
       buffer: Buffer.from('test-image-data'),
       mimetype: 'image/jpeg',
-    } as Express.Multer.File;
+      originalname: 'test.jpg',
+      fieldname: 'file',
+      size: 1024,
+    } as any; // Utiliser 'as any' pour éviter les problèmes de type
 
-    const mockImage: Image = {
-      data: 'test-image-data',
-      contentType: 'image/jpeg',
-      uploadedAt: new Date(),
+    const mockAnnouncement = {
+      _id: announcementId,
+      announcementImage: 'old-image-key',
+      associationId: 'assoc-123',
     };
 
-    it('should update announcement cover successfully', async () => {
-      // Mock the uploadProfileImage method
-      jest.spyOn(service, 'uploadProfileImage').mockResolvedValue(mockImage);
-
-      // Mock the repository update method
+    it('should update announcement avatar successfully', async () => {
+      // Mock repository methods
+      jest
+        .spyOn(repository, 'findById')
+        .mockResolvedValueOnce(mockAnnouncement as any)
+        .mockResolvedValueOnce(mockAnnouncement as any);
       jest.spyOn(repository, 'update').mockResolvedValue(undefined);
 
-      const result = await service.updateCover(announcementId, mockFile);
+      // Mock AWS S3 service
+      jest
+        .spyOn(awsS3Service, 'uploadFileAnnouncement')
+        .mockResolvedValue({ fileKey: 'new-image-key' });
+      jest.spyOn(awsS3Service, 'deleteFile').mockResolvedValue(undefined);
 
-      expect(result).toEqual(mockImage);
-      expect(service.uploadProfileImage).toHaveBeenCalledWith(mockFile);
+      const result = await service.updateAvatar(announcementId, mockFile);
+
+      expect(repository.findById).toHaveBeenCalledWith(announcementId);
+      expect(awsS3Service.uploadFileAnnouncement).toHaveBeenCalledWith(announcementId, mockFile);
       expect(repository.update).toHaveBeenCalledWith(announcementId, {
-        announcementImage: mockImage,
+        announcementImage: 'new-image-key',
       });
+      expect(awsS3Service.deleteFile).toHaveBeenCalledWith('old-image-key');
+      expect(result).toEqual(mockAnnouncement);
     });
 
-    it('should throw an error when no file is provided', async () => {
-      await expect(service.updateCover(announcementId, null)).rejects.toThrow(
-        'Aucun fichier fourni.',
+    it('should throw InternalServerErrorException when announcement not found', async () => {
+      jest.spyOn(repository, 'findById').mockResolvedValue(null);
+
+      await expect(service.updateAvatar(announcementId, mockFile)).rejects.toThrow(
+        "Erreur lors de la mise à jour de l'avatar",
       );
     });
 
-    it('should throw an error when repository update fails', async () => {
-      // Mock the uploadProfileImage method
-      jest.spyOn(service, 'uploadProfileImage').mockResolvedValue(mockImage);
+    it('should not delete old image if announcementImage is empty', async () => {
+      const announcementWithoutImage = {
+        ...mockAnnouncement,
+        announcementImage: '',
+      };
 
-      // Mock the repository update method to throw an error
-      jest.spyOn(repository, 'update').mockRejectedValue(new Error('Database error'));
+      jest
+        .spyOn(repository, 'findById')
+        .mockResolvedValueOnce(announcementWithoutImage as any)
+        .mockResolvedValueOnce(announcementWithoutImage as any);
+      jest.spyOn(repository, 'update').mockResolvedValue(undefined);
+      jest
+        .spyOn(awsS3Service, 'uploadFileAnnouncement')
+        .mockResolvedValue({ fileKey: 'new-image-key' });
 
-      await expect(service.updateCover(announcementId, mockFile)).rejects.toThrow(
-        'Erreur lors de la mise à jour de la photo de profil',
+      await service.updateAvatar(announcementId, mockFile);
+
+      expect(awsS3Service.deleteFile).not.toHaveBeenCalled();
+    });
+
+    it('should not delete old image if it is the same as new image', async () => {
+      jest
+        .spyOn(repository, 'findById')
+        .mockResolvedValueOnce(mockAnnouncement as any)
+        .mockResolvedValueOnce(mockAnnouncement as any);
+      jest.spyOn(repository, 'update').mockResolvedValue(undefined);
+      jest
+        .spyOn(awsS3Service, 'uploadFileAnnouncement')
+        .mockResolvedValue({ fileKey: 'old-image-key' });
+
+      await service.updateAvatar(announcementId, mockFile);
+
+      expect(awsS3Service.deleteFile).not.toHaveBeenCalled();
+    });
+
+    it('should throw InternalServerErrorException when AWS upload fails', async () => {
+      jest.spyOn(repository, 'findById').mockResolvedValue(mockAnnouncement as any);
+      jest.spyOn(awsS3Service, 'uploadFileAnnouncement').mockRejectedValue(new Error('AWS error'));
+
+      await expect(service.updateAvatar(announcementId, mockFile)).rejects.toThrow(
+        "Erreur lors de la mise à jour de l'avatar",
       );
-    });
-  });
-
-  describe('uploadProfileImage', () => {
-    it('should return null when no file is provided', async () => {
-      const result = await service.uploadProfileImage(null);
-      expect(result).toBeNull();
-    });
-
-    it('should convert file to base64 image', async () => {
-      const mockFile = {
-        buffer: Buffer.from('test-image-data'),
-        mimetype: 'image/jpeg',
-      } as Express.Multer.File;
-
-      const result = await service.uploadProfileImage(mockFile);
-
-      expect(result).toBeDefined();
-      expect(result.data).toBe('dGVzdC1pbWFnZS1kYXRh'); // Base64 encoded 'test-image-data'
-      expect(result.contentType).toBe('image/jpeg');
-      expect(result.uploadedAt).toBeDefined();
     });
   });
 
@@ -153,10 +180,16 @@ describe('AnnouncementService', () => {
       const announcementRepository = {
         delete: jest.fn().mockResolvedValue(undefined),
       };
+      const awsS3Service = {
+        uploadFileAnnouncement: jest.fn(),
+        deleteFile: jest.fn(),
+        getFileUrl: jest.fn(),
+      };
       const serviceTest = new AnnouncementService(
         announcementRepository as any,
         {} as any,
         favoritesAnnouncementService as any,
+        awsS3Service as any,
       );
       await expect(serviceTest.delete(id)).resolves.toBeUndefined();
       expect(favoritesAnnouncementService.removeByAnnouncementId).toHaveBeenCalledWith(id);
@@ -168,10 +201,16 @@ describe('AnnouncementService', () => {
       const favoritesAnnouncementService = {
         removeByAnnouncementId: jest.fn().mockRejectedValue(new Error('fail')),
       };
+      const awsS3Service = {
+        uploadFileAnnouncement: jest.fn(),
+        deleteFile: jest.fn(),
+        getFileUrl: jest.fn(),
+      };
       const serviceTest = new AnnouncementService(
         {} as any,
         {} as any,
         favoritesAnnouncementService as any,
+        awsS3Service as any,
       );
       await expect(serviceTest.delete(id)).rejects.toThrow(
         "Erreur lors de la suppression de l'annonce",
@@ -182,22 +221,63 @@ describe('AnnouncementService', () => {
   describe('deleteByAssociationId', () => {
     it('should call favoritesAnnouncementService and repository deleteByAssociationId', async () => {
       const associationId = 'assoc-id';
+      const mockAnnouncements = [
+        { _id: 'announcement-1', announcementImage: 'image-1' },
+        { _id: 'announcement-2', announcementImage: 'image-2' },
+      ];
+
       const favoritesAnnouncementService = {
         removeByAssociationId: jest.fn().mockResolvedValue(undefined),
       };
       const announcementRepository = {
         deleteByAssociationId: jest.fn().mockResolvedValue(undefined),
+        findByAssociationId: jest.fn().mockResolvedValue(mockAnnouncements),
+      };
+      const awsS3Service = {
+        uploadFileAnnouncement: jest.fn(),
+        deleteFile: jest.fn().mockResolvedValue(undefined),
+        getFileUrl: jest.fn(),
       };
       const serviceTest = new AnnouncementService(
         announcementRepository as any,
         {} as any,
         favoritesAnnouncementService as any,
+        awsS3Service as any,
       );
+
       await expect(serviceTest.deleteByAssociationId(associationId)).resolves.toBeUndefined();
+      expect(announcementRepository.findByAssociationId).toHaveBeenCalledWith(associationId);
+      expect(awsS3Service.deleteFile).toHaveBeenCalledTimes(2);
       expect(favoritesAnnouncementService.removeByAssociationId).toHaveBeenCalledWith(
         associationId,
       );
       expect(announcementRepository.deleteByAssociationId).toHaveBeenCalledWith(associationId);
+    });
+
+    it('should handle case when no announcements found', async () => {
+      const associationId = 'assoc-id';
+      const favoritesAnnouncementService = {
+        removeByAssociationId: jest.fn().mockResolvedValue(undefined),
+      };
+      const announcementRepository = {
+        deleteByAssociationId: jest.fn().mockResolvedValue(undefined),
+        findByAssociationId: jest.fn().mockResolvedValue([]),
+      };
+      const awsS3Service = {
+        uploadFileAnnouncement: jest.fn(),
+        deleteFile: jest.fn(),
+        getFileUrl: jest.fn(),
+      };
+      const serviceTest = new AnnouncementService(
+        announcementRepository as any,
+        {} as any,
+        favoritesAnnouncementService as any,
+        awsS3Service as any,
+      );
+
+      await expect(serviceTest.deleteByAssociationId(associationId)).resolves.toBeUndefined();
+      expect(announcementRepository.findByAssociationId).toHaveBeenCalledWith(associationId);
+      expect(announcementRepository.deleteByAssociationId).not.toHaveBeenCalled();
     });
 
     it('should throw InternalServerErrorException if an error occurs', async () => {
@@ -205,10 +285,16 @@ describe('AnnouncementService', () => {
       const favoritesAnnouncementService = {
         removeByAssociationId: jest.fn().mockRejectedValue(new Error('fail')),
       };
+      const awsS3Service = {
+        uploadFileAnnouncement: jest.fn(),
+        deleteFile: jest.fn(),
+        getFileUrl: jest.fn(),
+      };
       const serviceTest = new AnnouncementService(
         {} as any,
         {} as any,
         favoritesAnnouncementService as any,
+        awsS3Service as any,
       );
       await expect(serviceTest.deleteByAssociationId(associationId)).rejects.toThrow(
         "Erreur lors de la suppression des annonces de l'association",
