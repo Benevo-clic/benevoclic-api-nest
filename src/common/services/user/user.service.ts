@@ -25,6 +25,9 @@ import { AuthConfig } from '@config/auth.config';
 import { User } from '../../../api/user/entities/user.entity';
 import { VolunteerService } from '../../../api/volunteer/services/volunteer.service';
 import { AssociationService } from '../../../api/association/services/association.service';
+import { fileSchema } from '../../utils/file-utils';
+import { z } from 'zod';
+import { AwsS3Service } from '../../aws/aws-s3.service';
 
 @Injectable()
 export class UserService {
@@ -35,6 +38,7 @@ export class UserService {
     private readonly userRepository: UserRepository,
     private readonly volunteerService: VolunteerService,
     private readonly associationService: AssociationService,
+    private readonly awsS3Service: AwsS3Service,
   ) {}
 
   async updateLocation(id: string, location: Location) {
@@ -98,6 +102,48 @@ export class UserService {
     }
   }
 
+  async updateAvatar(id: string, submittedFile: z.infer<typeof fileSchema>) {
+    try {
+      const existingUser = await this.userRepository.findByUid(id);
+      if (!existingUser) {
+        this.logger.error(`Utilisateur non trouvé: ${id}`);
+        throw new NotFoundException('Utilisateur non trouvé');
+      }
+      const { fileKey } = await this.awsS3Service.uploadFile(id, submittedFile);
+      await this.userRepository.update(id, { avatarFileKey: fileKey });
+      this.logger.log(`Avatar mis à jour pour l'utilisateur: ${id}`);
+
+      if (existingUser.avatarFileKey && existingUser.avatarFileKey !== fileKey) {
+        await this.awsS3Service.deleteFile(existingUser.avatarFileKey);
+        this.logger.log(`Ancien avatar supprimé pour l'utilisateur: ${id}`);
+      }
+      return this.userRepository.findByUid(id);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la mise à jour de l'avatar: ${id}`, error.stack);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException("Erreur lors de la mise à jour de l'avatar");
+    }
+  }
+
+  async getAvatarFileUrl(id: string): Promise<string> {
+    try {
+      const user = await this.userRepository.findByUid(id);
+      if (!user || !user.avatarFileKey) {
+        this.logger.error(`Aucun avatar trouvé pour l'utilisateur: ${id}`);
+        return '';
+      }
+      return await this.awsS3Service.getFileUrl(user.avatarFileKey);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération de l'URL de l'avatar: ${id}`, error.stack);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException("Erreur lors de la récupération de l'URL de l'avatar");
+    }
+  }
+
   async registerUserInFirebase(registerUser: RegisterUserDto): Promise<UserRecord> {
     try {
       const isExist = await this.firebaseInstance.getUserByEmail(registerUser.email);
@@ -117,14 +163,23 @@ export class UserService {
     }
   }
 
-  async getCurrentUser(req: any) {
+  async getCurrentUser(req: any): Promise<User | null> {
     try {
       const currentUser = await FirebaseAdminService.getInstance().getCurrentUser(req);
       if (!currentUser) {
         this.logger.error('Utilisateur non trouvé');
         throw new NotFoundException('Utilisateur non trouvé');
       }
-      return await this.userRepository.findByUid(currentUser.uid);
+      let avatarFileKey = '';
+      const user = await this.userRepository.findByUid(currentUser.uid);
+      if (user.avatarFileKey) {
+        avatarFileKey = await this.getAvatarFileUrl(currentUser.uid);
+      }
+
+      return {
+        ...user,
+        avatarFileKey,
+      };
     } catch (error) {
       this.logger.error("Erreur lors de la récupération de l'utilisateur courant", error.stack);
       if (error instanceof NotFoundException) {
@@ -256,11 +311,20 @@ export class UserService {
 
   async findOne(id: string) {
     try {
-      const user = await this.userRepository.findByUid(id);
-      if (!user) {
+      const currentUser = await this.userRepository.findByUid(id);
+      if (!currentUser) {
         throw new NotFoundException('Utilisateur non trouvé');
       }
-      return user;
+      let avatarFileKey = '';
+      const user = await this.userRepository.findByUid(currentUser.userId);
+      if (user.avatarFileKey) {
+        avatarFileKey = await this.getAvatarFileUrl(user.userId);
+      }
+
+      return {
+        ...user,
+        avatarFileKey,
+      };
     } catch (error) {
       this.logger.error(`Erreur lors de la récupération de l'utilisateur: ${id}`, error.stack);
       throw error instanceof NotFoundException

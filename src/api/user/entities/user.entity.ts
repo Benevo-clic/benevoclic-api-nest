@@ -11,6 +11,7 @@ export class User {
   isCompleted?: boolean;
   location?: Location;
   imageProfile?: Image;
+  avatarFileKey?: string;
   lastConnection: string;
   createdAt: string;
   updatedAt: Date;

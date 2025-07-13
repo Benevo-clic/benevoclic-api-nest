@@ -14,7 +14,7 @@ export class AnnouncementRepository {
   private get collection() {
     return this.mongoClient.db().collection<Announcement>(DatabaseCollection.ANNOUNCEMENT);
   }
-  async findAll(): Promise<Announcement[]> {
+  async findAll(): Promise<any[]> {
     return await this.collection.find().toArray();
   }
 

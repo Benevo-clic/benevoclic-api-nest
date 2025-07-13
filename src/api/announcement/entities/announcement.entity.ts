@@ -1,4 +1,4 @@
-import { Location, Image } from '../../../common/type/usersInfo.type';
+import { Location } from '../../../common/type/usersInfo.type';
 import { InfoVolunteer } from '../../association/type/association.type';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 
@@ -11,8 +11,8 @@ export class Announcement {
   tags?: string[];
   associationId: string;
   associationName: string;
-  associationLogo?: Image;
-  announcementImage?: Image;
+  associationLogo?: string;
+  announcementImage?: string;
   locationAnnouncement?: Location;
   participants?: InfoVolunteer[];
   nbParticipants?: number;

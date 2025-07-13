@@ -20,7 +20,7 @@ import { UpdateUserDto } from '../dto/update-user.dto';
 import { RegisterUserDto } from '../dto/register-user.dto';
 import { LoginDto } from '../dto/login.dto';
 import { AuthGuard } from '../../../guards/auth.guard';
-import { ApiBearerAuth, ApiProperty } from '@nestjs/swagger';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '../../../common/enums/roles.enum';
 import { Public } from '../../../common/decorators/public.decorator';
@@ -29,18 +29,7 @@ import { Location } from '../../../common/type/usersInfo.type';
 import { RegisterUserVerifiedDto } from '../dto/register-user-verified.dto';
 import { RegisterUserGoogleDto } from '../dto/register-user-google.dto';
 import { User } from '../entities/user.entity';
-
-import { IsBoolean, IsString } from 'class-validator';
-
-export class UpdateUserCompletionDto {
-  @ApiProperty({ description: 'id user' })
-  @IsString()
-  id: string;
-
-  @ApiProperty({ description: 'is completed register' })
-  @IsBoolean()
-  isCompleted: boolean;
-}
+import { fileSchema } from '../../../common/utils/file-utils';
 
 @Controller('user')
 export class UserController {
@@ -248,6 +237,37 @@ export class UserController {
     } catch (error) {
       this.logger.error(
         `Erreur lors de la mise à jour de l'image de profil de l'utilisateur: ${id}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  @Public()
+  @UseInterceptors(FileInterceptor('file'))
+  @Patch(':id/update-avatar')
+  async updateAvatarImage(@Param('id') id: string, @UploadedFile() file): Promise<User> {
+    try {
+      const submittedFile = fileSchema.parse(file);
+      console.log(`Mise à jour de l'avatar pour l'utilisateur: `, submittedFile);
+      return await this.userService.updateAvatar(id, submittedFile);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la mise à jour de l'image de profil de l'utilisateur:`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  @Public()
+  @Get('avatar/:id')
+  async getAvatar(@Param('id') id: string): Promise<string> {
+    try {
+      return await this.userService.getAvatarFileUrl(id);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la récupération de l'avatar de l'utilisateur: ${id}`,
         error.stack,
       );
       throw error;

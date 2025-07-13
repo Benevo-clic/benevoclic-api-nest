@@ -29,6 +29,8 @@
     "lint-staged": "lint-staged"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.844.0",
+    "@aws-sdk/s3-request-presigner": "^3.844.0",
     "@nestjs/common": "^11.0.7",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.7",
@@ -44,7 +46,8 @@
     "luxon": "^3.5.0",
     "mongodb": "^6.13.0",
     "reflect-metadata": "^0.2.0",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "zod": "^4.0.5"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.1",

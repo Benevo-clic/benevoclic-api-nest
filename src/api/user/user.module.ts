@@ -6,6 +6,7 @@ import { DatabaseModule } from '../../database/database.module';
 import { UserRepository } from './repository/user.repository';
 import { VolunteerModule } from '../volunteer/volunteer.module';
 import { AssociationModule } from '../association/association.module';
+import { AwsS3Service } from '../../common/aws/aws-s3.service';
 
 @Module({
   imports: [
@@ -15,7 +16,7 @@ import { AssociationModule } from '../association/association.module';
     forwardRef(() => AssociationModule),
   ],
   controllers: [UserController],
-  providers: [UserService, UserRepository],
-  exports: [UserService, UserRepository],
+  providers: [UserService, UserRepository, AwsS3Service],
+  exports: [UserService, UserRepository, AwsS3Service],
 })
 export class UserModule {}
