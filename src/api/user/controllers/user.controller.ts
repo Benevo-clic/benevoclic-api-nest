@@ -226,30 +226,12 @@ export class UserController {
     }
   }
 
-  @Patch(':id/image-profile')
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
-  @ApiBearerAuth()
-  @UseInterceptors(FileInterceptor('image'))
-  async updateProfileImage(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
-    try {
-      return await this.userService.updateProfilePicture(id, file);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la mise à jour de l'image de profil de l'utilisateur: ${id}`,
-        error.stack,
-      );
-      throw error;
-    }
-  }
-
   @Public()
   @UseInterceptors(FileInterceptor('file'))
   @Patch(':id/update-avatar')
   async updateAvatarImage(@Param('id') id: string, @UploadedFile() file): Promise<User> {
     try {
       const submittedFile = fileSchema.parse(file);
-      console.log(`Mise à jour de l'avatar pour l'utilisateur: `, submittedFile);
       return await this.userService.updateAvatar(id, submittedFile);
     } catch (error) {
       this.logger.error(

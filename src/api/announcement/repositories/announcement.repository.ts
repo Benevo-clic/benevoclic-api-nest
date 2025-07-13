@@ -100,6 +100,13 @@ export class AnnouncementRepository {
     );
   }
 
+  async updateAssociationNameByAssociationId(
+    associationId: string,
+    associationName: string,
+  ): Promise<void> {
+    await this.collection.updateMany({ associationId }, { $set: { associationName } });
+  }
+
   async removeVolunteerEverywhere(volunteerId: string): Promise<number> {
     const result = await this.collection.updateMany({}, [
       {

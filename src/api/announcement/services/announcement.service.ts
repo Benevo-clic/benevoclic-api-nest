@@ -159,7 +159,20 @@ export class AnnouncementService {
 
   async deleteByAssociationId(associationId: string): Promise<void> {
     try {
-      await this.favoritesAnnouncementService.removeByAssociationId(associationId);
+      const associationAnnouncements =
+        await this.announcementRepository.findByAssociationId(associationId);
+      if (!associationAnnouncements || associationAnnouncements.length === 0) {
+        this.logger.warn(`Aucune annonce trouvée pour l'association: ${associationId}`);
+        return;
+      }
+      await Promise.all([
+        associationAnnouncements.map(async announcement => {
+          if (announcement.announcementImage) {
+            await this.awsS3Service.deleteFile(announcement.announcementImage);
+          }
+        }),
+        this.favoritesAnnouncementService.removeByAssociationId(associationId),
+      ]);
       await this.announcementRepository.deleteByAssociationId(associationId);
     } catch (error) {
       this.logger.error(
@@ -168,6 +181,28 @@ export class AnnouncementService {
       );
       throw new InternalServerErrorException(
         "Erreur lors de la suppression des annonces de l'association",
+      );
+    }
+  }
+
+  async updateAnnouncementAssociationName(associationId: string, associationName: string) {
+    try {
+      const announcements = await this.announcementRepository.findByAssociationId(associationId);
+      if (!announcements || announcements.length === 0) {
+        this.logger.warn(`Aucune annonce trouvée pour l'association: ${associationId}`);
+        return;
+      }
+      await this.announcementRepository.updateAssociationNameByAssociationId(
+        associationId,
+        associationName,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la mise à jour du nom de l'association dans les annonces: ${associationId}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la mise à jour du nom de l'association dans les annonces",
       );
     }
   }
@@ -397,7 +432,6 @@ export class AnnouncementService {
     try {
       const announcement = await this.announcementRepository.findById(id);
       if (!announcement || !announcement.announcementImage) {
-        this.logger.error(`Aucun avatar trouvé pour l'utilisateur: ${id}`);
         return '';
       }
       return await this.awsS3Service.getFileUrl(announcement.announcementImage);

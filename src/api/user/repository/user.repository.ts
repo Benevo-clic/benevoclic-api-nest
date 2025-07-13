@@ -25,6 +25,7 @@ export class UserRepository {
       disabled: createUserDto.disabled,
       isVerified: createUserDto.isVerified,
       lastConnection: createUserDto.lastSignInTime,
+      avatarFileKey: '',
       isCompleted: createUserDto.isCompleted,
       createdAt: createUserDto.createdAt,
       updatedAt: new Date(),

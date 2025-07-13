@@ -73,49 +73,17 @@ export class UserService {
     }
   }
 
-  async getUserImageProfile(id: string): Promise<Image> {
-    try {
-      const user = await this.userRepository.findByUid(id);
-      if (!user || !user.imageProfile) {
-        throw new NotFoundException('Aucune image de profil trouvée pour cet utilisateur.');
-      }
-      return user.imageProfile;
-    } catch (error) {
-      this.logger.error(`Erreur lors de la récupération de l'image de profil: ${id}`, error.stack);
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException("Erreur lors de la récupération de l'image de profil");
-    }
-  }
-
-  async updateProfilePicture(id: string, file: Express.Multer.File) {
-    try {
-      if (!file) {
-        throw new BadRequestException('Aucun fichier fourni.');
-      }
-      await this.userRepository.update(id, { imageProfile: await this.uploadProfileImage(file) });
-      return { message: 'Photo de profil mise à jour avec succès' };
-    } catch (error) {
-      this.logger.error(`Erreur lors de la mise à jour de la photo de profil: ${id}`, error.stack);
-      throw new InternalServerErrorException('Erreur lors de la mise à jour de la photo de profil');
-    }
-  }
-
   async updateAvatar(id: string, submittedFile: z.infer<typeof fileSchema>) {
     try {
       const existingUser = await this.userRepository.findByUid(id);
       if (!existingUser) {
-        this.logger.error(`Utilisateur non trouvé: ${id}`);
         throw new NotFoundException('Utilisateur non trouvé');
       }
       const { fileKey } = await this.awsS3Service.uploadFile(id, submittedFile);
       await this.userRepository.update(id, { avatarFileKey: fileKey });
-      this.logger.log(`Avatar mis à jour pour l'utilisateur: ${id}`);
 
       if (existingUser.avatarFileKey && existingUser.avatarFileKey !== fileKey) {
         await this.awsS3Service.deleteFile(existingUser.avatarFileKey);
-        this.logger.log(`Ancien avatar supprimé pour l'utilisateur: ${id}`);
       }
       return this.userRepository.findByUid(id);
     } catch (error) {
@@ -172,7 +140,7 @@ export class UserService {
       }
       let avatarFileKey = '';
       const user = await this.userRepository.findByUid(currentUser.uid);
-      if (user.avatarFileKey) {
+      if (user.avatarFileKey !== '') {
         avatarFileKey = await this.getAvatarFileUrl(currentUser.uid);
       }
 
@@ -268,7 +236,6 @@ export class UserService {
     try {
       const existingUser = await this.userRepository.findByEmail(registerUser.email);
       if (existingUser) {
-        this.logger.error(`Email déjà utilisé: ${registerUser.email}`);
         throw new BadRequestException('Email already exists');
       }
 
@@ -284,7 +251,6 @@ export class UserService {
         lastSignInTime: userRecord.metadata.lastRefreshTime,
         createdAt: userRecord.metadata.creationTime,
       });
-      this.logger.log(`Inscription réussie pour l'utilisateur: ${registerUser.email}`);
       return {
         uid: userRecord.uid,
       };
@@ -338,7 +304,6 @@ export class UserService {
       const updateData: any = {};
       if (updateUserDto.email) updateData.email = updateUserDto.email;
       await this.firebaseInstance.updateUser(id, updateData);
-      this.logger.debug(`Utilisateur mis à jour dans Firebase: ${id}`);
     } catch (error) {
       this.logger.error(`Erreur lors de la mise à jour Firebase: ${id}`, error.stack);
       throw new InternalServerErrorException('Erreur lors de la mise à jour Firebase');
@@ -347,17 +312,14 @@ export class UserService {
 
   async update(id: string, updateUserDto: UpdateUserDto) {
     try {
-      this.logger.log(`Tentative de mise à jour de l'utilisateur: ${id}`);
       await this.updateInFirebase(id, updateUserDto);
       if (updateUserDto.role) {
         await this.setUserRole(id, updateUserDto.role);
-        this.logger.debug(`Rôle mis à jour: ${updateUserDto.role}`);
       }
       await this.userRepository.update(id, {
         ...updateUserDto,
         updatedAt: new Date(),
       });
-      this.logger.log(`Mise à jour réussie pour l'utilisateur: ${id}`);
       return { message: 'Utilisateur mis à jour avec succès' };
     } catch (error) {
       this.logger.error(`Erreur lors de la mise à jour de l'utilisateur: ${id}`, error.stack);
@@ -371,7 +333,6 @@ export class UserService {
   async removeInFirebase(id: string) {
     try {
       await this.firebaseInstance.deleteUser(id);
-      this.logger.debug(`Utilisateur supprimé de Firebase: ${id}`);
     } catch (error) {
       this.logger.error(`Erreur lors de la suppression de l'utilisateur: ${id}`, error.stack);
       if (error instanceof NotFoundException) {
@@ -390,15 +351,15 @@ export class UserService {
       }
       if (user.role === UserRole.ASSOCIATION) {
         await this.associationService.remove(id);
-        this.logger.log(`Suppression réussie de l'association: ${id}`);
       } else if (user.role === UserRole.VOLUNTEER) {
         await this.volunteerService.remove(id);
-        this.logger.log(`Suppression réussie du bénévole: ${id}`);
       }
 
       await this.removeInFirebase(id);
       await this.userRepository.remove(id);
-      this.logger.log(`Suppression réussie de l'utilisateur: ${id}`);
+      if (user.avatarFileKey) {
+        await this.awsS3Service.deleteFile(user.avatarFileKey);
+      }
       return { message: 'Utilisateur supprimé avec succès' };
     } catch (error) {
       this.logger.error(`Erreur lors de la suppression de l'utilisateur: ${id}`, error.stack);

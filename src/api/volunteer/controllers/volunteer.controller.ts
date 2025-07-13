@@ -71,9 +71,9 @@ export class VolunteerController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string) {
     try {
-      return this.volunteerService.remove(id);
+      return await this.volunteerService.remove(id);
     } catch (error) {
       this.logger.error(`Erreur lors de la suppression du bénévole: ${id}`, error.stack);
       throw error;

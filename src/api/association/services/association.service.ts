@@ -94,6 +94,12 @@ export class AssociationService {
       if (!oldAssociation) {
         throw new NotFoundException('Association not found');
       }
+      if (oldAssociation.associationName !== updateAssociationDto.associationName) {
+        await this.announcementService.updateAnnouncementAssociationName(
+          id,
+          updateAssociationDto.associationName,
+        );
+      }
       await this.associationRepository.update(id, {
         ...updateAssociationDto,
       });

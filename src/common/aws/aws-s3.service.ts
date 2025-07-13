@@ -122,7 +122,6 @@ export class AwsS3Service {
       if (result.$metadata.httpStatusCode !== 200 && result.$metadata.httpStatusCode !== 204) {
         this.logger.error(`Erreur HTTP: ${result.$metadata.httpStatusCode}`);
       }
-      this.logger.log(`Fichier supprimé avec succès: ${fileKey}`);
       return {
         fileKey,
       };
@@ -145,10 +144,8 @@ export class AwsS3Service {
 
       const result = await getSignedUrl(this.s3Client, getObjectCommand);
       if (!result) {
-        this.logger.error(`Erreur lors de la génération de l'URL pour le fichier`);
         throw new InternalServerErrorException("Erreur lors de la génération de l'URL du fichier");
       }
-      this.logger.log(`URL du fichier générée avec succès:`);
       return result;
     } catch (error) {
       this.logger.error(`Erreur lors de la récupération de l'URL du fichier: ${error.message}`);
