@@ -23,20 +23,7 @@ export class AwsS3Service {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
       },
-      // Endpoint personnalisé pour éviter les problèmes SSL
-      endpoint: `https://s3.${process.env.AWS_REGION}.amazonaws.com`,
-      forcePathStyle: false,
     };
-
-    // Configuration SSL pour le développement
-    if (process.env.NODE_ENV === 'development') {
-      config.requestHandler = {
-        httpOptions: {
-          rejectUnauthorized: false,
-          timeout: 30000,
-        },
-      };
-    }
 
     this.s3Client = new S3Client(config);
     this.bucketName = process.env.AWS_BUCKET_NAME;
