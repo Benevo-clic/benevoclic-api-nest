@@ -40,6 +40,7 @@ describe('AssociationController (Integration)', () => {
           provide: AnnouncementService,
           useValue: {
             deleteByAssociationId: jest.fn().mockResolvedValue(undefined),
+            updateAnnouncementAssociationName: jest.fn().mockResolvedValue(undefined), // Ajouter cette ligne
           },
         },
       ],
@@ -147,6 +148,7 @@ describe('AssociationController (Integration)', () => {
     it('should update an existing association', async () => {
       const updateDto = {
         bio: 'Nouvelle description',
+        // Ne pas ajouter associationName pour éviter de modifier les données de test
       };
 
       const updated = await controller.update(mockData.associations[0].associationId, updateDto);

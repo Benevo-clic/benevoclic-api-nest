@@ -8,7 +8,6 @@ import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.ser
 import { BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
 
-// Mock FirebaseAdminService
 jest.mock('../../../common/firebase/firebaseAdmin.service', () => {
   const mockFirebaseAdmin = {
     getUserByEmail: jest.fn(),
@@ -27,6 +26,7 @@ describe('AssociationService', () => {
   let associationService: AssociationService;
   let associationRepository: AssociationRepository;
   let firebaseAdmin;
+  let announcementService: AnnouncementService;
 
   const mockAssociation: Association = {
     associationId: 'mockFirebaseUid123',
@@ -59,7 +59,6 @@ describe('AssociationService', () => {
   };
 
   beforeEach(async () => {
-    // Reset all mocks before each test
     jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
@@ -73,6 +72,7 @@ describe('AssociationService', () => {
           provide: AnnouncementService,
           useValue: {
             deleteByAssociationId: jest.fn().mockResolvedValue(undefined),
+            updateAnnouncementAssociationName: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],
@@ -81,6 +81,7 @@ describe('AssociationService', () => {
     associationService = module.get<AssociationService>(AssociationService);
     associationRepository = module.get<AssociationRepository>(AssociationRepository);
     firebaseAdmin = FirebaseAdminService.getInstance();
+    announcementService = module.get<AnnouncementService>(AnnouncementService);
   });
 
   it('should be defined', () => {
@@ -100,7 +101,6 @@ describe('AssociationService', () => {
         country: 'New Country',
       };
 
-      // Mock Firebase response
       firebaseAdmin.getUserByEmail.mockResolvedValueOnce({
         uid: 'mockFirebaseUid123',
         email: 'test@example.com',
@@ -129,7 +129,6 @@ describe('AssociationService', () => {
         country: 'New Country',
       };
 
-      // Mock Firebase response for non-existent email
       firebaseAdmin.getUserByEmail.mockResolvedValueOnce(null);
 
       await expect(associationService.create(createDto)).rejects.toThrow(NotFoundException);
@@ -186,15 +185,41 @@ describe('AssociationService', () => {
     it('should update an association', async () => {
       const updateDto: UpdateAssociationDto = {
         bio: 'Updated Bio',
+        associationName: 'Updated Name',
       };
 
-      mockRepository.findById.mockResolvedValue(mockAssociation);
+      const oldAssociation = { ...mockAssociation, associationName: 'Old Name' };
+
+      mockRepository.findById
+        .mockResolvedValueOnce(oldAssociation)
+        .mockResolvedValueOnce({ ...mockAssociation, ...updateDto });
       mockRepository.update.mockResolvedValue(undefined);
-      mockRepository.findById.mockResolvedValue({ ...mockAssociation, ...updateDto });
 
       const result = await associationService.update('mockFirebaseUid123', updateDto);
       expect(result.bio).toBe(updateDto.bio);
       expect(associationRepository.update).toHaveBeenCalled();
+      expect(announcementService.updateAnnouncementAssociationName).toHaveBeenCalledWith(
+        'mockFirebaseUid123',
+        'Updated Name',
+      );
+    });
+
+    it('should not call updateAnnouncementAssociationName if associationName is not in updateDto', async () => {
+      const updateDto: UpdateAssociationDto = {
+        bio: 'Updated Bio',
+      };
+
+      const oldAssociation = { ...mockAssociation, associationName: 'Test Association' };
+
+      mockRepository.findById
+        .mockResolvedValueOnce(oldAssociation)
+        .mockResolvedValueOnce({ ...mockAssociation, ...updateDto });
+      mockRepository.update.mockResolvedValue(undefined);
+
+      const result = await associationService.update('mockFirebaseUid123', updateDto);
+      expect(result.bio).toBe(updateDto.bio);
+      expect(associationRepository.update).toHaveBeenCalled();
+      expect(announcementService.updateAnnouncementAssociationName).not.toHaveBeenCalled();
     });
 
     it('should throw error if association not found', async () => {
@@ -211,7 +236,6 @@ describe('AssociationService', () => {
 
     describe('removeVolunteer', () => {
       it('should remove a volunteer from an association', async () => {
-        // Préparer une association avec le bénévole dans la liste
         const associationWithVolunteer = {
           ...mockAssociation,
           volunteers: [mockVolunteer],
@@ -228,7 +252,6 @@ describe('AssociationService', () => {
       });
 
       it('should throw error if volunteer does not exist', async () => {
-        // Préparer une association sans le bénévole dans la liste
         const associationWithoutVolunteer = {
           ...mockAssociation,
           volunteers: [],
@@ -243,7 +266,6 @@ describe('AssociationService', () => {
 
     describe('removeVolunteerWaiting', () => {
       it('should remove a volunteer from the waiting list of an association', async () => {
-        // Préparer une association avec le bénévole dans la liste d'attente
         const associationWithWaiting = {
           ...mockAssociation,
           volunteersWaiting: [mockVolunteer],
@@ -260,7 +282,6 @@ describe('AssociationService', () => {
       });
 
       it('should throw error if volunteer does not exist in waiting list', async () => {
-        // Préparer une association sans le bénévole dans la liste d'attente
         const associationWithoutWaiting = {
           ...mockAssociation,
           volunteersWaiting: [],
@@ -275,7 +296,6 @@ describe('AssociationService', () => {
 
     describe('addVolunteer', () => {
       it('should add a volunteer to an association', async () => {
-        // Préparer une association sans le bénévole dans la liste
         const associationWithoutVolunteer = {
           ...mockAssociation,
           volunteers: [],
@@ -289,7 +309,6 @@ describe('AssociationService', () => {
       });
 
       it('should throw error if volunteer already exists', async () => {
-        // Préparer une association avec le bénévole déjà dans la liste
         const associationWithVolunteer = {
           ...mockAssociation,
           volunteers: [mockVolunteer],
@@ -304,7 +323,6 @@ describe('AssociationService', () => {
 
     describe('addVolunteerWaiting', () => {
       it('should add a volunteer to the waiting list of an association', async () => {
-        // Préparer une association sans le bénévole dans la liste d'attente
         const associationWithoutWaiting = {
           ...mockAssociation,
           volunteersWaiting: [],
@@ -321,7 +339,6 @@ describe('AssociationService', () => {
       });
 
       it('should throw error if volunteer already exists', async () => {
-        // Préparer une association avec le bénévole déjà dans la liste d'attente
         const associationWithWaiting = {
           ...mockAssociation,
           volunteersWaiting: [mockVolunteer],
@@ -335,12 +352,10 @@ describe('AssociationService', () => {
     });
 
     it('should allow a volunteer to be added to two different associations (service)', async () => {
-      // Préparer deux associations différentes
       const associationId1 = 'assoc1';
       const associationId2 = 'assoc2';
       const volunteer = { id: 'multiAssocVolunteer', name: 'Jane Doe' };
 
-      // Association 1 : waiting puis promotion
       const assoc1 = {
         ...mockAssociation,
         associationId: associationId1,
@@ -354,26 +369,22 @@ describe('AssociationService', () => {
       });
       mockRepository.removeVolunteerWaitingFromAssociation.mockResolvedValue(undefined);
       mockRepository.update.mockResolvedValue(undefined);
-      // Promotion dans la première association
       await associationService.removeVolunteerWaiting(associationId1, volunteer.id);
       assoc1.volunteersWaiting = [];
       await associationService.addVolunteer(associationId1, volunteer);
       assoc1.volunteers = [volunteer];
 
-      // Association 2 : waiting puis promotion
       const assoc2 = {
         ...mockAssociation,
         associationId: associationId2,
         volunteers: [],
         volunteersWaiting: [volunteer],
       };
-      // Promotion dans la deuxième association
       await associationService.removeVolunteerWaiting(associationId2, volunteer.id);
       assoc2.volunteersWaiting = [];
       await associationService.addVolunteer(associationId2, volunteer);
       assoc2.volunteers = [volunteer];
 
-      // Vérifier que le bénévole est bien dans les deux associations
       expect(assoc1.volunteers).toContainEqual(expect.objectContaining({ id: volunteer.id }));
       expect(assoc2.volunteers).toContainEqual(expect.objectContaining({ id: volunteer.id }));
       expect(assoc1.volunteersWaiting).not.toContainEqual(

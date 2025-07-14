@@ -14,7 +14,7 @@ export class AnnouncementRepository {
   private get collection() {
     return this.mongoClient.db().collection<Announcement>(DatabaseCollection.ANNOUNCEMENT);
   }
-  async findAll(): Promise<Announcement[]> {
+  async findAll(): Promise<any[]> {
     return await this.collection.find().toArray();
   }
 
@@ -98,6 +98,13 @@ export class AnnouncementRepository {
         },
       },
     );
+  }
+
+  async updateAssociationNameByAssociationId(
+    associationId: string,
+    associationName: string,
+  ): Promise<void> {
+    await this.collection.updateMany({ associationId }, { $set: { associationName } });
   }
 
   async removeVolunteerEverywhere(volunteerId: string): Promise<number> {

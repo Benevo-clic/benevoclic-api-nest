@@ -8,6 +8,7 @@ import { FavoritesAnnouncementModule } from '../favorites-announcement/favorites
 import { UserService } from '../../common/services/user/user.service';
 import { VolunteerModule } from '../volunteer/volunteer.module';
 import { AssociationModule } from '../association/association.module';
+import { AwsS3Service } from '../../common/aws/aws-s3.service';
 
 @Module({
   imports: [
@@ -17,8 +18,8 @@ import { AssociationModule } from '../association/association.module';
     forwardRef(() => FavoritesAnnouncementModule),
     forwardRef(() => AssociationModule),
   ],
-  providers: [AnnouncementRepository, AnnouncementService, UserService],
+  providers: [AnnouncementRepository, AnnouncementService, UserService, AwsS3Service],
   controllers: [AnnouncementController],
-  exports: [AnnouncementService, AnnouncementRepository],
+  exports: [AnnouncementService, AnnouncementRepository, AwsS3Service],
 })
 export class AnnouncementModule {}

@@ -94,6 +94,16 @@ export class AssociationService {
       if (!oldAssociation) {
         throw new NotFoundException('Association not found');
       }
+      // Vérifier si associationName est présent dans le DTO et s'il a changé
+      if (
+        updateAssociationDto.associationName &&
+        oldAssociation.associationName !== updateAssociationDto.associationName
+      ) {
+        await this.announcementService.updateAnnouncementAssociationName(
+          id,
+          updateAssociationDto.associationName,
+        );
+      }
       await this.associationRepository.update(id, {
         ...updateAssociationDto,
       });

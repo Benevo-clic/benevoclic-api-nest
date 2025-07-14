@@ -113,21 +113,22 @@ export class VolunteerService {
     try {
       const isExist = await this.volunteerRepository.findById(id);
       if (!isExist) {
-        this.logger.error(`Volunteer not found: ${id}`);
         throw new NotFoundException('Volunteer not found');
       }
-      await this.favoritesAnnouncementService.removeByVolunteerId(id);
-      await this.announcementService.removeVolunteerEverywhere(id);
-      await this.announcementService.removeParticipantEverywhere(id);
-      await this.associationService.removeVolunteerFollowingEverywhere(id);
+      await Promise.all([
+        this.favoritesAnnouncementService.removeByVolunteerId(id),
+        this.announcementService.removeVolunteerEverywhere(id),
+        this.announcementService.removeParticipantEverywhere(id),
+        this.associationService.removeVolunteerFollowingEverywhere(id),
+      ]);
 
-      const deleteResult = await this.volunteerRepository.remove(id);
+      const result = await this.volunteerRepository.remove(id);
 
-      if (!deleteResult.deletedCount) {
-        this.logger.error(`Volunteer not found (delete): ${id}`);
-        throw new NotFoundException('Volunteer not found');
+      // Vérifier si la suppression a réussi
+      if (result.deletedCount === 0) {
+        throw new NotFoundException('Volunteer not deleted');
       }
-      this.logger.log(`Volunteer deleted: ${id}`);
+
       return { volunteerId: id };
     } catch (error) {
       this.logger.error('Erreur lors de la suppression du bénévole', error.stack);

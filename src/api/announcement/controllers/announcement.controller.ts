@@ -31,6 +31,7 @@ import { InfoVolunteer } from '../../association/type/association.type';
 import { InfoVolunteerDto } from '../../association/dto/info-volunteer.dto';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { fileSchema } from '../../../common/utils/file-utils';
 
 @ApiTags('announcements')
 @Controller('announcements')
@@ -294,13 +295,11 @@ export class AnnouncementController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
-  @UseInterceptors(FileInterceptor('image'))
-  async updateImageCoverAnnouncement(
-    @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
+  @UseInterceptors(FileInterceptor('file'))
+  async updateImageCoverAnnouncement(@Param('id') id: string, @UploadedFile() file) {
     try {
-      return await this.service.updateCover(id, file);
+      const submittedFile = fileSchema.parse(file);
+      return await this.service.updateAvatar(id, submittedFile);
     } catch (error) {
       this.logger.error(
         "Erreur lors de la mise à jour de l'image de profil de l'annonce",

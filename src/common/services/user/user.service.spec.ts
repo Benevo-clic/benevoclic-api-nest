@@ -6,6 +6,7 @@ import { FirebaseAdminService } from '../../firebase/firebaseAdmin.service';
 import axios from 'axios';
 import { VolunteerService } from '../../../api/volunteer/services/volunteer.service';
 import { AssociationService } from '../../../api/association/services/association.service';
+import { AwsS3Service } from '../../aws/aws-s3.service';
 
 jest.mock('axios');
 
@@ -27,6 +28,7 @@ describe('UserService', () => {
   let service: UserService;
   let repository: UserRepository;
   let firebaseAdmin: FirebaseAdminService;
+  let awsS3Service: AwsS3Service;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -64,12 +66,21 @@ describe('UserService', () => {
             remove: jest.fn(),
           },
         },
+        {
+          provide: AwsS3Service,
+          useValue: {
+            uploadFile: jest.fn(),
+            deleteFile: jest.fn(),
+            getFileUrl: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<UserService>(UserService);
     repository = module.get<UserRepository>(UserRepository);
     firebaseAdmin = FirebaseAdminService.getInstance();
+    awsS3Service = module.get<AwsS3Service>(AwsS3Service);
   });
 
   describe('registerUser', () => {
@@ -262,69 +273,112 @@ describe('UserService', () => {
     });
   });
 
-  describe('uploadProfileImage', () => {
-    const mockFile: Express.Multer.File = {
-      buffer: Buffer.from('test image'),
+  describe('updateAvatar', () => {
+    const userId = 'test-user-id';
+    const mockFile = {
+      buffer: Buffer.from('test-image-data'),
       mimetype: 'image/jpeg',
-      fieldname: 'image',
       originalname: 'test.jpg',
-      encoding: '7bit',
+      fieldname: 'file',
       size: 1024,
-      destination: '',
-      filename: '',
-      path: '',
-      stream: null as any,
+    } as any;
+
+    const mockUser = {
+      userId: userId,
+      email: 'test@example.com',
+      role: UserRole.VOLUNTEER,
+      avatarFileKey: 'old-avatar-key',
+      isOnline: false,
+      disabled: false,
+      isVerified: false,
+      lastConnection: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date(),
     };
 
-    it('should upload profile image', async () => {
-      const result = await service.uploadProfileImage(mockFile);
-
-      expect(result).toEqual({
-        data: mockFile.buffer.toString('base64'),
-        contentType: mockFile.mimetype,
-        uploadedAt: expect.any(Date),
-      });
-    });
-
-    it('should throw if no file provided', async () => {
-      await expect(service.uploadProfileImage(null as any)).rejects.toThrow(
-        'Aucun fichier fourni.',
-      );
-    });
-  });
-
-  describe('updateProfilePicture', () => {
-    const mockFile: Express.Multer.File = {
-      buffer: Buffer.from('test image'),
-      mimetype: 'image/jpeg',
-      fieldname: 'image',
-      originalname: 'test.jpg',
-      encoding: '7bit',
-      size: 1024,
-      destination: '',
-      filename: '',
-      path: '',
-      stream: null as any,
-    };
-
-    it('should update profile picture', async () => {
+    it('should update avatar successfully', async () => {
+      jest
+        .spyOn(repository, 'findByUid')
+        .mockResolvedValueOnce(mockUser)
+        .mockResolvedValueOnce({ ...mockUser, avatarFileKey: 'new-avatar-key' });
       jest.spyOn(repository, 'update').mockResolvedValue(undefined);
+      jest.spyOn(awsS3Service, 'uploadFile').mockResolvedValue({ fileKey: 'new-avatar-key' });
+      jest.spyOn(awsS3Service, 'deleteFile').mockResolvedValue(undefined);
 
-      const result = await service.updateProfilePicture('mockUid', mockFile);
-      expect(result).toEqual({ message: 'Photo de profil mise à jour avec succès' });
+      const result = await service.updateAvatar(userId, mockFile);
+
+      expect(repository.findByUid).toHaveBeenCalledWith(userId);
+      expect(awsS3Service.uploadFile).toHaveBeenCalledWith(userId, mockFile);
+      expect(repository.update).toHaveBeenCalledWith(userId, { avatarFileKey: 'new-avatar-key' });
+      expect(awsS3Service.deleteFile).toHaveBeenCalledWith('old-avatar-key');
+      expect(result).toEqual({ ...mockUser, avatarFileKey: 'new-avatar-key' });
     });
 
-    it('should throw if no file provided', async () => {
-      await expect(service.updateProfilePicture('mockUid', null as any)).rejects.toThrow(
-        'Erreur lors de la mise à jour de la photo de profil',
+    it('should throw NotFoundException when user not found', async () => {
+      jest.spyOn(repository, 'findByUid').mockResolvedValue(null);
+
+      await expect(service.updateAvatar(userId, mockFile)).rejects.toThrow(
+        "Erreur lors de la mise à jour de l'avatar",
       );
     });
 
-    it('should throw if update fails', async () => {
-      jest.spyOn(repository, 'update').mockRejectedValue(new Error('Update failed'));
+    it('should not delete old avatar if avatarFileKey is empty', async () => {
+      const userWithoutAvatar = { ...mockUser, avatarFileKey: '' };
+      jest
+        .spyOn(repository, 'findByUid')
+        .mockResolvedValueOnce(userWithoutAvatar)
+        .mockResolvedValueOnce({ ...userWithoutAvatar, avatarFileKey: 'new-avatar-key' });
+      jest.spyOn(repository, 'update').mockResolvedValue(undefined);
+      jest.spyOn(awsS3Service, 'uploadFile').mockResolvedValue({ fileKey: 'new-avatar-key' });
 
-      await expect(service.updateProfilePicture('mockUid', mockFile)).rejects.toThrow(
-        'Erreur lors de la mise à jour de la photo de profil',
+      await service.updateAvatar(userId, mockFile);
+
+      expect(awsS3Service.deleteFile).not.toHaveBeenCalled();
+    });
+
+    it('should not delete old avatar if it is the same as new avatar', async () => {
+      jest
+        .spyOn(repository, 'findByUid')
+        .mockResolvedValueOnce(mockUser)
+        .mockResolvedValueOnce(mockUser);
+      jest.spyOn(repository, 'update').mockResolvedValue(undefined);
+      jest.spyOn(awsS3Service, 'uploadFile').mockResolvedValue({ fileKey: 'old-avatar-key' });
+
+      await service.updateAvatar(userId, mockFile);
+
+      expect(awsS3Service.deleteFile).not.toHaveBeenCalled();
+    });
+
+    it('should throw InternalServerErrorException when AWS upload fails', async () => {
+      jest.spyOn(repository, 'findByUid').mockResolvedValue(mockUser);
+      jest.spyOn(awsS3Service, 'uploadFile').mockRejectedValue(new Error('AWS upload failed'));
+
+      await expect(service.updateAvatar(userId, mockFile)).rejects.toThrow(
+        "Erreur lors de la mise à jour de l'avatar",
+      );
+    });
+
+    it('should throw InternalServerErrorException when repository update fails', async () => {
+      jest.spyOn(repository, 'findByUid').mockResolvedValue(mockUser);
+      jest.spyOn(awsS3Service, 'uploadFile').mockResolvedValue({ fileKey: 'new-avatar-key' });
+      jest.spyOn(repository, 'update').mockRejectedValue(new Error('Database update failed'));
+
+      await expect(service.updateAvatar(userId, mockFile)).rejects.toThrow(
+        "Erreur lors de la mise à jour de l'avatar",
+      );
+    });
+
+    it('should throw InternalServerErrorException when AWS delete fails', async () => {
+      jest
+        .spyOn(repository, 'findByUid')
+        .mockResolvedValueOnce(mockUser)
+        .mockResolvedValueOnce({ ...mockUser, avatarFileKey: 'new-avatar-key' });
+      jest.spyOn(repository, 'update').mockResolvedValue(undefined);
+      jest.spyOn(awsS3Service, 'uploadFile').mockResolvedValue({ fileKey: 'new-avatar-key' });
+      jest.spyOn(awsS3Service, 'deleteFile').mockRejectedValue(new Error('AWS delete failed'));
+
+      await expect(service.updateAvatar(userId, mockFile)).rejects.toThrow(
+        "Erreur lors de la mise à jour de l'avatar",
       );
     });
   });

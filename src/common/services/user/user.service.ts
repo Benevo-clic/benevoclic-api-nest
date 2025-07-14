@@ -13,7 +13,7 @@ import { UserRole } from '../../enums/roles.enum';
 import { UserRecord } from 'firebase-admin/auth';
 import { UserRepository } from '../../../api/user/repository/user.repository';
 import { FirebaseAdminService } from '../../firebase/firebaseAdmin.service';
-import { Location, Image } from '../../type/usersInfo.type';
+import { Location } from '../../type/usersInfo.type';
 import { LoginResponseDto } from '../../../api/user/dto/login.response.dto';
 import { RegisterReponseDto } from '../../../api/user/dto/register.reponse.dto';
 import { RegisterUserVerifiedDto } from '../../../api/user/dto/register-user-verified.dto';
@@ -25,6 +25,9 @@ import { AuthConfig } from '@config/auth.config';
 import { User } from '../../../api/user/entities/user.entity';
 import { VolunteerService } from '../../../api/volunteer/services/volunteer.service';
 import { AssociationService } from '../../../api/association/services/association.service';
+import { fileSchema } from '../../utils/file-utils';
+import { z } from 'zod';
+import { AwsS3Service } from '../../aws/aws-s3.service';
 
 @Injectable()
 export class UserService {
@@ -35,6 +38,7 @@ export class UserService {
     private readonly userRepository: UserRepository,
     private readonly volunteerService: VolunteerService,
     private readonly associationService: AssociationService,
+    private readonly awsS3Service: AwsS3Service,
   ) {}
 
   async updateLocation(id: string, location: Location) {
@@ -49,52 +53,42 @@ export class UserService {
     }
   }
 
-  async uploadProfileImage(file: Express.Multer.File): Promise<Image> {
+  async updateAvatar(id: string, submittedFile: z.infer<typeof fileSchema>) {
     try {
-      if (!file) {
-        throw new BadRequestException('Aucun fichier fourni.');
+      const existingUser = await this.userRepository.findByUid(id);
+      if (!existingUser) {
+        throw new NotFoundException('Utilisateur non trouvé');
       }
-      const base64Image = file.buffer.toString('base64');
-      return {
-        data: base64Image,
-        contentType: file.mimetype,
-        uploadedAt: new Date(),
-      };
+      const { fileKey } = await this.awsS3Service.uploadFile(id, submittedFile);
+      await this.userRepository.update(id, { avatarFileKey: fileKey });
+
+      if (existingUser.avatarFileKey && existingUser.avatarFileKey !== fileKey) {
+        await this.awsS3Service.deleteFile(existingUser.avatarFileKey);
+      }
+      return this.userRepository.findByUid(id);
     } catch (error) {
-      this.logger.error("Erreur lors de l'upload de la photo de profil", error.stack);
+      this.logger.error(`Erreur lors de la mise à jour de l'avatar: ${id}`, error.stack);
       if (error instanceof BadRequestException) {
         throw error;
       }
-      throw new InternalServerErrorException("Erreur lors de l'upload de la photo de profil");
+      throw new InternalServerErrorException("Erreur lors de la mise à jour de l'avatar");
     }
   }
 
-  async getUserImageProfile(id: string): Promise<Image> {
+  async getAvatarFileUrl(id: string): Promise<string> {
     try {
       const user = await this.userRepository.findByUid(id);
-      if (!user || !user.imageProfile) {
-        throw new NotFoundException('Aucune image de profil trouvée pour cet utilisateur.');
+      if (!user || !user.avatarFileKey) {
+        this.logger.error(`Aucun avatar trouvé pour l'utilisateur: ${id}`);
+        return '';
       }
-      return user.imageProfile;
+      return await this.awsS3Service.getFileUrl(user.avatarFileKey);
     } catch (error) {
-      this.logger.error(`Erreur lors de la récupération de l'image de profil: ${id}`, error.stack);
+      this.logger.error(`Erreur lors de la récupération de l'URL de l'avatar: ${id}`, error.stack);
       if (error instanceof NotFoundException) {
         throw error;
       }
-      throw new InternalServerErrorException("Erreur lors de la récupération de l'image de profil");
-    }
-  }
-
-  async updateProfilePicture(id: string, file: Express.Multer.File) {
-    try {
-      if (!file) {
-        throw new BadRequestException('Aucun fichier fourni.');
-      }
-      await this.userRepository.update(id, { imageProfile: await this.uploadProfileImage(file) });
-      return { message: 'Photo de profil mise à jour avec succès' };
-    } catch (error) {
-      this.logger.error(`Erreur lors de la mise à jour de la photo de profil: ${id}`, error.stack);
-      throw new InternalServerErrorException('Erreur lors de la mise à jour de la photo de profil');
+      throw new InternalServerErrorException("Erreur lors de la récupération de l'URL de l'avatar");
     }
   }
 
@@ -117,14 +111,23 @@ export class UserService {
     }
   }
 
-  async getCurrentUser(req: any) {
+  async getCurrentUser(req: any): Promise<User | null> {
     try {
       const currentUser = await FirebaseAdminService.getInstance().getCurrentUser(req);
       if (!currentUser) {
         this.logger.error('Utilisateur non trouvé');
         throw new NotFoundException('Utilisateur non trouvé');
       }
-      return await this.userRepository.findByUid(currentUser.uid);
+      let avatarFileKey = '';
+      const user = await this.userRepository.findByUid(currentUser.uid);
+      if (user.avatarFileKey !== '') {
+        avatarFileKey = await this.getAvatarFileUrl(currentUser.uid);
+      }
+
+      return {
+        ...user,
+        avatarFileKey,
+      };
     } catch (error) {
       this.logger.error("Erreur lors de la récupération de l'utilisateur courant", error.stack);
       if (error instanceof NotFoundException) {
@@ -213,7 +216,6 @@ export class UserService {
     try {
       const existingUser = await this.userRepository.findByEmail(registerUser.email);
       if (existingUser) {
-        this.logger.error(`Email déjà utilisé: ${registerUser.email}`);
         throw new BadRequestException('Email already exists');
       }
 
@@ -229,7 +231,6 @@ export class UserService {
         lastSignInTime: userRecord.metadata.lastRefreshTime,
         createdAt: userRecord.metadata.creationTime,
       });
-      this.logger.log(`Inscription réussie pour l'utilisateur: ${registerUser.email}`);
       return {
         uid: userRecord.uid,
       };
@@ -256,11 +257,20 @@ export class UserService {
 
   async findOne(id: string) {
     try {
-      const user = await this.userRepository.findByUid(id);
-      if (!user) {
+      const currentUser = await this.userRepository.findByUid(id);
+      if (!currentUser) {
         throw new NotFoundException('Utilisateur non trouvé');
       }
-      return user;
+      let avatarFileKey = '';
+      const user = await this.userRepository.findByUid(currentUser.userId);
+      if (user.avatarFileKey) {
+        avatarFileKey = await this.getAvatarFileUrl(user.userId);
+      }
+
+      return {
+        ...user,
+        avatarFileKey,
+      };
     } catch (error) {
       this.logger.error(`Erreur lors de la récupération de l'utilisateur: ${id}`, error.stack);
       throw error instanceof NotFoundException
@@ -274,7 +284,6 @@ export class UserService {
       const updateData: any = {};
       if (updateUserDto.email) updateData.email = updateUserDto.email;
       await this.firebaseInstance.updateUser(id, updateData);
-      this.logger.debug(`Utilisateur mis à jour dans Firebase: ${id}`);
     } catch (error) {
       this.logger.error(`Erreur lors de la mise à jour Firebase: ${id}`, error.stack);
       throw new InternalServerErrorException('Erreur lors de la mise à jour Firebase');
@@ -283,17 +292,14 @@ export class UserService {
 
   async update(id: string, updateUserDto: UpdateUserDto) {
     try {
-      this.logger.log(`Tentative de mise à jour de l'utilisateur: ${id}`);
       await this.updateInFirebase(id, updateUserDto);
       if (updateUserDto.role) {
         await this.setUserRole(id, updateUserDto.role);
-        this.logger.debug(`Rôle mis à jour: ${updateUserDto.role}`);
       }
       await this.userRepository.update(id, {
         ...updateUserDto,
         updatedAt: new Date(),
       });
-      this.logger.log(`Mise à jour réussie pour l'utilisateur: ${id}`);
       return { message: 'Utilisateur mis à jour avec succès' };
     } catch (error) {
       this.logger.error(`Erreur lors de la mise à jour de l'utilisateur: ${id}`, error.stack);
@@ -307,7 +313,6 @@ export class UserService {
   async removeInFirebase(id: string) {
     try {
       await this.firebaseInstance.deleteUser(id);
-      this.logger.debug(`Utilisateur supprimé de Firebase: ${id}`);
     } catch (error) {
       this.logger.error(`Erreur lors de la suppression de l'utilisateur: ${id}`, error.stack);
       if (error instanceof NotFoundException) {
@@ -326,15 +331,15 @@ export class UserService {
       }
       if (user.role === UserRole.ASSOCIATION) {
         await this.associationService.remove(id);
-        this.logger.log(`Suppression réussie de l'association: ${id}`);
       } else if (user.role === UserRole.VOLUNTEER) {
         await this.volunteerService.remove(id);
-        this.logger.log(`Suppression réussie du bénévole: ${id}`);
       }
 
       await this.removeInFirebase(id);
       await this.userRepository.remove(id);
-      this.logger.log(`Suppression réussie de l'utilisateur: ${id}`);
+      if (user.avatarFileKey) {
+        await this.awsS3Service.deleteFile(user.avatarFileKey);
+      }
       return { message: 'Utilisateur supprimé avec succès' };
     } catch (error) {
       this.logger.error(`Erreur lors de la suppression de l'utilisateur: ${id}`, error.stack);
@@ -503,28 +508,6 @@ export class UserService {
     } catch (error) {
       this.logger.error(`Erreur lors de la déconnexion: ${id}`, error.stack);
       throw new InternalServerErrorException('Erreur lors de la déconnexion');
-    }
-  }
-
-  async getProfileImage(id: string) {
-    try {
-      const user = await this.userRepository.findByUid(id);
-      if (!user) {
-        throw new NotFoundException('Utilisateur non trouvé');
-      }
-      if (!user.imageProfile) {
-        throw new NotFoundException('Aucune image de profil trouvée');
-      }
-      return {
-        data: user.imageProfile.data,
-        contentType: user.imageProfile.contentType,
-      };
-    } catch (error) {
-      this.logger.error(`Erreur lors de la récupération de l'image de profil: ${id}`, error.stack);
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException("Erreur lors de la récupération de l'image de profil");
     }
   }
 }

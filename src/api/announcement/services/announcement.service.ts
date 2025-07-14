@@ -16,6 +16,9 @@ import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { Image } from '../../../common/type/usersInfo.type';
 import { UserService } from '../../../common/services/user/user.service';
 import { FavoritesAnnouncementService } from '../../favorites-announcement/services/favorites-announcement.service';
+import { z } from 'zod';
+import { fileSchema } from '../../../common/utils/file-utils';
+import { AwsS3Service } from '../../../common/aws/aws-s3.service';
 
 @Injectable()
 export class AnnouncementService {
@@ -25,15 +28,31 @@ export class AnnouncementService {
     private readonly userService: UserService,
     @Inject(forwardRef(() => FavoritesAnnouncementService))
     private readonly favoritesAnnouncementService: FavoritesAnnouncementService,
+    private readonly awsS3Service: AwsS3Service,
   ) {}
 
   async findAll(): Promise<Announcement[]> {
     try {
-      return await this.announcementRepository.findAll();
+      const announcements = await this.announcementRepository.findAll();
+      if (!announcements || announcements.length === 0) {
+        return [];
+      }
+      return await this.enrichAnnouncements(announcements);
     } catch (error) {
       this.logger.error('Erreur lors de la récupération des annonces', error.stack);
       throw new InternalServerErrorException('Erreur lors de la récupération des annonces');
     }
+  }
+  async enrichAnnouncements(announcements: any[]) {
+    await Promise.all(
+      announcements.map(async announcement => {
+        announcement.associationLogo = await this.userService.getAvatarFileUrl(
+          announcement.associationId,
+        );
+        announcement.announcementImage = await this.getAvatarFileUrl(announcement?._id);
+      }),
+    );
+    return announcements;
   }
 
   async findById(id: string): Promise<Announcement> {
@@ -42,6 +61,10 @@ export class AnnouncementService {
       if (!announcement) {
         throw new NotFoundException('Annonce non trouvée');
       }
+      announcement.announcementImage = await this.getAvatarFileUrl(id);
+      announcement.associationLogo = await this.userService.getAvatarFileUrl(
+        announcement.associationId,
+      );
       return announcement;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
@@ -52,7 +75,11 @@ export class AnnouncementService {
 
   async findByAssociationId(associationId: string): Promise<Announcement[]> {
     try {
-      return await this.announcementRepository.findByAssociationId(associationId);
+      const announcements = await this.announcementRepository.findByAssociationId(associationId);
+      if (!announcements || announcements.length === 0) {
+        return [];
+      }
+      return await this.enrichAnnouncements(announcements);
     } catch (error) {
       this.logger.error(
         `Erreur lors de la récupération des annonces de l'association: ${associationId}`,
@@ -83,9 +110,7 @@ export class AnnouncementService {
 
   async create(announcement: CreateAnnouncementDto): Promise<string> {
     try {
-      const associationLogo = await this.userService.getUserImageProfile(
-        announcement.associationId,
-      );
+      const avatarFileKey = await this.userService.getAvatarFileUrl(announcement.associationId);
       return await this.announcementRepository.create({
         associationId: announcement.associationId,
         description: announcement.description,
@@ -95,8 +120,8 @@ export class AnnouncementService {
         nameEvent: announcement.nameEvent,
         tags: announcement.tags || [],
         associationName: announcement.associationName,
-        associationLogo: associationLogo,
-        announcementImage: null,
+        associationLogo: avatarFileKey,
+        announcementImage: '',
         locationAnnouncement: announcement.locationAnnouncement,
         participants: [],
         volunteers: [],
@@ -134,7 +159,20 @@ export class AnnouncementService {
 
   async deleteByAssociationId(associationId: string): Promise<void> {
     try {
-      await this.favoritesAnnouncementService.removeByAssociationId(associationId);
+      const associationAnnouncements =
+        await this.announcementRepository.findByAssociationId(associationId);
+      if (!associationAnnouncements || associationAnnouncements.length === 0) {
+        this.logger.warn(`Aucune annonce trouvée pour l'association: ${associationId}`);
+        return;
+      }
+      await Promise.all([
+        associationAnnouncements.map(async announcement => {
+          if (announcement.announcementImage) {
+            await this.awsS3Service.deleteFile(announcement.announcementImage);
+          }
+        }),
+        this.favoritesAnnouncementService.removeByAssociationId(associationId),
+      ]);
       await this.announcementRepository.deleteByAssociationId(associationId);
     } catch (error) {
       this.logger.error(
@@ -143,6 +181,28 @@ export class AnnouncementService {
       );
       throw new InternalServerErrorException(
         "Erreur lors de la suppression des annonces de l'association",
+      );
+    }
+  }
+
+  async updateAnnouncementAssociationName(associationId: string, associationName: string) {
+    try {
+      const announcements = await this.announcementRepository.findByAssociationId(associationId);
+      if (!announcements || announcements.length === 0) {
+        this.logger.warn(`Aucune annonce trouvée pour l'association: ${associationId}`);
+        return;
+      }
+      await this.announcementRepository.updateAssociationNameByAssociationId(
+        associationId,
+        associationName,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la mise à jour du nom de l'association dans les annonces: ${associationId}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la mise à jour du nom de l'association dans les annonces",
       );
     }
   }
@@ -339,21 +399,48 @@ export class AnnouncementService {
     }
   }
 
-  async updateCover(id: string, file: Express.Multer.File) {
+  async updateAvatar(id: string, submittedFile: z.infer<typeof fileSchema>) {
     try {
-      if (!file) {
-        throw new BadRequestException('Aucun fichier fourni.');
+      const existingUser = await this.announcementRepository.findById(id);
+      if (!existingUser) {
+        this.logger.error(`announcement non trouvé: ${id}`);
+        throw new NotFoundException('Utilisateur non trouvé');
       }
-      const image = await this.uploadProfileImage(file);
-      await this.announcementRepository.update(id, {
-        announcementImage: image,
-      });
-      this.logger.log(`Photo de profil mise à jour avec succès: ${id}`);
-      return image;
+      const { fileKey } = await this.awsS3Service.uploadFileAnnouncement(id, submittedFile);
+      await this.announcementRepository.update(id, { announcementImage: fileKey });
+      this.logger.log(`announce image mis à jour pour l'utilisateur: ${id}`);
+
+      if (
+        existingUser.announcementImage &&
+        existingUser.announcementImage !== fileKey &&
+        existingUser.announcementImage !== ''
+      ) {
+        await this.awsS3Service.deleteFile(existingUser.announcementImage);
+        this.logger.log(`Ancien avatar supprimé pour l'utilisateur: ${id}`);
+      }
+      return this.announcementRepository.findById(id);
     } catch (error) {
-      if (error instanceof BadRequestException) throw error;
-      this.logger.error(`Erreur lors de la mise à jour de la photo de profil: ${id}`, error.stack);
-      throw new InternalServerErrorException('Erreur lors de la mise à jour de la photo de profil');
+      this.logger.error(`Erreur lors de la mise à jour de l'avatar: ${id}`, error.stack);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException("Erreur lors de la mise à jour de l'avatar");
+    }
+  }
+
+  async getAvatarFileUrl(id: string): Promise<string> {
+    try {
+      const announcement = await this.announcementRepository.findById(id);
+      if (!announcement || !announcement.announcementImage) {
+        return '';
+      }
+      return await this.awsS3Service.getFileUrl(announcement.announcementImage);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération de l'URL de l'avatar: ${id}`, error.stack);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException("Erreur lors de la récupération de l'URL de l'avatar");
     }
   }
 
