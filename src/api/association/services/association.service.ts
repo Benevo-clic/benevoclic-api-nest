@@ -49,6 +49,7 @@ export class AssociationService {
         city: createAssociationDto.city,
         country: createAssociationDto.country,
         postalCode: createAssociationDto.postalCode,
+        locationAssociation: createAssociationDto.locationAssociation,
         type: createAssociationDto.type,
         volunteers: [],
         volunteersWaiting: [],
@@ -94,7 +95,6 @@ export class AssociationService {
       if (!oldAssociation) {
         throw new NotFoundException('Association not found');
       }
-      // Vérifier si associationName est présent dans le DTO et s'il a changé
       if (
         updateAssociationDto.associationName &&
         oldAssociation.associationName !== updateAssociationDto.associationName
@@ -247,7 +247,10 @@ export class AssociationService {
     return this.associationRepository.findAssociationsByVolunteer(volunteerId);
   }
 
-  async getVolunteersInWaitingList(associationId: string, volunteerId: string) {
+  async getVolunteersInWaitingList(
+    associationId: string,
+    volunteerId: string,
+  ): Promise<InfoVolunteer> {
     try {
       return await this.associationRepository.findVolunteersInWaitingList(
         associationId,

@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { MongoClient } from 'mongodb';
 import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { User } from '../entities/user.entity';
@@ -6,7 +6,7 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
 
 @Injectable()
-export class UserRepository {
+export class UserRepository implements OnModuleInit {
   constructor(
     @Inject(MONGODB_CONNECTION)
     private readonly mongoClient: MongoClient,
@@ -14,6 +14,36 @@ export class UserRepository {
 
   private get collection() {
     return this.mongoClient.db().collection<User>(DatabaseCollection.USERS);
+  }
+
+  async onModuleInit() {
+    await this.collection.createIndex(
+      { userId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: 'idx_users_userId',
+        sparse: true,
+        collation: {
+          locale: 'en',
+          strength: 2,
+        },
+      },
+    );
+
+    await this.collection.createIndex(
+      { email: 1 },
+      {
+        unique: true,
+        background: true,
+        name: 'idx_users_email',
+        sparse: true,
+        collation: {
+          locale: 'en',
+          strength: 2,
+        },
+      },
+    );
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {

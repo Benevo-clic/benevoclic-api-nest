@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { LocationGeoJson } from '../../../common/type/usersInfo.type';
+import { IsGeoPoint } from '../../../common/validators/geo-point.validator';
 
 export class CreateVolunteerDto {
   @ApiProperty()
@@ -37,6 +39,20 @@ export class CreateVolunteerDto {
   @ApiProperty()
   @IsString()
   country?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Location of the volunteer in GeoJSON format',
+    example: {
+      type: 'Point',
+      coordinates: [2.3522, 48.8566],
+    },
+  })
+  @IsOptional()
+  @IsGeoPoint({
+    message: 'locationVolunteer invalide : doit être { type: "Point", coordinates: [lng, lat] }',
+  })
+  locationVolunteer?: LocationGeoJson;
 
   @ApiProperty()
   @IsString()

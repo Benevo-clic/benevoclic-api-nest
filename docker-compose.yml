@@ -10,9 +10,11 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password123
       MONGO_INITDB_DATABASE: benevoclic
+    # Monte le volume nommé "mongodb_data" (pas de préfixe automatique)
     volumes:
       - mongodb_data:/data/db
     command: mongod --auth
 
 volumes:
   mongodb_data:
+    name: mongodb_data

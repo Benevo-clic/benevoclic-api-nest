@@ -10,6 +10,8 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { AssociationService } from '../services/association.service';
 import { CreateAssociationDto } from '../dto/create-association.dto';
@@ -17,10 +19,17 @@ import { UpdateAssociationDto } from '../dto/update-association.dto';
 import { AuthGuard } from '../../../guards/auth.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '../../../common/enums/roles.enum';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { Association } from '../entities/association.entity';
 import { InfoUserDto } from '../dto/info-user.dto';
 
+@UsePipes(
+  new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }),
+)
 @Controller('/api/v2/association')
 export class AssociationController {
   private readonly logger = new Logger(AssociationController.name);
@@ -31,6 +40,12 @@ export class AssociationController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBody({
+    type: CreateAssociationDto,
+    description: 'Create a new association',
+    required: true,
+  })
   create(@Body() createAssociationDto: CreateAssociationDto) {
     try {
       return this.associationService.create(createAssociationDto);
@@ -46,6 +61,11 @@ export class AssociationController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiResponse({
+    type: [Association],
+    description: 'Retrieve all associations',
+  })
   findAll(): Promise<Association[]> {
     return this.associationService.findAll();
   }
@@ -54,6 +74,11 @@ export class AssociationController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION)
   @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiResponse({
+    type: Association,
+    description: 'Retrieve an association by its ID',
+  })
   findOne(@Param('associationId') associationId: string) {
     return this.associationService.findOne(associationId);
   }
@@ -62,12 +87,12 @@ export class AssociationController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  getAssociationsWaitingList(
+  async getAssociationsWaitingList(
     @Param('associationId') associationId: string,
     @Param('volunteerId') volunteerId: string,
   ) {
     try {
-      return this.associationService.getVolunteersInWaitingList(associationId, volunteerId);
+      return await this.associationService.getVolunteersInWaitingList(associationId, volunteerId);
     } catch (error) {
       this.logger.error(
         "Erreur lors de la récupération de la liste d'attente des associations: %s",
@@ -99,6 +124,11 @@ export class AssociationController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION)
   @ApiBearerAuth()
+  @ApiBody({
+    type: UpdateAssociationDto,
+    description: 'Update an existing association',
+    required: true,
+  })
   update(
     @Param('associationId') associationId: string,
     @Body() updateAssociationDto: UpdateAssociationDto,

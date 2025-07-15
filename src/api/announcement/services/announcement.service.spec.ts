@@ -179,6 +179,7 @@ describe('AnnouncementService', () => {
       };
       const announcementRepository = {
         delete: jest.fn().mockResolvedValue(undefined),
+        findById: jest.fn().mockResolvedValue({ announcementImage: 'image-key' }),
       };
       const awsS3Service = {
         uploadFileAnnouncement: jest.fn(),

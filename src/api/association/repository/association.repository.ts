@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { MongoClient } from 'mongodb';
 import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { Association } from '../entities/association.entity';
@@ -7,7 +7,7 @@ import { FindAssociationDto } from '../dto/find-association.dto';
 import { InfoAssociation, InfoVolunteer } from '../type/association.type';
 
 @Injectable()
-export class AssociationRepository {
+export class AssociationRepository implements OnModuleInit {
   constructor(
     @Inject(MONGODB_CONNECTION)
     private readonly mongoClient: MongoClient,
@@ -15,6 +15,41 @@ export class AssociationRepository {
 
   private get collection() {
     return this.mongoClient.db().collection<Association>(DatabaseCollection.ASSOCIATION);
+  }
+  async onModuleInit() {
+    await this.collection.createIndex(
+      { associationId: 1 },
+      {
+        unique: true,
+        background: true,
+        name: 'idx_asso_associationId',
+        sparse: true,
+        collation: {
+          locale: 'en',
+          strength: 2,
+        },
+      },
+    );
+
+    const volunteerPaths = ['volunteers.id', 'volunteersWaiting.id'];
+    for (const path of volunteerPaths) {
+      await this.collection.createIndex(
+        { [path]: 1 },
+        {
+          name: `idx_asso_${path.replace('.', '_')}`,
+          background: true,
+          sparse: true,
+        },
+      );
+    }
+    await this.collection.createIndex(
+      { locationAssociation: '2dsphere' },
+      {
+        name: 'idx_asso_location_geo',
+        background: true,
+        sparse: true,
+      },
+    );
   }
 
   async update(id: string, updateData: Partial<Association>): Promise<void> {

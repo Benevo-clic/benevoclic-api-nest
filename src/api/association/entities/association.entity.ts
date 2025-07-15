@@ -1,4 +1,5 @@
 import { InfoVolunteer } from '../type/association.type';
+import { LocationGeoJson } from '../../../common/type/usersInfo.type';
 
 export class Association {
   associationId: string;
@@ -9,6 +10,7 @@ export class Association {
   type: string;
   postalCode: string;
   country: string;
+  locationAssociation?: LocationGeoJson;
   volunteers?: InfoVolunteer[];
   volunteersWaiting?: InfoVolunteer[];
 }
