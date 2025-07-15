@@ -1,11 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { Collection, MongoClient, ObjectId, ClientSession } from 'mongodb';
 import { Announcement } from '../entities/announcement.entity';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
 
 @Injectable()
-export class AnnouncementRepository {
+export class AnnouncementRepository implements OnModuleInit {
   constructor(
     @Inject('MONGODB_CONNECTION')
     private readonly mongoClient: MongoClient,
@@ -107,6 +107,16 @@ export class AnnouncementRepository {
     await this.collection.updateMany({ associationId }, { $set: { associationName } });
   }
 
+  async findVolunteerInVolunteersByVolunteerId(volunteerId: string): Promise<Announcement[]> {
+    return this.collection.find({ 'volunteers.id': volunteerId }).toArray();
+  }
+
+  async findParticipantInParticipantsByParticipantId(
+    participantId: string,
+  ): Promise<Announcement[]> {
+    return this.collection.find({ 'participants.id': participantId }).toArray();
+  }
+
   async removeVolunteerEverywhere(volunteerId: string): Promise<number> {
     const result = await this.collection.updateMany({}, [
       {
@@ -174,5 +184,36 @@ export class AnnouncementRepository {
 
     const result = await this.collection.updateMany({}, pipeline);
     return result.modifiedCount;
+  }
+
+  async onModuleInit() {
+    await this.collection.createIndex(
+      { associationId: 1 },
+      {
+        name: 'idx_ann_associationId',
+        background: true,
+        sparse: false,
+      },
+    );
+
+    const volunteerPaths = ['participants.id', 'volunteers.id', 'volunteersWaiting.id'];
+    for (const path of volunteerPaths) {
+      await this.collection.createIndex(
+        { [path]: 1 },
+        {
+          name: `idx_ann_${path.replace('.', '_')}`,
+          background: true,
+          sparse: true,
+        },
+      );
+    }
+    await this.collection.createIndex(
+      { locationAnnouncement: '2dsphere' },
+      {
+        name: 'idx_ann_location_geo',
+        background: true,
+        sparse: true,
+      },
+    );
   }
 }

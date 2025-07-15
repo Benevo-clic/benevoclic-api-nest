@@ -9,6 +9,9 @@ export type Location = {
   city: string;
   postalCode: string;
   country: string;
-  lat?: number;
-  lng?: number;
+};
+
+export type LocationGeoJson = {
+  type: 'Point';
+  coordinates: [number, number];
 };

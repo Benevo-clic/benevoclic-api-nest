@@ -34,15 +34,12 @@ export class VolunteerService {
     try {
       const firebaseUser = await this.firebaseInstance.getUserByEmail(createVolunteerDto.email);
       if (!firebaseUser) {
-        this.logger.error(`Email not found: ${createVolunteerDto.email}`);
         throw new NotFoundException('Email not found');
       }
       const isExist = await this.volunteerRepository.findById(firebaseUser.uid);
       if (isExist) {
-        this.logger.error(`Email already exist: ${createVolunteerDto.email}`);
         throw new BadRequestException('Email already exist');
       }
-      this.logger.log(`Volunteer created: ${firebaseUser.uid}`);
       return await this.volunteerRepository.create({
         volunteerId: firebaseUser.uid,
         city: createVolunteerDto.city,
@@ -53,8 +50,7 @@ export class VolunteerService {
         postalCode: createVolunteerDto.postalCode,
         birthDate: createVolunteerDto.birthDate,
         bio: createVolunteerDto.bio,
-        myAssociations: [],
-        myAssociationsWaiting: [],
+        locationVolunteer: createVolunteerDto.locationVolunteer,
       });
     } catch (error) {
       this.logger.error('Erreur lors de la création du bénévole', error.stack);
@@ -78,7 +74,6 @@ export class VolunteerService {
     try {
       const volunteer = await this.volunteerRepository.findById(id);
       if (!volunteer) {
-        this.logger.error(`Volunteer not found: ${id}`);
         return null;
       }
       return volunteer;
@@ -92,13 +87,11 @@ export class VolunteerService {
     try {
       const isExist = await this.volunteerRepository.findById(id);
       if (!isExist) {
-        this.logger.error(`Volunteer not found: ${id}`);
         throw new NotFoundException('Volunteer not found');
       }
       await this.volunteerRepository.update(id, {
         ...updateVolunteerDto,
       });
-      this.logger.log(`Volunteer updated: ${id}`);
       return await this.volunteerRepository.findById(id);
     } catch (error) {
       this.logger.error('Erreur lors de la mise à jour du bénévole', error.stack);

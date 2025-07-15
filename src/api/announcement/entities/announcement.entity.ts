@@ -1,4 +1,4 @@
-import { Location } from '../../../common/type/usersInfo.type';
+import { Location, LocationGeoJson } from '../../../common/type/usersInfo.type';
 import { InfoVolunteer } from '../../association/type/association.type';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 
@@ -13,7 +13,8 @@ export class Announcement {
   associationName: string;
   associationLogo?: string;
   announcementImage?: string;
-  locationAnnouncement?: Location;
+  addressAnnouncement?: Location;
+  locationAnnouncement?: LocationGeoJson;
   participants?: InfoVolunteer[];
   nbParticipants?: number;
   maxParticipants: number;

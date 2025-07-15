@@ -10,6 +10,8 @@ import {
   UseInterceptors,
   UploadedFile,
   Logger,
+  ValidationPipe,
+  UsePipes,
 } from '@nestjs/common';
 import { AnnouncementService } from '../services/announcement.service';
 import { Public } from '../../../common/decorators/public.decorator';
@@ -33,6 +35,13 @@ import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { fileSchema } from '../../../common/utils/file-utils';
 
+@UsePipes(
+  new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }),
+)
 @ApiTags('announcements')
 @Controller('announcements')
 export class AnnouncementController {
@@ -47,6 +56,11 @@ export class AnnouncementController {
     description: 'Liste des annonces récupérée avec succès',
     type: [Announcement],
   })
+  @ApiBody({
+    description: 'Aucune donnée requise pour cette opération',
+    type: [Announcement],
+  })
+  @ApiResponse({ status: 500, description: 'Erreur interne du serveur' })
   async findAll(): Promise<Announcement[]> {
     try {
       return await this.service.findAll();
@@ -64,7 +78,12 @@ export class AnnouncementController {
     description: 'Annonce trouvée',
     type: Announcement,
   })
+  @ApiBody({
+    description: 'Aucune donnée requise pour cette opération',
+    type: Announcement,
+  })
   @ApiResponse({ status: 404, description: 'Annonce non trouvée' })
+  @ApiResponse({ status: 500, description: 'Erreur interne du serveur' })
   async findById(@Param('id') id: string): Promise<Announcement> {
     try {
       return await this.service.findById(id);
@@ -80,6 +99,12 @@ export class AnnouncementController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new announcement' })
   @ApiBody({ type: CreateAnnouncementDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Annonce créée avec succès',
+    type: String,
+  })
+  @ApiResponse({ status: 400, description: 'Données invalides' })
   async create(@Body() announcement: CreateAnnouncementDto): Promise<string> {
     try {
       return await this.service.create(announcement);
@@ -93,6 +118,17 @@ export class AnnouncementController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Find all announcements by association ID' })
+  @ApiParam({
+    name: 'associationId',
+    required: true,
+    description: "ID de l'association",
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Liste des annonces de l’association récupérée avec succès',
+    type: [Announcement],
+  })
   async findByAssociationId(
     @Param('associationId') associationId: string,
   ): Promise<Announcement[]> {
@@ -107,12 +143,80 @@ export class AnnouncementController {
     }
   }
 
+  @Get('volunteer/:volunteerId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.VOLUNTEER, UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Find volunteer in volunteers by volunteer ID' })
+  @ApiParam({
+    name: 'volunteerId',
+    required: true,
+    description: 'ID du bénévole',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Liste des annonces du bénévole récupérée avec succès',
+    type: [Announcement],
+  })
+  async findVolunteerInVolunteersByVolunteerId(
+    @Param('volunteerId') volunteerId: string,
+  ): Promise<Announcement[]> {
+    try {
+      return await this.service.findVolunteerInVolunteersByVolunteerId(volunteerId);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la recherche du bénévole dans les volontaires: ${volunteerId}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  @Get('participant/:volunteerId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.VOLUNTEER, UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Find participant in participants by volunteer ID' })
+  @ApiParam({
+    name: 'volunteerId',
+    required: true,
+    description: 'ID du participant',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Liste des annonces du participant récupérée avec succès',
+    type: [Announcement],
+  })
+  async findParticipantInParticipantsByParticipantId(
+    @Param('volunteerId') volunteerId: string,
+  ): Promise<Announcement[]> {
+    try {
+      return await this.service.findParticipantInParticipantsByParticipantId(volunteerId);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la recherche du bénévole dans les volontaires: ${volunteerId}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
   @Patch(':id')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update an announcement' })
-  @ApiBody({ type: UpdateAnnouncementDto })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: "ID de l'annonce à mettre à jour",
+  })
+  @ApiBody({ type: CreateAnnouncementDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Annonce mise à jour avec succès',
+    type: Announcement,
+  })
   async update(
     @Param('id') id: string,
     @Body() announcement: UpdateAnnouncementDto,
@@ -126,6 +230,15 @@ export class AnnouncementController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ASSOCIATION)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Supprimer une annonce par son ID' })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: "ID de l'annonce à supprimer",
+  })
   async delete(@Param('id') id: string): Promise<void> {
     try {
       await this.service.delete(id);
@@ -139,6 +252,12 @@ export class AnnouncementController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Supprimer toutes les annonces d’une association par son ID' })
+  @ApiParam({
+    name: 'associationId',
+    required: true,
+    description: "ID de l'association dont les annonces doivent être supprimées",
+  })
   async deleteByAssociationId(@Param('associationId') associationId: string): Promise<void> {
     try {
       await this.service.deleteByAssociationId(associationId);
@@ -171,7 +290,6 @@ export class AnnouncementController {
     type: InfoVolunteerDto,
   })
   @ApiResponse({ status: 400, description: 'Données invalides' })
-  @ApiResponse({ status: 404, description: 'Annonce non trouvée' })
   async addVolunteer(
     @Param('announcementId') announcementId: string,
     @Body() volunteer: InfoVolunteerDto,
@@ -190,6 +308,16 @@ export class AnnouncementController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Register a volunteer to an announcement waiting list' })
   @ApiBody({ type: InfoVolunteerDto })
+  @ApiParam({
+    name: 'announcementId',
+    required: true,
+    description: "Identifiant de l'annonce",
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bénévole inscrit en attente avec succès',
+    type: InfoVolunteerDto,
+  })
   async addVolunteerWaiting(
     @Param('announcementId') announcementId: string,
     @Body() volunteer: InfoVolunteer,
@@ -219,6 +347,11 @@ export class AnnouncementController {
     type: InfoVolunteerDto,
     description: 'Informations du participant à enregistrer',
   })
+  @ApiResponse({
+    status: 200,
+    description: 'Participant inscrit avec succès',
+    type: InfoVolunteerDto,
+  })
   async addParticipant(
     @Param('announcementId') announcementId: string,
     @Body() participant: InfoVolunteerDto,
@@ -238,6 +371,17 @@ export class AnnouncementController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER, UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Désinscrire un bénévole d’une annonce' })
+  @ApiParam({
+    name: 'announcementId',
+    required: true,
+    description: "ID de l'annonce",
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Participant désinscrit avec succès',
+    type: String,
+  })
   async removeVolunteer(
     @Param('announcementId') announcementId: string,
     @Param('volunteer') volunteer: string,
@@ -256,7 +400,17 @@ export class AnnouncementController {
   @Patch('/unregister/participant/:participant/:announcementId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER, UserRole.ASSOCIATION, UserRole.ADMIN)
-  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Désinscrire un participant d’une annonce' })
+  @ApiParam({
+    name: 'announcementId',
+    required: true,
+    description: "ID de l'annonce",
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Participant désinscrit avec succès',
+    type: String,
+  })
   async removeParticipant(
     @Param('announcementId') announcementId: string,
     @Param('participant') participant: string,
@@ -276,6 +430,17 @@ export class AnnouncementController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER, UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Désinscrire un bénévole de la liste d’attente d’une annonce' })
+  @ApiParam({
+    name: 'announcementId',
+    required: true,
+    description: "ID de l'annonce",
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Participant désinscrit avec succès',
+    type: String,
+  })
   async removeVolunteerWaiting(
     @Param('announcementId') announcementId: string,
     @Param('volunteer') volunteer: string,
@@ -296,7 +461,26 @@ export class AnnouncementController {
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('file'))
-  async updateImageCoverAnnouncement(@Param('id') id: string, @UploadedFile() file) {
+  @ApiOperation({ summary: 'Mettre à jour l’image de couverture d’une annonce' })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: "ID de l'annonce",
+  })
+  @ApiBody({
+    description: 'Image de couverture de l’annonce',
+    type: 'multipart/form-data',
+    required: true,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Image de couverture mise à jour avec succès',
+    type: Announcement,
+  })
+  async updateImageCoverAnnouncement(
+    @Param('id') id: string,
+    @UploadedFile() file,
+  ): Promise<Announcement> {
     try {
       const submittedFile = fileSchema.parse(file);
       return await this.service.updateAvatar(id, submittedFile);
@@ -313,10 +497,26 @@ export class AnnouncementController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Mettre à jour le statut d’une annonce' })
+  @ApiParam({
+    name: 'announcementId',
+    required: true,
+    description: "ID de l'annonce",
+  })
+  @ApiBody({
+    description: 'Nouveau statut de l’annonce',
+    type: String,
+    enum: AnnouncementStatus,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Statut de l’annonce mis à jour avec succès',
+    type: Announcement,
+  })
   async updateStatus(
     @Param('announcementId') announcementId: string,
     @Body('status') status: AnnouncementStatus,
-  ) {
+  ): Promise<Announcement> {
     try {
       return await this.service.updateStatus(announcementId, status);
     } catch (error) {

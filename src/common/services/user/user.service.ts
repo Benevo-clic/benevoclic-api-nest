@@ -79,7 +79,6 @@ export class UserService {
     try {
       const user = await this.userRepository.findByUid(id);
       if (!user || !user.avatarFileKey) {
-        this.logger.error(`Aucun avatar trouvé pour l'utilisateur: ${id}`);
         return '';
       }
       return await this.awsS3Service.getFileUrl(user.avatarFileKey);

@@ -13,7 +13,6 @@ import { Announcement } from '../entities/announcement.entity';
 import { UpdateAnnouncementDto } from '../dto/update-announcement.dto';
 import { InfoVolunteer } from '../../association/type/association.type';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
-import { Image } from '../../../common/type/usersInfo.type';
 import { UserService } from '../../../common/services/user/user.service';
 import { FavoritesAnnouncementService } from '../../favorites-announcement/services/favorites-announcement.service';
 import { z } from 'zod';
@@ -37,11 +36,29 @@ export class AnnouncementService {
       if (!announcements || announcements.length === 0) {
         return [];
       }
-      return await this.enrichAnnouncements(announcements);
+      return await this.enrichVolunteerAnnouncements(announcements);
     } catch (error) {
       this.logger.error('Erreur lors de la récupération des annonces', error.stack);
       throw new InternalServerErrorException('Erreur lors de la récupération des annonces');
     }
+  }
+
+  async enrichVolunteerAnnouncements(announcements: any[]) {
+    await Promise.all(
+      announcements
+        .filter(
+          announcement =>
+            announcement.status === AnnouncementStatus.ACTIVE ||
+            announcement.status === AnnouncementStatus.COMPLETED,
+        )
+        .map(async announcement => {
+          announcement.associationLogo = await this.userService.getAvatarFileUrl(
+            announcement.associationId,
+          );
+          announcement.announcementImage = await this.getAvatarFileUrl(announcement?._id);
+        }),
+    );
+    return announcements;
   }
   async enrichAnnouncements(announcements: any[]) {
     await Promise.all(
@@ -91,20 +108,45 @@ export class AnnouncementService {
     }
   }
 
-  async uploadProfileImage(file: Express.Multer.File): Promise<Image> {
+  async findVolunteerInVolunteersByVolunteerId(volunteerId: string): Promise<Announcement[]> {
     try {
-      if (!file) {
-        return null;
+      const announcements =
+        await this.announcementRepository.findVolunteerInVolunteersByVolunteerId(volunteerId);
+      if (!announcements || announcements.length === 0) {
+        return [];
       }
-      const base64Image = file.buffer.toString('base64');
-      return {
-        data: base64Image,
-        contentType: file.mimetype,
-        uploadedAt: new Date(),
-      };
+      return await this.enrichVolunteerAnnouncements(announcements);
     } catch (error) {
-      this.logger.error("Erreur lors de l'upload de l'image", error.stack);
-      throw new InternalServerErrorException("Erreur lors de l'upload de l'image");
+      this.logger.error(
+        `Erreur lors de la récupération des annonces pour le bénévole: ${volunteerId}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        'Erreur lors de la récupération des annonces pour le bénévole',
+      );
+    }
+  }
+
+  async findParticipantInParticipantsByParticipantId(
+    participantId: string,
+  ): Promise<Announcement[]> {
+    try {
+      const announcements =
+        await this.announcementRepository.findParticipantInParticipantsByParticipantId(
+          participantId,
+        );
+      if (!announcements || announcements.length === 0) {
+        return [];
+      }
+      return await this.enrichVolunteerAnnouncements(announcements);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la récupération des annonces pour le participant: ${participantId}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        'Erreur lors de la récupération des annonces pour le participant',
+      );
     }
   }
 
@@ -122,6 +164,7 @@ export class AnnouncementService {
         associationName: announcement.associationName,
         associationLogo: avatarFileKey,
         announcementImage: '',
+        addressAnnouncement: announcement.addressAnnouncement,
         locationAnnouncement: announcement.locationAnnouncement,
         participants: [],
         volunteers: [],
@@ -149,6 +192,13 @@ export class AnnouncementService {
 
   async delete(id: string): Promise<void> {
     try {
+      const announcement = await this.announcementRepository.findById(id);
+      if (!announcement) {
+        throw new NotFoundException('Annonce non trouvée');
+      }
+      if (announcement.announcementImage && announcement.announcementImage !== '') {
+        await this.awsS3Service.deleteFile(announcement.announcementImage);
+      }
       await this.favoritesAnnouncementService.removeByAnnouncementId(id);
       await this.announcementRepository.delete(id);
     } catch (error) {
@@ -251,6 +301,10 @@ export class AnnouncementService {
 
   async registerVolunteer(id: string, volunteer: InfoVolunteer) {
     try {
+      const announcement = await this.announcementRepository.findById(id);
+      if (await this.isCompletedVolunteer(announcement)) {
+        throw new BadRequestException('Announcement is already completed');
+      }
       await this.removeVolunteerWaiting(id, volunteer.id);
       await this.addVolunteer(id, volunteer);
       return volunteer;
@@ -263,9 +317,7 @@ export class AnnouncementService {
   async addVolunteer(id: string, volunteer: InfoVolunteer) {
     try {
       const announcement = await this.announcementRepository.findById(id);
-      if (await this.isCompletedVolunteer(announcement)) {
-        throw new BadRequestException('Announcement is already completed');
-      }
+
       if (await this.isVolunteer(announcement, volunteer.id)) {
         throw new BadRequestException('Volunteer already registered');
       }
