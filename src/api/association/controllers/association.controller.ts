@@ -10,8 +10,6 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { AssociationService } from '../services/association.service';
 import { CreateAssociationDto } from '../dto/create-association.dto';
@@ -23,13 +21,6 @@ import { ApiBearerAuth, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { Association } from '../entities/association.entity';
 import { InfoUserDto } from '../dto/info-user.dto';
 
-@UsePipes(
-  new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }),
-)
 @Controller('/api/v2/association')
 export class AssociationController {
   private readonly logger = new Logger(AssociationController.name);

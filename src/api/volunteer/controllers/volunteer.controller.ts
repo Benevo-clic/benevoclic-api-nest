@@ -8,8 +8,6 @@ import {
   Delete,
   UseGuards,
   Logger,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { VolunteerService } from '../services/volunteer.service';
 import { CreateVolunteerDto } from '../dto/create-volunteer.dto';
@@ -19,13 +17,6 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '../../../common/enums/roles.enum';
 import { ApiBearerAuth } from '@nestjs/swagger';
 
-@UsePipes(
-  new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }),
-)
 @Controller('volunteer')
 export class VolunteerController {
   private readonly logger = new Logger(VolunteerController.name);
