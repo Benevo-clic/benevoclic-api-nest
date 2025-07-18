@@ -10,6 +10,7 @@ import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { CreateAnnouncementDto } from '../dto/create-announcement.dto';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { InfoVolunteerDto } from '../../association/dto/info-volunteer.dto';
+import { FilterAnnouncementDto } from '../dto/filter-announcement.dto';
 
 describe('AnnouncementController', () => {
   let announcementController: AnnouncementController;
@@ -37,6 +38,7 @@ describe('AnnouncementController', () => {
     announcementService.removeParticipant = jest.fn();
     announcementService.registerVolunteerWaiting = jest.fn();
     announcementService.updateStatus = jest.fn();
+    announcementService.filterAnnouncementsAggregation = jest.fn();
 
     module = await Test.createTestingModule({
       imports: [DatabaseModule],
@@ -266,6 +268,52 @@ describe('AnnouncementController', () => {
       const result = await announcementController.updateStatus(announcementId, status);
       expect(result).toBeDefined();
       expect(result.status).toBe(status);
+    });
+  });
+
+  describe('filterAnnouncementsAggregation', () => {
+    it('should return filtered announcements', async () => {
+      const filterDto: FilterAnnouncementDto = {
+        nameEvent: 'Event',
+      };
+
+      const mockResponse = {
+        annonces: mockData.announcements,
+        meta: {
+          page: 1,
+          limit: 10,
+          total: mockData.announcements.length,
+          pages: 1,
+        },
+      };
+
+      announcementService.filterAnnouncementsAggregation = jest
+        .fn()
+        .mockResolvedValue(mockResponse);
+
+      const result = await announcementController.filterAnnouncementsAggregation(filterDto);
+
+      expect(result).toBeDefined();
+      expect(result.annonces).toEqual(mockData.announcements);
+      expect(result.meta).toBeDefined();
+      expect(result.meta.page).toBe(1);
+      expect(announcementService.filterAnnouncementsAggregation).toHaveBeenCalledWith(filterDto);
+    });
+
+    it('should handle errors when filtering announcements', async () => {
+      const filterDto: FilterAnnouncementDto = {
+        nameEvent: 'Event',
+      };
+
+      const errorMessage = 'Error filtering announcements';
+      announcementService.filterAnnouncementsAggregation = jest
+        .fn()
+        .mockRejectedValue(new Error(errorMessage));
+
+      await expect(
+        announcementController.filterAnnouncementsAggregation(filterDto),
+      ).rejects.toThrow();
+      expect(announcementService.filterAnnouncementsAggregation).toHaveBeenCalledWith(filterDto);
     });
   });
 });

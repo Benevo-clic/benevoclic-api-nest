@@ -1,13 +1,16 @@
 import {
-  Injectable,
-  Logger,
-  InternalServerErrorException,
-  NotFoundException,
   BadRequestException,
-  Inject,
   forwardRef,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
 } from '@nestjs/common';
-import { AnnouncementRepository } from '../repositories/announcement.repository';
+import {
+  AnnouncementRepository,
+  FilterAnnouncementResponse,
+} from '../repositories/announcement.repository';
 import { CreateAnnouncementDto } from '../dto/create-announcement.dto';
 import { Announcement } from '../entities/announcement.entity';
 import { UpdateAnnouncementDto } from '../dto/update-announcement.dto';
@@ -18,6 +21,7 @@ import { FavoritesAnnouncementService } from '../../favorites-announcement/servi
 import { z } from 'zod';
 import { fileSchema } from '../../../common/utils/file-utils';
 import { AwsS3Service } from '../../../common/aws/aws-s3.service';
+import { FilterAnnouncementDto } from '../dto/filter-announcement.dto';
 
 @Injectable()
 export class AnnouncementService {
@@ -40,6 +44,23 @@ export class AnnouncementService {
     } catch (error) {
       this.logger.error('Erreur lors de la récupération des annonces', error.stack);
       throw new InternalServerErrorException('Erreur lors de la récupération des annonces');
+    }
+  }
+
+  async filterAnnouncementsAggregation(
+    filterDto: FilterAnnouncementDto,
+  ): Promise<FilterAnnouncementResponse> {
+    try {
+      const announcements = await this.announcementRepository.findWithAggregation(filterDto);
+      return {
+        annonces: await this.enrichVolunteerAnnouncements(announcements.annonces),
+        meta: announcements.meta,
+      };
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des annonces filtrées', error.stack);
+      throw new InternalServerErrorException(
+        'Erreur lors de la récupération des annonces filtrées',
+      );
     }
   }
 

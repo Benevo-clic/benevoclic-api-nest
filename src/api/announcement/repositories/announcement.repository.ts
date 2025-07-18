@@ -1,8 +1,23 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { Collection, MongoClient, ObjectId, ClientSession } from 'mongodb';
+
 import { Announcement } from '../entities/announcement.entity';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
+import { FilterAnnouncementDto } from '../dto/filter-announcement.dto';
+import * as fs from 'fs';
+import * as path from 'path';
+import { sampleAnnouncements } from './__mocks__/announcement.init';
+
+export interface FilterAnnouncementResponse {
+  annonces: Announcement[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
 
 @Injectable()
 export class AnnouncementRepository implements OnModuleInit {
@@ -196,6 +211,49 @@ export class AnnouncementRepository implements OnModuleInit {
       },
     );
 
+    await this.collection.createIndex(
+      { nameEvent: 'text', description: 'text' },
+      {
+        name: 'idx_ann_nameEvent_description_text',
+        background: true,
+        weights: { nameEvent: 10, description: 5 },
+        default_language: 'none',
+      },
+    );
+    await this.collection.createIndex(
+      { datePublication: 1 },
+      {
+        name: 'idx_ann_datePublication',
+        background: true,
+        sparse: true,
+      },
+    );
+    await this.collection.createIndex(
+      { dateEvent: 1 },
+      {
+        name: 'idx_ann_dateEvent',
+        background: true,
+        sparse: true,
+      },
+    );
+    await this.collection.createIndex(
+      { hoursEvent: 1 },
+      {
+        name: 'idx_ann_hoursEvent',
+        background: true,
+        sparse: true,
+      },
+    );
+
+    await this.collection.createIndex(
+      { tags: 1 },
+      {
+        name: 'idx_ann_tags',
+        background: true,
+        sparse: true,
+      },
+    );
+
     const volunteerPaths = ['participants.id', 'volunteers.id', 'volunteersWaiting.id'];
     for (const path of volunteerPaths) {
       await this.collection.createIndex(
@@ -215,5 +273,154 @@ export class AnnouncementRepository implements OnModuleInit {
         sparse: true,
       },
     );
+    await this.initMockData();
+  }
+
+  async initMockData() {
+    await this.collection.deleteMany({});
+    await this.collection.insertMany(sampleAnnouncements as any[]);
+  }
+
+  async findWithAggregation(dto: FilterAnnouncementDto): Promise<FilterAnnouncementResponse> {
+    const {
+      nameEvent,
+      description,
+      status,
+      hoursEventFrom,
+      hoursEventTo,
+      dateEventFrom,
+      dateEventTo,
+      publicationInterval,
+      datePublicationFrom,
+      datePublicationTo,
+      tags,
+      associationName,
+      latitude,
+      longitude,
+      radius,
+      sort,
+      page = 1,
+      limit = 9,
+    } = dto;
+
+    const pipeline: any[] = [];
+
+    // 1) GEOJSON si besoin
+    if (latitude !== undefined && longitude !== undefined && radius) {
+      pipeline.push({
+        $geoNear: {
+          near: { type: 'Point', coordinates: [longitude, latitude] },
+          distanceField: 'dist.calculated',
+          maxDistance: radius,
+          spherical: true,
+        },
+      });
+    }
+
+    // 2) Convertir les dates stockées en string en BSON Date
+    pipeline.push({
+      $addFields: {
+        _dateEventAsDate: { $toDate: '$dateEvent' },
+        _datePublicationAsDate: { $toDate: '$datePublication' },
+      },
+    });
+
+    // 3) Construction du match
+    const match: any = {};
+
+    if (nameEvent) match.nameEvent = { $regex: nameEvent, $options: 'i' };
+    if (description) match.description = { $regex: description, $options: 'i' };
+    if (status) match.status = status;
+
+    if (hoursEventFrom || hoursEventTo) {
+      match.hoursEvent = {};
+      if (hoursEventFrom) match.hoursEvent.$gte = hoursEventFrom;
+      if (hoursEventTo) match.hoursEvent.$lte = hoursEventTo;
+    }
+
+    if (dateEventFrom || dateEventTo) {
+      match._dateEventAsDate = {};
+      if (dateEventFrom) match._dateEventAsDate.$gte = new Date(dateEventFrom);
+      if (dateEventTo) match._dateEventAsDate.$lte = new Date(dateEventTo);
+    }
+
+    // publicationInterval ou intervalle absolu
+    if (publicationInterval) {
+      const now = new Date();
+      let threshold: Date;
+      switch (publicationInterval) {
+        case '1h':
+          threshold = new Date(now.getTime() - 1 * 60 * 60 * 1000);
+          break;
+        case '5h':
+          threshold = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+          break;
+        case '1d':
+          threshold = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          break;
+        case '1w':
+          threshold = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '1M':
+          threshold = new Date(now.setMonth(now.getMonth() - 1));
+          break;
+        default:
+          throw new BadRequestException('Intervalle de publication invalide');
+      }
+      match._datePublicationAsDate = { $gte: threshold };
+    } else if (datePublicationFrom || datePublicationTo) {
+      match._datePublicationAsDate = {};
+      if (datePublicationFrom) match._datePublicationAsDate.$gte = new Date(datePublicationFrom);
+      if (datePublicationTo) match._datePublicationAsDate.$lte = new Date(datePublicationTo);
+    }
+
+    if (tags?.length) match.tags = { $in: tags };
+    if (associationName) match.associationName = associationName;
+
+    if (Object.keys(match).length) {
+      pipeline.push({ $match: match });
+    }
+
+    // 4) Tri
+    let sortOption: Record<string, 1 | -1> = {};
+    switch (sort) {
+      case 'dateEvent_asc':
+        sortOption = { _dateEventAsDate: 1 };
+        break;
+      case 'dateEvent_desc':
+        sortOption = { _dateEventAsDate: -1 };
+        break;
+      case 'datePublication_desc':
+      default:
+        sortOption = { _datePublicationAsDate: -1 };
+        break;
+    }
+    pipeline.push({ $sort: sortOption });
+
+    // 5) Facet pagination + total
+    pipeline.push({
+      $facet: {
+        docs: [{ $skip: (page - 1) * limit }, { $limit: limit }],
+        meta: [{ $count: 'total' }],
+      },
+    });
+    pipeline.push({
+      $addFields: { total: { $arrayElemAt: ['$meta.total', 0] } },
+    });
+    pipeline.push({ $project: { meta: 0 } });
+
+    // 6) Exécution & retour
+    const [result] = await this.collection.aggregate(pipeline).toArray();
+    const total = result?.total ?? 0;
+
+    return {
+      annonces: result.docs,
+      meta: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
   }
 }
