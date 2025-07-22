@@ -160,20 +160,20 @@ describe('UserController', () => {
     userService = testingModule.get<UserService>(UserService);
 
     if (mongoClient) {
-    const users = mockData.users.map(user => ({
-      ...user,
-      _id: new ObjectId(),
-    }));
-    const db = mongoClient.db();
-    await db.collection(DatabaseCollection.USERS).deleteMany({});
-    await db.collection(DatabaseCollection.USERS).insertMany(users);
+      const users = mockData.users.map(user => ({
+        ...user,
+        _id: new ObjectId(),
+      }));
+      const db = mongoClient.db();
+      await db.collection(DatabaseCollection.USERS).deleteMany({});
+      await db.collection(DatabaseCollection.USERS).insertMany(users);
     }
   });
 
   afterAll(async () => {
     if (mongoClient) {
-    const db = mongoClient.db();
-    await db.collection(DatabaseCollection.USERS).deleteMany({});
+      const db = mongoClient.db();
+      await db.collection(DatabaseCollection.USERS).deleteMany({});
     }
     await testingModule.close();
   });
