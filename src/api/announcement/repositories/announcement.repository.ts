@@ -5,8 +5,6 @@ import { Announcement } from '../entities/announcement.entity';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
 import { FilterAnnouncementDto } from '../dto/filter-announcement.dto';
-import * as fs from 'fs';
-import * as path from 'path';
 import { sampleAnnouncements } from './__mocks__/announcement.init';
 
 export interface FilterAnnouncementResponse {
@@ -306,7 +304,7 @@ export class AnnouncementRepository implements OnModuleInit {
     const pipeline: any[] = [];
 
     // 1) GEOJSON si besoin
-    if (latitude !== undefined && longitude !== undefined && radius) {
+    if (latitude !== undefined && longitude !== undefined && radius !== 0) {
       pipeline.push({
         $geoNear: {
           near: { type: 'Point', coordinates: [longitude, latitude] },
@@ -328,8 +326,13 @@ export class AnnouncementRepository implements OnModuleInit {
     // 3) Construction du match
     const match: any = {};
 
-    if (nameEvent) match.nameEvent = { $regex: nameEvent, $options: 'i' };
-    if (description) match.description = { $regex: description, $options: 'i' };
+    const orConditions: any[] = [];
+    if (nameEvent) orConditions.push({ nameEvent: { $regex: nameEvent, $options: 'i' } });
+    if (description) orConditions.push({ description: { $regex: description, $options: 'i' } });
+    if (associationName)
+      orConditions.push({ associationName: { $regex: associationName, $options: 'i' } });
+    if (orConditions.length) match.$or = orConditions;
+
     if (status) match.status = status;
 
     if (hoursEventFrom || hoursEventTo) {
@@ -375,7 +378,6 @@ export class AnnouncementRepository implements OnModuleInit {
     }
 
     if (tags?.length) match.tags = { $in: tags };
-    if (associationName) match.associationName = associationName;
 
     if (Object.keys(match).length) {
       pipeline.push({ $match: match });
