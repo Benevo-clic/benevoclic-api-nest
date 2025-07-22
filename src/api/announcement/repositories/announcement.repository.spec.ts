@@ -3,6 +3,17 @@ import { AnnouncementRepository } from './announcement.repository';
 import { MongoClient, Collection, ClientSession } from 'mongodb';
 import { Announcement } from '../entities/announcement.entity';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
+import { mockAnnouncements } from './__mocks__/announcement.mock';
+import {
+  associationNameFilterDto,
+  basicFilterDto,
+  dateFilterDto,
+  geoFilterDto,
+  hoursEventFilterDto,
+  publicationIntervalFilterDto,
+  statusFilterDto,
+  tagFilterDto,
+} from '../dto/__mocks__/filter-announcement.mock';
 
 // Mock ObjectId pour les tests d'erreur
 jest.mock('mongodb', () => ({
@@ -30,6 +41,7 @@ describe('AnnouncementRepository', () => {
       deleteOne: jest.fn(),
       deleteMany: jest.fn(),
       updateMany: jest.fn(),
+      aggregate: jest.fn(),
     } as any;
 
     // Mock du client MongoDB
@@ -693,6 +705,253 @@ describe('AnnouncementRepository', () => {
       const updateData = { nameEvent: 'Updated Event' };
 
       await expect(repository.update(invalidId, updateData)).rejects.toThrow('Invalid ObjectId');
+    });
+  });
+
+  describe('findWithAggregation', () => {
+    beforeEach(() => {
+      mockCollection.aggregate = jest.fn();
+    });
+
+    function makeMockAggregationCursor(mockResult) {
+      return Object.assign({
+        toArray: jest.fn().mockResolvedValue(mockResult),
+        pipeline: jest.fn(),
+        clone: jest.fn(),
+        map: jest.fn(),
+        explain: jest.fn(),
+        hasNext: jest.fn(),
+        next: jest.fn(),
+        forEach: jest.fn(),
+        close: jest.fn(),
+        [Symbol.asyncIterator]: jest.fn(),
+      });
+    }
+
+    it('should return paginated results with meta for basic filter', async () => {
+      const mockResult = [
+        {
+          docs: [mockAnnouncements[0], mockAnnouncements[1], mockAnnouncements[2]],
+          meta: [{ total: 3 }],
+          total: 3,
+        },
+      ];
+      mockCollection.aggregate.mockReturnValue(makeMockAggregationCursor(mockResult));
+      const result = await repository.findWithAggregation(basicFilterDto);
+      expect(mockCollection.aggregate).toHaveBeenCalledWith(expect.any(Array));
+      expect(result).toEqual({
+        annonces: [mockAnnouncements[0], mockAnnouncements[1], mockAnnouncements[2]],
+        meta: { page: 1, limit: 2, total: 3, pages: 2 },
+      });
+    });
+
+    it('should handle geo filter', async () => {
+      const mockResult = [{ docs: [mockAnnouncements[0]], meta: [{ total: 1 }], total: 1 }];
+      mockCollection.aggregate.mockReturnValue(makeMockAggregationCursor(mockResult));
+      const result = await repository.findWithAggregation(geoFilterDto);
+      expect(mockCollection.aggregate).toHaveBeenCalledWith(expect.any(Array));
+      expect(result.annonces.length).toBe(1);
+    });
+
+    it('should handle tag filter', async () => {
+      const mockResult = [
+        { docs: [mockAnnouncements[0], mockAnnouncements[3]], meta: [{ total: 2 }], total: 2 },
+      ];
+      mockCollection.aggregate.mockReturnValue(makeMockAggregationCursor(mockResult));
+      const result = await repository.findWithAggregation(tagFilterDto);
+      expect(mockCollection.aggregate).toHaveBeenCalledWith(expect.any(Array));
+      expect(result.annonces[0].tags).toContain('solidarity');
+    });
+
+    it('should handle date filter', async () => {
+      const mockResult = [
+        { docs: [mockAnnouncements[0], mockAnnouncements[1]], meta: [{ total: 2 }], total: 2 },
+      ];
+      mockCollection.aggregate.mockReturnValue(makeMockAggregationCursor(mockResult));
+      const result = await repository.findWithAggregation(dateFilterDto);
+      expect(mockCollection.aggregate).toHaveBeenCalledWith(expect.any(Array));
+      expect(result.annonces[0].dateEvent).toBeDefined();
+    });
+
+    it('should handle status filter', async () => {
+      const mockResult = [
+        {
+          docs: [mockAnnouncements[0], mockAnnouncements[2], mockAnnouncements[3]],
+          meta: [{ total: 3 }],
+          total: 3,
+        },
+      ];
+      mockCollection.aggregate.mockReturnValue(makeMockAggregationCursor(mockResult));
+      const result = await repository.findWithAggregation(statusFilterDto);
+      expect(result.annonces.every(a => a.status === 'ACTIVE')).toBe(true);
+    });
+
+    it('should handle associationName filter', async () => {
+      const mockResult = [
+        { docs: [mockAnnouncements[0], mockAnnouncements[3]], meta: [{ total: 2 }], total: 2 },
+      ];
+      mockCollection.aggregate.mockReturnValue(makeMockAggregationCursor(mockResult));
+      const result = await repository.findWithAggregation(associationNameFilterDto);
+      expect(result.annonces.every(a => a.associationName === 'Solidarity Org')).toBe(true);
+    });
+
+    it('should handle hoursEvent interval filter', async () => {
+      const mockResult = [
+        { docs: [mockAnnouncements[0], mockAnnouncements[2]], meta: [{ total: 2 }], total: 2 },
+      ];
+      mockCollection.aggregate.mockReturnValue(makeMockAggregationCursor(mockResult));
+      const result = await repository.findWithAggregation(hoursEventFilterDto);
+      expect(result.annonces.length).toBeGreaterThan(0);
+    });
+
+    it('should handle publicationInterval filter', async () => {
+      const mockResult = [
+        {
+          docs: [
+            mockAnnouncements[0],
+            mockAnnouncements[1],
+            mockAnnouncements[2],
+            mockAnnouncements[3],
+          ],
+          meta: [{ total: 4 }],
+          total: 4,
+        },
+      ];
+      mockCollection.aggregate.mockReturnValue(makeMockAggregationCursor(mockResult));
+      const result = await repository.findWithAggregation(publicationIntervalFilterDto);
+      expect(result.annonces.length).toBeGreaterThan(0);
+    });
+
+    it('should return empty results if no match', async () => {
+      const mockResult = [{ docs: [], meta: [{ total: 0 }], total: 0 }];
+      mockCollection.aggregate.mockReturnValue(makeMockAggregationCursor(mockResult));
+      const result = await repository.findWithAggregation({
+        nameEvent: 'NotFound',
+        page: 1,
+        limit: 2,
+      });
+      expect(result.annonces).toEqual([]);
+      expect(result.meta.total).toBe(0);
+    });
+
+    it('should throw error if aggregate fails', async () => {
+      mockCollection.aggregate.mockReturnValue(
+        Object.assign({
+          toArray: jest.fn().mockRejectedValue(new Error('Aggregate failed')),
+          pipeline: jest.fn(),
+          clone: jest.fn(),
+          map: jest.fn(),
+          explain: jest.fn(),
+          hasNext: jest.fn(),
+          next: jest.fn(),
+          forEach: jest.fn(),
+          close: jest.fn(),
+          [Symbol.asyncIterator]: jest.fn(),
+        }),
+      );
+      await expect(repository.findWithAggregation(basicFilterDto)).rejects.toThrow(
+        'Aggregate failed',
+      );
+    });
+
+    it('should handle multiple filters applied at the same time', async () => {
+      const multiFilterDto = {
+        nameEvent: 'Event',
+        tags: ['solidarity', 'food'],
+        status: 'ACTIVE',
+        associationName: 'Solidarity Org',
+        dateEventFrom: '2024-01-09T00:00:00Z',
+        dateEventTo: '2024-01-13T23:59:59Z',
+        latitude: 48.85,
+        longitude: 2.35,
+        radius: 100000,
+        page: 1,
+        limit: 5,
+      };
+      const mockResult = [
+        { docs: [mockAnnouncements[0], mockAnnouncements[3]], meta: [{ total: 2 }], total: 2 },
+      ];
+      mockCollection.aggregate.mockReturnValue(makeMockAggregationCursor(mockResult));
+      const result = await repository.findWithAggregation(multiFilterDto);
+      expect(mockCollection.aggregate).toHaveBeenCalledWith(expect.any(Array));
+      expect(result.annonces.length).toBe(2);
+      expect(result.annonces[0].associationName).toBe('Solidarity Org');
+      expect(result.annonces[0].status).toBe('ACTIVE');
+      expect(result.annonces[0].tags).toEqual(expect.arrayContaining(['solidarity', 'food']));
+    });
+
+    it('should handle multiple filters applied at the same time with page=1, limit=1', async () => {
+      const multiFilterDto = {
+        nameEvent: 'Event',
+        tags: ['solidarity', 'food'],
+        status: 'ACTIVE',
+        associationName: 'Solidarity Org',
+        dateEventFrom: '2024-01-09T00:00:00Z',
+        dateEventTo: '2024-01-13T23:59:59Z',
+        latitude: 48.85,
+        longitude: 2.35,
+        radius: 100000,
+        page: 1,
+        limit: 1,
+      };
+      const mockResult = [{ docs: [mockAnnouncements[0]], meta: [{ total: 2 }], total: 2 }];
+      mockCollection.aggregate.mockReturnValue(makeMockAggregationCursor(mockResult));
+      const result = await repository.findWithAggregation(multiFilterDto);
+      expect(result.annonces.length).toBe(1);
+      expect(result.meta.page).toBe(1);
+      expect(result.meta.limit).toBe(1);
+      expect(result.meta.total).toBe(2);
+      expect(result.meta.pages).toBe(2);
+    });
+
+    it('should handle multiple filters applied at the same time with page=2, limit=1', async () => {
+      const multiFilterDto = {
+        nameEvent: 'Event',
+        tags: ['solidarity', 'food'],
+        status: 'ACTIVE',
+        associationName: 'Solidarity Org',
+        dateEventFrom: '2024-01-09T00:00:00Z',
+        dateEventTo: '2024-01-13T23:59:59Z',
+        latitude: 48.85,
+        longitude: 2.35,
+        radius: 100000,
+        page: 2,
+        limit: 1,
+      };
+      const mockResult = [{ docs: [mockAnnouncements[3]], meta: [{ total: 2 }], total: 2 }];
+      mockCollection.aggregate.mockReturnValue(makeMockAggregationCursor(mockResult));
+      const result = await repository.findWithAggregation(multiFilterDto);
+      expect(result.annonces.length).toBe(1);
+      expect(result.meta.page).toBe(2);
+      expect(result.meta.limit).toBe(1);
+      expect(result.meta.total).toBe(2);
+      expect(result.meta.pages).toBe(2);
+    });
+
+    it('should handle multiple filters applied at the same time with page=1, limit=2', async () => {
+      const multiFilterDto = {
+        nameEvent: 'Event',
+        tags: ['solidarity', 'food'],
+        status: 'ACTIVE',
+        associationName: 'Solidarity Org',
+        dateEventFrom: '2024-01-09T00:00:00Z',
+        dateEventTo: '2024-01-13T23:59:59Z',
+        latitude: 48.85,
+        longitude: 2.35,
+        radius: 100000,
+        page: 1,
+        limit: 2,
+      };
+      const mockResult = [
+        { docs: [mockAnnouncements[0], mockAnnouncements[3]], meta: [{ total: 2 }], total: 2 },
+      ];
+      mockCollection.aggregate.mockReturnValue(makeMockAggregationCursor(mockResult));
+      const result = await repository.findWithAggregation(multiFilterDto);
+      expect(result.annonces.length).toBe(2);
+      expect(result.meta.page).toBe(1);
+      expect(result.meta.limit).toBe(2);
+      expect(result.meta.total).toBe(2);
+      expect(result.meta.pages).toBe(1);
     });
   });
 });

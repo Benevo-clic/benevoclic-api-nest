@@ -12,6 +12,7 @@ import {
   Logger,
   ValidationPipe,
   UsePipes,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { AnnouncementService } from '../services/announcement.service';
 import { Public } from '../../../common/decorators/public.decorator';
@@ -34,6 +35,8 @@ import { InfoVolunteerDto } from '../../association/dto/info-volunteer.dto';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { fileSchema } from '../../../common/utils/file-utils';
+import { FilterAnnouncementDto } from '../dto/filter-announcement.dto';
+import { FilterAnnouncementResponse } from '../repositories/announcement.repository';
 
 @UsePipes(
   new ValidationPipe({
@@ -111,6 +114,22 @@ export class AnnouncementController {
     } catch (error) {
       this.logger.error("Erreur lors de la création de l'annonce", error.stack);
       throw error;
+    }
+  }
+
+  @Public()
+  @Post('filter')
+  async filterAnnouncementsAggregation(
+    @Body(new ValidationPipe({ transform: true, whitelist: true }))
+    filterDto: FilterAnnouncementDto,
+  ): Promise<FilterAnnouncementResponse> {
+    try {
+      return await this.service.filterAnnouncementsAggregation(filterDto);
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des annonces filtrées', error.stack);
+      throw new InternalServerErrorException(
+        'Erreur lors de la récupération des annonces filtrées',
+      );
     }
   }
 
