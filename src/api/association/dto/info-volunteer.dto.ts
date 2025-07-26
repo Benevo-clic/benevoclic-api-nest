@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsBoolean } from 'class-validator';
 
 export class InfoVolunteerDto {
   @ApiProperty({
@@ -19,4 +19,13 @@ export class InfoVolunteerDto {
   @IsNotEmpty()
   @IsString()
   name: string;
+
+  @ApiProperty({
+    description: 'Indique si le bénévole est présent ou non',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isPresent?: boolean;
 }

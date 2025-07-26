@@ -6,6 +6,8 @@ import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
 import { FilterAnnouncementDto } from '../dto/filter-announcement.dto';
 import { sampleAnnouncements } from './__mocks__/announcement.init';
+import { DateTime } from 'luxon';
+import { FilterAssociationAnnouncementDto } from '../dto/filter-association-announcement.dto';
 
 export interface FilterAnnouncementResponse {
   annonces: Announcement[];
@@ -37,6 +39,159 @@ export class AnnouncementRepository implements OnModuleInit {
 
   async findByAssociationId(associationId: string): Promise<Announcement[]> {
     return await this.collection.find({ associationId }).toArray();
+  }
+
+  async filterAssociationAnnouncements(
+    filterAssociationAnnouncement: FilterAssociationAnnouncementDto,
+  ): Promise<FilterAnnouncementResponse> {
+    const {
+      associationId,
+      nameEvent,
+      description,
+      status,
+      stateEvent,
+      hoursEventFrom,
+      hoursEventTo,
+      dateEventFrom,
+      dateEventTo,
+      publicationInterval,
+      datePublicationFrom,
+      datePublicationTo,
+      tags,
+      sort,
+      page = 1,
+      limit = 9,
+    } = filterAssociationAnnouncement;
+
+    const nowParis = DateTime.now().setZone('Europe/Paris');
+    const nowDate = nowParis.toJSDate();
+
+    const pipeline: any[] = [];
+
+    pipeline.push({
+      $match: { associationId: associationId },
+    });
+
+    pipeline.push({
+      $addFields: {
+        _dateEventAsDate: { $toDate: '$dateEvent' },
+        _datePublicationAsDate: { $toDate: '$datePublication' },
+      },
+    });
+
+    if (stateEvent) {
+      const dateCond: any = {};
+      switch (stateEvent) {
+        case 'PAST':
+          dateCond._dateEventAsDate = { $lt: nowDate };
+          break;
+        case 'UPCOMING':
+          dateCond._dateEventAsDate = { $gt: nowDate };
+          break;
+        case 'NOW':
+          dateCond._dateEventAsDate = {
+            $gte: nowParis.startOf('day').toJSDate(),
+            $lte: nowParis.endOf('day').toJSDate(),
+          };
+          break;
+      }
+      pipeline.push({ $match: dateCond });
+    }
+
+    const must: any[] = [];
+
+    const textOr: any[] = [];
+    if (nameEvent) textOr.push({ nameEvent: { $regex: nameEvent, $options: 'i' } });
+    if (description) textOr.push({ description: { $regex: description, $options: 'i' } });
+    if (textOr.length) must.push({ $or: textOr });
+    if (status) must.push({ status });
+
+    if (hoursEventFrom || hoursEventTo) {
+      const obj: any = {};
+      if (hoursEventFrom) obj.$gte = hoursEventFrom;
+      if (hoursEventTo) obj.$lte = hoursEventTo;
+      must.push({ hoursEvent: obj });
+    }
+
+    if (dateEventFrom || dateEventTo) {
+      const obj: any = {};
+      if (dateEventFrom) obj.$gte = new Date(dateEventFrom);
+      if (dateEventTo) obj.$lte = new Date(dateEventTo);
+      must.push({ _dateEventAsDate: obj });
+    }
+
+    if (publicationInterval) {
+      const now = new Date();
+      let threshold: Date;
+      switch (publicationInterval) {
+        case '1h':
+          threshold = new Date(now.getTime() - 1 * 60 * 60 * 1000);
+          break;
+        case '5h':
+          threshold = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+          break;
+        case '1d':
+          threshold = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          break;
+        case '1w':
+          threshold = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '1M':
+          threshold = new Date(now.setMonth(now.getMonth() - 1));
+          break;
+        default:
+          throw new BadRequestException('Intervalle de publication invalide');
+      }
+      must.push({ _datePublicationAsDate: { $gte: threshold } });
+    } else if (datePublicationFrom || datePublicationTo) {
+      const obj: any = {};
+      if (datePublicationFrom) obj.$gte = new Date(datePublicationFrom);
+      if (datePublicationTo) obj.$lte = new Date(datePublicationTo);
+      must.push({ _datePublicationAsDate: obj });
+    }
+
+    if (tags?.length) {
+      must.push({ tags: { $in: tags } });
+    }
+
+    if (must.length) {
+      pipeline.push({ $match: { $and: must } });
+    }
+
+    let sortOption: Record<string, 1 | -1> = {};
+    switch (sort) {
+      case 'dateEvent_asc':
+        sortOption = { _dateEventAsDate: 1 };
+        break;
+      case 'dateEvent_desc':
+        sortOption = { _dateEventAsDate: -1 };
+        break;
+      case 'datePublication_desc':
+      default:
+        sortOption = { _datePublicationAsDate: -1 };
+        break;
+    }
+    pipeline.push({ $sort: sortOption });
+    pipeline.push({
+      $facet: {
+        docs: [{ $skip: (page - 1) * limit }, { $limit: limit }],
+        meta: [{ $count: 'total' }],
+      },
+    });
+
+    pipeline.push({ $addFields: { total: { $arrayElemAt: ['$meta.total', 0] } } });
+    pipeline.push({ $project: { meta: 0 } });
+    const [result] = await this.collection.aggregate(pipeline).toArray();
+    const total = result?.total ?? 0;
+    return {
+      annonces: result.docs,
+      meta: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async create(announcement: Announcement): Promise<string> {
@@ -120,14 +275,82 @@ export class AnnouncementRepository implements OnModuleInit {
     await this.collection.updateMany({ associationId }, { $set: { associationName } });
   }
 
-  async findVolunteerInVolunteersByVolunteerId(volunteerId: string): Promise<Announcement[]> {
-    return this.collection.find({ 'volunteers.id': volunteerId }).toArray();
+  async findVolunteerInAnnouncementByVolunteerId(volunteerId: string): Promise<Announcement[]> {
+    const nowParis = DateTime.now().setZone('Europe/Paris');
+    const todayIso = nowParis.toISODate();
+    const currentTime = nowParis.toFormat('HH:mm');
+
+    return this.collection
+      .find({
+        $and: [
+          {
+            $or: [{ 'volunteers.id': volunteerId }, { 'volunteersWaiting.id': volunteerId }],
+          },
+          {
+            $or: [
+              { dateEvent: { $gt: todayIso } },
+              {
+                dateEvent: todayIso,
+                hoursEvent: { $gte: currentTime },
+              },
+            ],
+          },
+          { status: { $ne: AnnouncementStatus.INACTIVE } },
+        ],
+      })
+      .toArray();
+  }
+
+  async findPastAnnouncementsByParticipantId(participantId: string): Promise<Announcement[]> {
+    const nowParis = DateTime.now().setZone('Europe/Paris');
+    const todayIso = nowParis.toISODate();
+    const currentTime = nowParis.toFormat('HH:mm');
+
+    return this.collection
+      .find({
+        $and: [
+          {
+            $or: [{ 'participants.id': participantId }, { 'volunteers.id': participantId }],
+          },
+          {
+            $or: [
+              { dateEvent: { $lt: todayIso } },
+              {
+                dateEvent: todayIso,
+                hoursEvent: { $lte: currentTime },
+              },
+            ],
+          },
+          { status: { $ne: AnnouncementStatus.INACTIVE } },
+        ],
+      })
+      .toArray();
   }
 
   async findParticipantInParticipantsByParticipantId(
     participantId: string,
   ): Promise<Announcement[]> {
-    return this.collection.find({ 'participants.id': participantId }).toArray();
+    const nowParis = DateTime.now().setZone('Europe/Paris');
+    const todayIso = nowParis.toISODate();
+    const currentTime = nowParis.toFormat('HH:mm');
+
+    return this.collection
+      .find({
+        $and: [
+          { 'participants.id': participantId },
+          {
+            $or: [
+              { dateEvent: { $gt: todayIso } },
+              {
+                dateEvent: todayIso,
+                hoursEvent: { $gte: currentTime },
+              },
+            ],
+          },
+          { status: { $ne: AnnouncementStatus.INACTIVE } },
+        ],
+      })
+      .toArray();
   }
 
   async removeVolunteerEverywhere(volunteerId: string): Promise<number> {
@@ -302,9 +525,9 @@ export class AnnouncementRepository implements OnModuleInit {
     } = dto;
 
     const pipeline: any[] = [];
+    pipeline.push({ $match: { status: { $ne: AnnouncementStatus.INACTIVE } } });
 
-    // 1) GEOJSON si besoin
-    if (latitude !== undefined && longitude !== undefined && radius !== 0) {
+    if (latitude !== undefined && longitude !== undefined && radius) {
       pipeline.push({
         $geoNear: {
           near: { type: 'Point', coordinates: [longitude, latitude] },
@@ -315,7 +538,6 @@ export class AnnouncementRepository implements OnModuleInit {
       });
     }
 
-    // 2) Convertir les dates stockées en string en BSON Date
     pipeline.push({
       $addFields: {
         _dateEventAsDate: { $toDate: '$dateEvent' },
@@ -323,31 +545,52 @@ export class AnnouncementRepository implements OnModuleInit {
       },
     });
 
-    // 3) Construction du match
-    const match: any = {};
+    const must: any[] = [];
 
-    const orConditions: any[] = [];
-    if (nameEvent) orConditions.push({ nameEvent: { $regex: nameEvent, $options: 'i' } });
-    if (description) orConditions.push({ description: { $regex: description, $options: 'i' } });
+    const nowParis = DateTime.now().setZone('Europe/Paris');
+    const todayIso = nowParis.toISODate();
+    const currentTime = nowParis.toFormat('HH:mm');
+
+    must.push({
+      $or: [
+        { dateEvent: { $gt: todayIso } },
+        {
+          dateEvent: todayIso,
+          hoursEvent: { $gte: currentTime },
+        },
+      ],
+    });
+
+    const textOr: any[] = [];
+    if (nameEvent) textOr.push({ nameEvent: { $regex: nameEvent, $options: 'i' } });
+    if (description) textOr.push({ description: { $regex: description, $options: 'i' } });
     if (associationName)
-      orConditions.push({ associationName: { $regex: associationName, $options: 'i' } });
-    if (orConditions.length) match.$or = orConditions;
+      textOr.push({ associationName: { $regex: associationName, $options: 'i' } });
 
-    if (status) match.status = status;
+    if (textOr.length) {
+      must.push({ $or: textOr });
+    }
+
+    if (status) must.push({ status });
+
+    if (tags?.length) {
+      must.push({ tags: { $in: tags } });
+    }
 
     if (hoursEventFrom || hoursEventTo) {
-      match.hoursEvent = {};
-      if (hoursEventFrom) match.hoursEvent.$gte = hoursEventFrom;
-      if (hoursEventTo) match.hoursEvent.$lte = hoursEventTo;
+      const obj: any = {};
+      if (hoursEventFrom) obj.$gte = hoursEventFrom;
+      if (hoursEventTo) obj.$lte = hoursEventTo;
+      must.push({ hoursEvent: obj });
     }
 
     if (dateEventFrom || dateEventTo) {
-      match._dateEventAsDate = {};
-      if (dateEventFrom) match._dateEventAsDate.$gte = new Date(dateEventFrom);
-      if (dateEventTo) match._dateEventAsDate.$lte = new Date(dateEventTo);
+      const obj: any = {};
+      if (dateEventFrom) obj.$gte = new Date(dateEventFrom);
+      if (dateEventTo) obj.$lte = new Date(dateEventTo);
+      must.push({ _dateEventAsDate: obj });
     }
 
-    // publicationInterval ou intervalle absolu
     if (publicationInterval) {
       const now = new Date();
       let threshold: Date;
@@ -370,20 +613,18 @@ export class AnnouncementRepository implements OnModuleInit {
         default:
           throw new BadRequestException('Intervalle de publication invalide');
       }
-      match._datePublicationAsDate = { $gte: threshold };
+      must.push({ _datePublicationAsDate: { $gte: threshold } });
     } else if (datePublicationFrom || datePublicationTo) {
-      match._datePublicationAsDate = {};
-      if (datePublicationFrom) match._datePublicationAsDate.$gte = new Date(datePublicationFrom);
-      if (datePublicationTo) match._datePublicationAsDate.$lte = new Date(datePublicationTo);
+      const obj: any = {};
+      if (datePublicationFrom) obj.$gte = new Date(datePublicationFrom);
+      if (datePublicationTo) obj.$lte = new Date(datePublicationTo);
+      must.push({ _datePublicationAsDate: obj });
     }
 
-    if (tags?.length) match.tags = { $in: tags };
-
-    if (Object.keys(match).length) {
-      pipeline.push({ $match: match });
+    if (must.length) {
+      pipeline.push({ $match: { $and: must } });
     }
 
-    // 4) Tri
     let sortOption: Record<string, 1 | -1> = {};
     switch (sort) {
       case 'dateEvent_asc':
@@ -399,19 +640,15 @@ export class AnnouncementRepository implements OnModuleInit {
     }
     pipeline.push({ $sort: sortOption });
 
-    // 5) Facet pagination + total
     pipeline.push({
       $facet: {
         docs: [{ $skip: (page - 1) * limit }, { $limit: limit }],
         meta: [{ $count: 'total' }],
       },
     });
-    pipeline.push({
-      $addFields: { total: { $arrayElemAt: ['$meta.total', 0] } },
-    });
+    pipeline.push({ $addFields: { total: { $arrayElemAt: ['$meta.total', 0] } } });
     pipeline.push({ $project: { meta: 0 } });
 
-    // 6) Exécution & retour
     const [result] = await this.collection.aggregate(pipeline).toArray();
     const total = result?.total ?? 0;
 

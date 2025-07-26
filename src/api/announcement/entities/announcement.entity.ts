@@ -3,6 +3,7 @@ import { InfoVolunteer } from '../../association/type/association.type';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 
 export class Announcement {
+  id?: string;
   description: string;
   datePublication: string;
   dateEvent: string;

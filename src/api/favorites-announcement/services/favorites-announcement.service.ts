@@ -7,7 +7,7 @@ import {
 import { FavoritesAnnouncementRepository } from '../repository/favorites-announcement.repository';
 import { FavoritesAnnouncement } from '../entities/favorites-announcement.entity';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
-import { Announcement } from 'src/api/announcement/entities/announcement.entity';
+import { Announcement } from '../../announcement/entities/announcement.entity';
 
 @Injectable()
 export class FavoritesAnnouncementService {

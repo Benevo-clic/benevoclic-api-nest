@@ -22,6 +22,8 @@ import { z } from 'zod';
 import { fileSchema } from '../../../common/utils/file-utils';
 import { AwsS3Service } from '../../../common/aws/aws-s3.service';
 import { FilterAnnouncementDto } from '../dto/filter-announcement.dto';
+import { FilterAssociationAnnouncementDto } from '../dto/filter-association-announcement.dto';
+import { InfoVolunteerDto } from '../../association/dto/info-volunteer.dto';
 
 @Injectable()
 export class AnnouncementService {
@@ -60,6 +62,27 @@ export class AnnouncementService {
       this.logger.error('Erreur lors de la récupération des annonces filtrées', error.stack);
       throw new InternalServerErrorException(
         'Erreur lors de la récupération des annonces filtrées',
+      );
+    }
+  }
+
+  async filterAssociationAnnouncements(
+    filterDto: FilterAssociationAnnouncementDto,
+  ): Promise<FilterAnnouncementResponse> {
+    try {
+      const announcements =
+        await this.announcementRepository.filterAssociationAnnouncements(filterDto);
+      return {
+        annonces: await this.enrichAnnouncements(announcements.annonces),
+        meta: announcements.meta,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la récupération des annonces filtrées pour l'association: ${filterDto.associationId}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la récupération des annonces filtrées pour l'association",
       );
     }
   }
@@ -129,10 +152,10 @@ export class AnnouncementService {
     }
   }
 
-  async findVolunteerInVolunteersByVolunteerId(volunteerId: string): Promise<Announcement[]> {
+  async findVolunteerInAnnouncementByVolunteerId(volunteerId: string): Promise<Announcement[]> {
     try {
       const announcements =
-        await this.announcementRepository.findVolunteerInVolunteersByVolunteerId(volunteerId);
+        await this.announcementRepository.findVolunteerInAnnouncementByVolunteerId(volunteerId);
       if (!announcements || announcements.length === 0) {
         return [];
       }
@@ -144,6 +167,25 @@ export class AnnouncementService {
       );
       throw new InternalServerErrorException(
         'Erreur lors de la récupération des annonces pour le bénévole',
+      );
+    }
+  }
+
+  async findPastAnnouncementsByParticipantId(participantId: string): Promise<Announcement[]> {
+    try {
+      const announcements =
+        await this.announcementRepository.findPastAnnouncementsByParticipantId(participantId);
+      if (!announcements || announcements.length === 0) {
+        return [];
+      }
+      return await this.enrichVolunteerAnnouncements(announcements);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la récupération des annonces passées pour le participant: ${participantId}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        'Erreur lors de la récupération des annonces passées pour le participant',
       );
     }
   }
@@ -320,14 +362,18 @@ export class AnnouncementService {
     }
   }
 
-  async registerVolunteer(id: string, volunteer: InfoVolunteer) {
+  async registerVolunteer(id: string, volunteer: InfoVolunteerDto) {
     try {
       const announcement = await this.announcementRepository.findById(id);
       if (await this.isCompletedVolunteer(announcement)) {
         throw new BadRequestException('Announcement is already completed');
       }
       await this.removeVolunteerWaiting(id, volunteer.id);
-      await this.addVolunteer(id, volunteer);
+      await this.addVolunteer(id, {
+        id: volunteer.id,
+        name: volunteer.name,
+        isPresent: false,
+      });
       return volunteer;
     } catch (error) {
       this.logger.error(`Erreur lors de l'inscription du bénévole: ${id}`, error.stack);
@@ -335,14 +381,19 @@ export class AnnouncementService {
     }
   }
 
-  async addVolunteer(id: string, volunteer: InfoVolunteer) {
+  async addVolunteer(id: string, volunteer: InfoVolunteerDto) {
     try {
       const announcement = await this.announcementRepository.findById(id);
 
       if (await this.isVolunteer(announcement, volunteer.id)) {
         throw new BadRequestException('Volunteer already registered');
       }
-      announcement.volunteers.push(volunteer);
+
+      announcement.volunteers.push({
+        id: volunteer.id,
+        name: volunteer.name,
+        isPresent: false,
+      });
       announcement.nbVolunteers++;
       await this.announcementRepository.updateVolunteer(id, announcement);
     } catch (error) {
@@ -413,13 +464,73 @@ export class AnnouncementService {
     }
   }
 
-  async registerParticipant(id: string, participant: InfoVolunteer) {
+  async updatePresentParticipant(
+    participant: InfoVolunteerDto,
+    announcementId: string,
+  ): Promise<InfoVolunteer> {
+    try {
+      const announcement = await this.announcementRepository.findById(announcementId);
+      if (!announcement) {
+        throw new NotFoundException('Announcement not found');
+      }
+      const participantIndex = announcement.participants.findIndex(p => p.id === participant.id);
+      if (participantIndex === -1) {
+        throw new BadRequestException('Participant not registered');
+      }
+      announcement.participants[participantIndex].isPresent = participant.isPresent;
+      await this.announcementRepository.updateVolunteer(announcementId, announcement);
+      return announcement.participants[participantIndex];
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      this.logger.error(
+        `Erreur lors de la mise à jour de la présence du participant: ${participant.id}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        'Erreur lors de la mise à jour de la présence du participant',
+      );
+    }
+  }
+
+  async updatePresentVolunteer(
+    volunteer: InfoVolunteerDto,
+    announcementId: string,
+  ): Promise<InfoVolunteer> {
+    try {
+      const announcement = await this.announcementRepository.findById(announcementId);
+      if (!announcement) {
+        throw new NotFoundException('Announcement not found');
+      }
+      const volunteerIndex = announcement.volunteers.findIndex(v => v.id === volunteer.id);
+      if (volunteerIndex === -1) {
+        throw new BadRequestException('Volunteer not registered');
+      }
+      announcement.volunteers[volunteerIndex].isPresent = volunteer.isPresent;
+      await this.announcementRepository.updateVolunteer(announcementId, announcement);
+      return announcement.volunteers[volunteerIndex];
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      this.logger.error(
+        `Erreur lors de la mise à jour de la présence du bénévole: ${volunteer.id}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        'Erreur lors de la mise à jour de la présence du bénévole',
+      );
+    }
+  }
+
+  async registerParticipant(id: string, participant: InfoVolunteerDto) {
     try {
       const announcement = await this.announcementRepository.findById(id);
       if (await this.isCompletedParticipant(announcement)) {
         throw new BadRequestException('Announcement is already completed');
       }
-      announcement.participants.push(participant);
+      announcement.participants.push({
+        id: participant.id,
+        name: participant.name,
+        isPresent: false,
+      });
       announcement.nbParticipants++;
       await this.announcementRepository.updateVolunteer(id, announcement);
       return participant;
