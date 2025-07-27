@@ -18,7 +18,11 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   app.enableCors({
-    origin: 'http://localhost:5482',
+    origin: [
+      'http://localhost:5482',
+      'http://benevoclic.aboubakardiakite.fr',
+      'https://benevoclic.aboubakardiakite.fr',
+    ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
