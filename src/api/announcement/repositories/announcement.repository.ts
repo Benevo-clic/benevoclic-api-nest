@@ -525,7 +525,6 @@ export class AnnouncementRepository implements OnModuleInit {
     } = dto;
 
     const pipeline: any[] = [];
-    pipeline.push({ $match: { status: { $ne: AnnouncementStatus.INACTIVE } } });
 
     if (latitude !== undefined && longitude !== undefined && radius) {
       pipeline.push({
@@ -536,6 +535,9 @@ export class AnnouncementRepository implements OnModuleInit {
           spherical: true,
         },
       });
+      pipeline.push({ $match: { status: { $ne: AnnouncementStatus.INACTIVE } } });
+    } else {
+      pipeline.push({ $match: { status: { $ne: AnnouncementStatus.INACTIVE } } });
     }
 
     pipeline.push({
