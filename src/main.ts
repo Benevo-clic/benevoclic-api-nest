@@ -5,6 +5,7 @@ import { initializeFirebase } from '@config/firebase.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.setGlobalPrefix('api');
 
   const config = new DocumentBuilder()
     .setTitle('User Authentication')
