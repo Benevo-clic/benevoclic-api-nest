@@ -5,10 +5,8 @@ import { AnnouncementController } from './controllers/announcement.controller';
 import { AnnouncementRepository } from './repositories/announcement.repository';
 import { UserModule } from '../user/user.module';
 import { FavoritesAnnouncementModule } from '../favorites-announcement/favorites-announcement.module';
-import { UserService } from '../../common/services/user/user.service';
 import { VolunteerModule } from '../volunteer/volunteer.module';
 import { AssociationModule } from '../association/association.module';
-import { AwsS3Service } from '../../common/aws/aws-s3.service';
 
 @Module({
   imports: [
@@ -18,8 +16,8 @@ import { AwsS3Service } from '../../common/aws/aws-s3.service';
     forwardRef(() => FavoritesAnnouncementModule),
     forwardRef(() => AssociationModule),
   ],
-  providers: [AnnouncementRepository, AnnouncementService, UserService, AwsS3Service],
+  providers: [AnnouncementRepository, AnnouncementService],
   controllers: [AnnouncementController],
-  exports: [AnnouncementService, AnnouncementRepository, AwsS3Service],
+  exports: [AnnouncementService, AnnouncementRepository],
 })
 export class AnnouncementModule {}
