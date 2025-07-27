@@ -1,12 +1,8 @@
 import { AnnouncementController } from './announcement.controller';
-import { MongoClient, ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import { Test, TestingModule } from '@nestjs/testing';
-import { DatabaseModule } from '../../../database/database.module';
-import { AnnouncementRepository } from '../repositories/announcement.repository';
 import { AnnouncementService } from '../services/announcement.service';
 import * as mockData from '../../../../test/testFiles/announcement.data.json';
-import { DatabaseCollection } from '../../../common/enums/database.collection';
-import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { CreateAnnouncementDto } from '../dto/create-announcement.dto';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { InfoVolunteerDto } from '../../association/dto/info-volunteer.dto';
@@ -14,60 +10,52 @@ import { FilterAnnouncementDto } from '../dto/filter-announcement.dto';
 
 describe('AnnouncementController', () => {
   let announcementController: AnnouncementController;
-  let announcementRepository: AnnouncementRepository;
   let announcementService: AnnouncementService;
-  let mongoClient: MongoClient;
   let module: TestingModule;
 
   beforeAll(async () => {
-    announcementRepository = <AnnouncementRepository>{};
-    announcementRepository.removeVolunteerWaiting = jest.fn();
-    announcementService = <AnnouncementService>{};
-    announcementService.removeVolunteerWaiting = jest.fn();
-    announcementService.registerVolunteer = jest.fn();
-    announcementService.isVolunteer = jest.fn();
-    announcementService.removeVolunteer = jest.fn();
-    announcementService.findAll = jest.fn();
-    announcementService.findById = jest.fn();
-    announcementService.findByAssociationId = jest.fn();
-    announcementService.create = jest.fn();
-    announcementService.update = jest.fn();
-    announcementService.delete = jest.fn();
-    announcementService.deleteByAssociationId = jest.fn();
-    announcementService.registerParticipant = jest.fn();
-    announcementService.removeParticipant = jest.fn();
-    announcementService.registerVolunteerWaiting = jest.fn();
-    announcementService.updateStatus = jest.fn();
-    announcementService.filterAnnouncementsAggregation = jest.fn();
+    const mockAnnouncementService = {
+      removeVolunteerWaiting: jest.fn(),
+      registerVolunteer: jest.fn(),
+      isVolunteer: jest.fn(),
+      removeVolunteer: jest.fn(),
+      findAll: jest.fn(),
+      findById: jest.fn(),
+      findByAssociationId: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      deleteByAssociationId: jest.fn(),
+      registerParticipant: jest.fn(),
+      removeParticipant: jest.fn(),
+      registerVolunteerWaiting: jest.fn(),
+      updateStatus: jest.fn(),
+      filterAnnouncementsAggregation: jest.fn(),
+      filterAssociationAnnouncements: jest.fn(),
+      findVolunteerInAnnouncementByVolunteerId: jest.fn(),
+      findPastAnnouncementsByParticipantId: jest.fn(),
+      findParticipantInParticipantsByParticipantId: jest.fn(),
+      addVolunteer: jest.fn(),
+      updatePresentVolunteer: jest.fn(),
+      updatePresentParticipant: jest.fn(),
+      updateAvatar: jest.fn(),
+    };
 
     module = await Test.createTestingModule({
-      imports: [DatabaseModule],
       controllers: [AnnouncementController],
-      providers: [AnnouncementRepository, AnnouncementService],
-    })
-      .overrideProvider(AnnouncementRepository)
-      .useValue(announcementRepository)
-      .overrideProvider(AnnouncementService)
-      .useValue(announcementService)
-      .compile();
+      providers: [
+        {
+          provide: AnnouncementService,
+          useValue: mockAnnouncementService,
+        },
+      ],
+    }).compile();
 
     announcementController = module.get<AnnouncementController>(AnnouncementController);
-
-    mongoClient = module.get<MongoClient>(MONGODB_CONNECTION);
-
-    const announcements = mockData.announcements.map(announcement => ({
-      ...announcement,
-      _id: new ObjectId(),
-    }));
-
-    const db = mongoClient.db();
-    await db.collection(DatabaseCollection.ANNOUNCEMENT).deleteMany({});
-    await db.collection(DatabaseCollection.ANNOUNCEMENT).insertMany(announcements);
+    announcementService = module.get<AnnouncementService>(AnnouncementService);
   });
 
   afterAll(async () => {
-    const db = mongoClient.db();
-    await db.collection(DatabaseCollection.ANNOUNCEMENT).deleteMany({});
     await module.close();
   });
 
@@ -310,10 +298,511 @@ describe('AnnouncementController', () => {
         .fn()
         .mockRejectedValue(new Error(errorMessage));
 
-      await expect(
-        announcementController.filterAnnouncementsAggregation(filterDto),
-      ).rejects.toThrow();
+      const result = await announcementController.filterAnnouncementsAggregation(filterDto);
+
+      expect(result).toEqual({
+        annonces: [],
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+        },
+      });
       expect(announcementService.filterAnnouncementsAggregation).toHaveBeenCalledWith(filterDto);
+    });
+  });
+
+  describe('filterAnnouncementsByAssociation', () => {
+    it('should return filtered announcements for association', async () => {
+      const filterDto = {
+        associationId: 'assoc-123',
+        nameEvent: 'Test Event',
+        status: 'ACTIVE',
+        page: 1,
+        limit: 10,
+      };
+
+      const mockResponse = {
+        annonces: mockData.announcements,
+        meta: { page: 1, limit: 10, total: mockData.announcements.length, pages: 1 },
+      };
+
+      announcementService.filterAssociationAnnouncements = jest
+        .fn()
+        .mockResolvedValue(mockResponse);
+
+      const result = await announcementController.filterAnnouncementsByAssociation(filterDto);
+
+      expect(result).toBeDefined();
+      expect(result.annonces).toEqual(mockData.announcements);
+      expect(result.meta).toBeDefined();
+      expect(announcementService.filterAssociationAnnouncements).toHaveBeenCalledWith(filterDto);
+    });
+
+    it('should handle errors when filtering announcements by association', async () => {
+      const filterDto = {
+        associationId: 'assoc-123',
+        nameEvent: 'Test Event',
+      };
+
+      const errorMessage = 'Error filtering announcements by association';
+      announcementService.filterAssociationAnnouncements = jest
+        .fn()
+        .mockRejectedValue(new Error(errorMessage));
+
+      await expect(
+        announcementController.filterAnnouncementsByAssociation(filterDto),
+      ).rejects.toThrow();
+      expect(announcementService.filterAssociationAnnouncements).toHaveBeenCalledWith(filterDto);
+    });
+  });
+
+  describe('findVolunteerInVolunteersByVolunteerId', () => {
+    it('should return announcements where volunteer is registered', async () => {
+      const volunteerId = 'vol-123';
+      const mockAnnouncements = [
+        { _id: '1', volunteers: [{ id: volunteerId }], nameEvent: 'Event 1' },
+        { _id: '2', volunteersWaiting: [{ id: volunteerId }], nameEvent: 'Event 2' },
+      ];
+
+      announcementService.findVolunteerInAnnouncementByVolunteerId = jest
+        .fn()
+        .mockReturnValue(mockAnnouncements);
+
+      const announcements =
+        await announcementController.findVolunteerInVolunteersByVolunteerId(volunteerId);
+
+      expect(announcements).toBeDefined();
+      expect(Array.isArray(announcements)).toBe(true);
+      expect(announcements.length).toBe(2);
+      expect(announcementService.findVolunteerInAnnouncementByVolunteerId).toHaveBeenCalledWith(
+        volunteerId,
+      );
+    });
+
+    it('should return empty array when volunteer not found', async () => {
+      const volunteerId = 'vol-456';
+
+      announcementService.findVolunteerInAnnouncementByVolunteerId = jest.fn().mockReturnValue([]);
+
+      const announcements =
+        await announcementController.findVolunteerInVolunteersByVolunteerId(volunteerId);
+
+      expect(announcements).toBeDefined();
+      expect(Array.isArray(announcements)).toBe(true);
+      expect(announcements.length).toBe(0);
+      expect(announcementService.findVolunteerInAnnouncementByVolunteerId).toHaveBeenCalledWith(
+        volunteerId,
+      );
+    });
+  });
+
+  describe('findPastAnnouncementsByParticipantId', () => {
+    it('should return past announcements for a participant', async () => {
+      const participantId = 'part-123';
+      const mockAnnouncements = [
+        {
+          _id: '1',
+          dateEvent: '2024-01-10',
+          participants: [{ id: participantId }],
+          nameEvent: 'Past Event 1',
+        },
+        {
+          _id: '2',
+          dateEvent: '2024-01-14',
+          volunteers: [{ id: participantId }],
+          nameEvent: 'Past Event 2',
+        },
+      ];
+
+      announcementService.findPastAnnouncementsByParticipantId = jest
+        .fn()
+        .mockReturnValue(mockAnnouncements);
+
+      const announcements =
+        await announcementController.findPastAnnouncementsByParticipantId(participantId);
+
+      expect(announcements).toBeDefined();
+      expect(Array.isArray(announcements)).toBe(true);
+      expect(announcements.length).toBe(2);
+      expect(announcementService.findPastAnnouncementsByParticipantId).toHaveBeenCalledWith(
+        participantId,
+      );
+    });
+
+    it('should return empty array when no past announcements found', async () => {
+      const participantId = 'part-456';
+
+      announcementService.findPastAnnouncementsByParticipantId = jest.fn().mockReturnValue([]);
+
+      const announcements =
+        await announcementController.findPastAnnouncementsByParticipantId(participantId);
+
+      expect(announcements).toBeDefined();
+      expect(Array.isArray(announcements)).toBe(true);
+      expect(announcements.length).toBe(0);
+      expect(announcementService.findPastAnnouncementsByParticipantId).toHaveBeenCalledWith(
+        participantId,
+      );
+    });
+  });
+
+  describe('findParticipantInParticipantsByParticipantId', () => {
+    it('should return future announcements for a participant', async () => {
+      const participantId = 'part-123';
+      const mockAnnouncements = [
+        {
+          _id: '1',
+          dateEvent: '2024-02-15',
+          participants: [{ id: participantId }],
+          nameEvent: 'Future Event 1',
+        },
+        {
+          _id: '2',
+          dateEvent: '2024-02-16',
+          participants: [{ id: participantId }],
+          nameEvent: 'Future Event 2',
+        },
+      ];
+
+      announcementService.findParticipantInParticipantsByParticipantId = jest
+        .fn()
+        .mockReturnValue(mockAnnouncements);
+
+      const announcements =
+        await announcementController.findParticipantInParticipantsByParticipantId(participantId);
+
+      expect(announcements).toBeDefined();
+      expect(Array.isArray(announcements)).toBe(true);
+      expect(announcements.length).toBe(2);
+      expect(announcementService.findParticipantInParticipantsByParticipantId).toHaveBeenCalledWith(
+        participantId,
+      );
+    });
+
+    it('should return empty array when no future announcements found', async () => {
+      const participantId = 'part-456';
+
+      announcementService.findParticipantInParticipantsByParticipantId = jest
+        .fn()
+        .mockReturnValue([]);
+
+      const announcements =
+        await announcementController.findParticipantInParticipantsByParticipantId(participantId);
+
+      expect(announcements).toBeDefined();
+      expect(Array.isArray(announcements)).toBe(true);
+      expect(announcements.length).toBe(0);
+      expect(announcementService.findParticipantInParticipantsByParticipantId).toHaveBeenCalledWith(
+        participantId,
+      );
+    });
+  });
+
+  describe('addVolunteer', () => {
+    it('should add volunteer to announcement', async () => {
+      const announcementId = 'ann-123';
+      const volunteer = { id: 'vol-123', name: 'John Doe' } as any;
+      const expectedResult = { ...volunteer, added: true };
+
+      announcementService.registerVolunteer = jest.fn().mockResolvedValue(expectedResult);
+
+      const result = await announcementController.addVolunteer(announcementId, volunteer);
+
+      expect(result).toEqual(expectedResult);
+      expect(announcementService.registerVolunteer).toHaveBeenCalledWith(announcementId, volunteer);
+    });
+
+    it('should handle errors when adding volunteer', async () => {
+      const announcementId = 'ann-123';
+      const volunteer = { id: 'vol-123', name: 'John Doe' } as any;
+
+      announcementService.registerVolunteer = jest
+        .fn()
+        .mockRejectedValue(new Error('Service error'));
+
+      await expect(announcementController.addVolunteer(announcementId, volunteer)).rejects.toThrow(
+        'Service error',
+      );
+    });
+  });
+
+  describe('addVolunteerWaiting', () => {
+    it('should add volunteer to waiting list', async () => {
+      const announcementId = 'ann-123';
+      const volunteer = { id: 'vol-123', name: 'John Doe' } as any;
+      const expectedResult = { ...volunteer, waiting: true };
+
+      announcementService.registerVolunteerWaiting = jest.fn().mockResolvedValue(expectedResult);
+
+      const result = await announcementController.addVolunteerWaiting(announcementId, volunteer);
+
+      expect(result).toEqual(expectedResult);
+      expect(announcementService.registerVolunteerWaiting).toHaveBeenCalledWith(
+        announcementId,
+        volunteer,
+      );
+    });
+
+    it('should handle errors when adding volunteer to waiting list', async () => {
+      const announcementId = 'ann-123';
+      const volunteer = { id: 'vol-123', name: 'John Doe' } as any;
+
+      announcementService.registerVolunteerWaiting = jest
+        .fn()
+        .mockRejectedValue(new Error('Service error'));
+
+      await expect(
+        announcementController.addVolunteerWaiting(announcementId, volunteer),
+      ).rejects.toThrow('Service error');
+    });
+  });
+
+  describe('addPresenceVolunteer', () => {
+    it('should update volunteer presence', async () => {
+      const announcementId = 'ann-123';
+      const volunteer = { id: 'vol-123', name: 'John Doe' } as any;
+      const expectedResult = { ...volunteer, isPresent: true };
+
+      announcementService.updatePresentVolunteer = jest.fn().mockResolvedValue(expectedResult);
+
+      const result = await announcementController.addPresenceVolunteer(announcementId, volunteer);
+
+      expect(result).toEqual(expectedResult);
+      expect(announcementService.updatePresentVolunteer).toHaveBeenCalledWith(
+        volunteer,
+        announcementId,
+      );
+    });
+
+    it('should handle errors when updating volunteer presence', async () => {
+      const announcementId = 'ann-123';
+      const volunteer = { id: 'vol-123', name: 'John Doe' } as any;
+
+      announcementService.updatePresentVolunteer = jest
+        .fn()
+        .mockRejectedValue(new Error('Service error'));
+
+      await expect(
+        announcementController.addPresenceVolunteer(announcementId, volunteer),
+      ).rejects.toThrow('Service error');
+    });
+  });
+
+  describe('addPresenceParticipant', () => {
+    it('should update participant presence', async () => {
+      const announcementId = 'ann-123';
+      const participant = { id: 'part-123', name: 'John Doe' } as any;
+      const expectedResult = { ...participant, isPresent: true };
+
+      announcementService.updatePresentParticipant = jest.fn().mockResolvedValue(expectedResult);
+
+      const result = await announcementController.addPresenceParticipant(
+        announcementId,
+        participant,
+      );
+
+      expect(result).toEqual(expectedResult);
+      expect(announcementService.updatePresentParticipant).toHaveBeenCalledWith(
+        participant,
+        announcementId,
+      );
+    });
+
+    it('should handle errors when updating participant presence', async () => {
+      const announcementId = 'ann-123';
+      const participant = { id: 'part-123', name: 'John Doe' } as any;
+
+      announcementService.updatePresentParticipant = jest
+        .fn()
+        .mockRejectedValue(new Error('Service error'));
+
+      await expect(
+        announcementController.addPresenceParticipant(announcementId, participant),
+      ).rejects.toThrow('Service error');
+    });
+  });
+
+  describe('addParticipant', () => {
+    it('should add participant to announcement', async () => {
+      const announcementId = 'ann-123';
+      const participant = { id: 'part-123', name: 'John Doe' } as any;
+      const expectedResult = { ...participant, added: true };
+
+      announcementService.registerParticipant = jest.fn().mockResolvedValue(expectedResult);
+
+      const result = await announcementController.addParticipant(announcementId, participant);
+
+      expect(result).toEqual(expectedResult);
+      expect(announcementService.registerParticipant).toHaveBeenCalledWith(
+        announcementId,
+        participant,
+      );
+    });
+
+    it('should handle errors when adding participant', async () => {
+      const announcementId = 'ann-123';
+      const participant = { id: 'part-123', name: 'John Doe' } as any;
+
+      announcementService.registerParticipant = jest
+        .fn()
+        .mockRejectedValue(new Error('Service error'));
+
+      await expect(
+        announcementController.addParticipant(announcementId, participant),
+      ).rejects.toThrow('Service error');
+    });
+  });
+
+  describe('removeVolunteer', () => {
+    it('should remove volunteer from announcement', async () => {
+      const announcementId = 'ann-123';
+      const volunteer = 'vol-123';
+      const expectedResult = 'Volunteer removed successfully';
+
+      announcementService.removeVolunteer = jest.fn().mockResolvedValue(expectedResult);
+
+      const result = await announcementController.removeVolunteer(announcementId, volunteer);
+
+      expect(result).toBe(expectedResult);
+      expect(announcementService.removeVolunteer).toHaveBeenCalledWith(announcementId, volunteer);
+    });
+
+    it('should handle errors when removing volunteer', async () => {
+      const announcementId = 'ann-123';
+      const volunteer = 'vol-123';
+
+      announcementService.removeVolunteer = jest.fn().mockRejectedValue(new Error('Service error'));
+
+      await expect(
+        announcementController.removeVolunteer(announcementId, volunteer),
+      ).rejects.toThrow('Service error');
+    });
+  });
+
+  describe('removeParticipant', () => {
+    it('should remove participant from announcement', async () => {
+      const announcementId = 'ann-123';
+      const participant = 'part-123';
+      const expectedResult = 'Participant removed successfully';
+
+      announcementService.removeParticipant = jest.fn().mockResolvedValue(expectedResult);
+
+      const result = await announcementController.removeParticipant(announcementId, participant);
+
+      expect(result).toBe(expectedResult);
+      expect(announcementService.removeParticipant).toHaveBeenCalledWith(
+        announcementId,
+        participant,
+      );
+    });
+
+    it('should handle errors when removing participant', async () => {
+      const announcementId = 'ann-123';
+      const participant = 'part-123';
+
+      announcementService.removeParticipant = jest
+        .fn()
+        .mockRejectedValue(new Error('Service error'));
+
+      await expect(
+        announcementController.removeParticipant(announcementId, participant),
+      ).rejects.toThrow('Service error');
+    });
+  });
+
+  describe('removeVolunteerWaiting', () => {
+    it('should remove volunteer from waiting list', async () => {
+      const announcementId = 'ann-123';
+      const volunteer = 'vol-123';
+      const expectedResult = 'Volunteer removed from waiting list';
+
+      announcementService.removeVolunteerWaiting = jest.fn().mockResolvedValue(expectedResult);
+
+      const result = await announcementController.removeVolunteerWaiting(announcementId, volunteer);
+
+      expect(result).toBe(expectedResult);
+      expect(announcementService.removeVolunteerWaiting).toHaveBeenCalledWith(
+        announcementId,
+        volunteer,
+      );
+    });
+
+    it('should handle errors when removing volunteer from waiting list', async () => {
+      const announcementId = 'ann-123';
+      const volunteer = 'vol-123';
+
+      announcementService.removeVolunteerWaiting = jest
+        .fn()
+        .mockRejectedValue(new Error('Service error'));
+
+      await expect(
+        announcementController.removeVolunteerWaiting(announcementId, volunteer),
+      ).rejects.toThrow('Service error');
+    });
+  });
+
+  describe('updateImageCoverAnnouncement', () => {
+    it('should update announcement cover image', async () => {
+      const id = 'ann-123';
+      const file = {
+        fieldname: 'file',
+        originalname: 'test.jpg',
+        mimetype: 'image/jpeg',
+        size: 1024,
+        buffer: Buffer.from('test'),
+      } as any;
+      const expectedResult = { id, announcementImage: 'new-image.jpg' } as any;
+
+      announcementService.updateAvatar = jest.fn().mockResolvedValue(expectedResult);
+
+      const result = await announcementController.updateImageCoverAnnouncement(id, file);
+
+      expect(result).toEqual(expectedResult);
+      expect(announcementService.updateAvatar).toHaveBeenCalledWith(id, file);
+    });
+
+    it('should handle errors when updating cover image', async () => {
+      const id = 'ann-123';
+      const file = {
+        fieldname: 'file',
+        originalname: 'test.jpg',
+        mimetype: 'image/jpeg',
+        size: 1024,
+        buffer: Buffer.from('test'),
+      } as any;
+
+      announcementService.updateAvatar = jest.fn().mockRejectedValue(new Error('Service error'));
+
+      await expect(announcementController.updateImageCoverAnnouncement(id, file)).rejects.toThrow(
+        'Service error',
+      );
+    });
+  });
+
+  describe('updateStatus', () => {
+    it('should update announcement status', async () => {
+      const announcementId = 'ann-123';
+      const status = 'COMPLETED' as AnnouncementStatus;
+      const expectedResult = { _id: announcementId, status } as any;
+
+      announcementService.updateStatus = jest.fn().mockResolvedValue(expectedResult);
+
+      const result = await announcementController.updateStatus(announcementId, status);
+
+      expect(result).toEqual(expectedResult);
+      expect(announcementService.updateStatus).toHaveBeenCalledWith(announcementId, status);
+    });
+
+    it('should handle errors when updating status', async () => {
+      const announcementId = 'ann-123';
+      const status = 'COMPLETED' as AnnouncementStatus;
+
+      announcementService.updateStatus = jest.fn().mockRejectedValue(new Error('Service error'));
+
+      await expect(announcementController.updateStatus(announcementId, status)).rejects.toThrow(
+        'Service error',
+      );
     });
   });
 });

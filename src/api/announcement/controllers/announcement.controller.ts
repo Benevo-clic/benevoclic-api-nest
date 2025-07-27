@@ -12,7 +12,6 @@ import {
   Logger,
   ValidationPipe,
   UsePipes,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { AnnouncementService } from '../services/announcement.service';
 import { Public } from '../../../common/decorators/public.decorator';
@@ -37,6 +36,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { fileSchema } from '../../../common/utils/file-utils';
 import { FilterAnnouncementDto } from '../dto/filter-announcement.dto';
 import { FilterAnnouncementResponse } from '../repositories/announcement.repository';
+import { FilterAssociationAnnouncementDto } from '../dto/filter-association-announcement.dto';
 
 @UsePipes(
   new ValidationPipe({
@@ -127,9 +127,35 @@ export class AnnouncementController {
       return await this.service.filterAnnouncementsAggregation(filterDto);
     } catch (error) {
       this.logger.error('Erreur lors de la récupération des annonces filtrées', error.stack);
-      throw new InternalServerErrorException(
-        'Erreur lors de la récupération des annonces filtrées',
+      return {
+        annonces: [],
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+        },
+      } as FilterAnnouncementResponse;
+    }
+  }
+
+  @Post('filter/association')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ASSOCIATION)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Filter announcements by association' })
+  @ApiBody({ type: FilterAssociationAnnouncementDto })
+  async filterAnnouncementsByAssociation(
+    @Body(new ValidationPipe({ transform: true, whitelist: true }))
+    filterDto: FilterAssociationAnnouncementDto,
+  ): Promise<FilterAnnouncementResponse> {
+    try {
+      return await this.service.filterAssociationAnnouncements(filterDto);
+    } catch (error) {
+      this.logger.error(
+        'Erreur lors de la récupération des annonces filtrées par association',
+        error.stack,
       );
+      throw error;
     }
   }
 
@@ -181,10 +207,39 @@ export class AnnouncementController {
     @Param('volunteerId') volunteerId: string,
   ): Promise<Announcement[]> {
     try {
-      return await this.service.findVolunteerInVolunteersByVolunteerId(volunteerId);
+      return await this.service.findVolunteerInAnnouncementByVolunteerId(volunteerId);
     } catch (error) {
       this.logger.error(
         `Erreur lors de la recherche du bénévole dans les volontaires: ${volunteerId}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  @Get('past/participant/:volunteerId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.VOLUNTEER, UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Find past announcements by participant ID' })
+  @ApiParam({
+    name: 'volunteerId',
+    required: true,
+    description: 'ID du participant',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Liste des annonces passées du participant récupérée avec succès',
+    type: [Announcement],
+  })
+  async findPastAnnouncementsByParticipantId(
+    @Param('volunteerId') volunteerId: string,
+  ): Promise<Announcement[]> {
+    try {
+      return await this.service.findPastAnnouncementsByParticipantId(volunteerId);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la recherche des annonces passées du participant: ${volunteerId}`,
         error.stack,
       );
       throw error;
@@ -346,6 +401,74 @@ export class AnnouncementController {
     } catch (error) {
       this.logger.error(
         `Erreur lors de l'inscription du bénévole en attente: ${announcementId}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  @Patch('/presence/volunteer/:announcementId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.VOLUNTEER, UserRole.ASSOCIATION, UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Enregistrer la présence d’un bénévole à une annonce' })
+  @ApiParam({
+    name: 'announcementId',
+    required: true,
+    description: "ID de l'annonce",
+  })
+  @ApiBody({
+    type: InfoVolunteerDto,
+    description: 'Informations du bénévole',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Présence du bénévole enregistrée avec succès',
+    type: InfoVolunteerDto,
+  })
+  async addPresenceVolunteer(
+    @Param('announcementId') announcementId: string,
+    @Body() volunteer: InfoVolunteerDto,
+  ): Promise<InfoVolunteer> {
+    try {
+      return await this.service.updatePresentVolunteer(volunteer, announcementId);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de l'enregistrement de la présence du bénévole: ${announcementId}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  @Patch('/presence/participant/:announcementId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.VOLUNTEER, UserRole.ASSOCIATION, UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Enregistrer la présence d’un participant à une annonce' })
+  @ApiParam({
+    name: 'announcementId',
+    required: true,
+    description: "ID de l'annonce",
+  })
+  @ApiBody({
+    type: InfoVolunteerDto,
+    description: 'Informations du participant',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Présence du participant enregistrée avec succès',
+    type: InfoVolunteerDto,
+  })
+  async addPresenceParticipant(
+    @Param('announcementId') announcementId: string,
+    @Body() participant: InfoVolunteerDto,
+  ): Promise<InfoVolunteer> {
+    try {
+      return await this.service.updatePresentParticipant(participant, announcementId);
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de l'enregistrement de la présence du participant: ${announcementId}`,
         error.stack,
       );
       throw error;

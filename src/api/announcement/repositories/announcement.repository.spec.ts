@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AnnouncementRepository } from './announcement.repository';
-import { MongoClient, Collection, ClientSession } from 'mongodb';
+import { MongoClient, Collection } from 'mongodb';
 import { Announcement } from '../entities/announcement.entity';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { mockAnnouncements } from './__mocks__/announcement.mock';
@@ -14,6 +14,27 @@ import {
   statusFilterDto,
   tagFilterDto,
 } from '../dto/__mocks__/filter-announcement.mock';
+import { FilterAssociationAnnouncementDto } from '../dto/filter-association-announcement.dto';
+import { ObjectId } from 'mongodb';
+
+// Mock DateTime de luxon
+jest.mock('luxon', () => ({
+  DateTime: {
+    now: jest.fn().mockReturnValue({
+      setZone: jest.fn().mockReturnValue({
+        toJSDate: jest.fn().mockReturnValue(new Date('2024-01-15T10:00:00.000Z')),
+        toISODate: jest.fn().mockReturnValue('2024-01-15'),
+        toFormat: jest.fn().mockReturnValue('10:00'),
+        startOf: jest.fn().mockReturnValue({
+          toJSDate: jest.fn().mockReturnValue(new Date('2024-01-15T00:00:00.000Z')),
+        }),
+        endOf: jest.fn().mockReturnValue({
+          toJSDate: jest.fn().mockReturnValue(new Date('2024-01-15T23:59:59.999Z')),
+        }),
+      }),
+    }),
+  },
+}));
 
 // Mock ObjectId pour les tests d'erreur
 jest.mock('mongodb', () => ({
@@ -68,17 +89,31 @@ describe('AnnouncementRepository', () => {
     expect(repository).toBeDefined();
   });
 
-  describe('removeVolunteerEverywhere', () => {
-    it('should call updateMany with correct pipeline and return modified count', async () => {
-      const volunteerId = 'volunteer-123';
-      const expectedModifiedCount = 3;
+  describe('updateAssociationNameByAssociationId', () => {
+    it('should update association name for all announcements', async () => {
+      const associationId = 'assoc-123';
+      const associationName = 'New Association Name';
 
-      mockCollection.updateMany = jest.fn().mockResolvedValue({
-        modifiedCount: expectedModifiedCount,
-      });
+      mockCollection.updateMany = jest.fn().mockResolvedValue({ modifiedCount: 5 });
+
+      await repository.updateAssociationNameByAssociationId(associationId, associationName);
+
+      expect(mockCollection.updateMany).toHaveBeenCalledWith(
+        { associationId },
+        { $set: { associationName } },
+      );
+    });
+  });
+
+  describe('removeVolunteerEverywhere', () => {
+    it('should remove volunteer from all announcements', async () => {
+      const volunteerId = 'vol-123';
+
+      mockCollection.updateMany = jest.fn().mockResolvedValue({ modifiedCount: 3 });
 
       const result = await repository.removeVolunteerEverywhere(volunteerId);
 
+      expect(result).toBe(3);
       expect(mockCollection.updateMany).toHaveBeenCalledWith({}, [
         {
           $set: {
@@ -110,84 +145,51 @@ describe('AnnouncementRepository', () => {
         },
         { $unset: 'hadInVolunteers' },
       ]);
-      expect(result).toBe(expectedModifiedCount);
+    });
+  });
+
+  describe('removeVolunteerWaiting', () => {
+    it('should remove volunteer from waiting list', async () => {
+      const id = '507f1f77bcf86cd799439011';
+      const volunteerId = 'vol-123';
+
+      mockCollection.updateOne = jest.fn().mockResolvedValue({ modifiedCount: 1 });
+
+      await repository.removeVolunteerWaiting(id, volunteerId);
+
+      expect(mockCollection.updateOne).toHaveBeenCalledWith(
+        { _id: new ObjectId(id) },
+        { $pull: { volunteersWaiting: { id: volunteerId } } },
+        undefined,
+      );
     });
 
-    it('should return 0 when no documents are modified', async () => {
-      const volunteerId = 'volunteer-456';
+    it('should remove volunteer from waiting list with session', async () => {
+      const id = '507f1f77bcf86cd799439011';
+      const volunteerId = 'vol-123';
+      const session = {} as any;
 
-      mockCollection.updateMany = jest.fn().mockResolvedValue({
-        modifiedCount: 0,
-      });
+      mockCollection.updateOne = jest.fn().mockResolvedValue({ modifiedCount: 1 });
 
-      const result = await repository.removeVolunteerEverywhere(volunteerId);
+      await repository.removeVolunteerWaiting(id, volunteerId, { session });
 
-      expect(mockCollection.updateMany).toHaveBeenCalledWith({}, expect.any(Array));
-      expect(result).toBe(0);
-    });
-
-    it('should handle empty volunteerId', async () => {
-      const volunteerId = '';
-
-      mockCollection.updateMany = jest.fn().mockResolvedValue({
-        modifiedCount: 0,
-      });
-
-      const result = await repository.removeVolunteerEverywhere(volunteerId);
-
-      expect(mockCollection.updateMany).toHaveBeenCalledWith({}, expect.any(Array));
-      expect(result).toBe(0);
-    });
-
-    it('should handle null volunteerId', async () => {
-      const volunteerId = null;
-
-      mockCollection.updateMany = jest.fn().mockResolvedValue({
-        modifiedCount: 0,
-      });
-
-      const result = await repository.removeVolunteerEverywhere(volunteerId);
-
-      expect(mockCollection.updateMany).toHaveBeenCalledWith({}, expect.any(Array));
-      expect(result).toBe(0);
-    });
-
-    it('should handle undefined volunteerId', async () => {
-      const volunteerId = undefined;
-
-      mockCollection.updateMany = jest.fn().mockResolvedValue({
-        modifiedCount: 0,
-      });
-
-      const result = await repository.removeVolunteerEverywhere(volunteerId);
-
-      expect(mockCollection.updateMany).toHaveBeenCalledWith({}, expect.any(Array));
-      expect(result).toBe(0);
-    });
-
-    it('should throw error when updateMany fails', async () => {
-      const volunteerId = 'volunteer-789';
-      const error = new Error('Database connection failed');
-
-      mockCollection.updateMany = jest.fn().mockRejectedValue(error);
-
-      await expect(repository.removeVolunteerEverywhere(volunteerId)).rejects.toThrow(
-        'Database connection failed',
+      expect(mockCollection.updateOne).toHaveBeenCalledWith(
+        { _id: new ObjectId(id) },
+        { $pull: { volunteersWaiting: { id: volunteerId } } },
+        { session },
       );
     });
   });
 
   describe('removeParticipantEverywhere', () => {
-    it('should call updateMany with correct pipeline and return modified count', async () => {
-      const participantId = 'participant-123';
-      const expectedModifiedCount = 2;
+    it('should remove participant from all announcements', async () => {
+      const participantId = 'part-123';
 
-      mockCollection.updateMany = jest.fn().mockResolvedValue({
-        modifiedCount: expectedModifiedCount,
-      });
+      mockCollection.updateMany = jest.fn().mockResolvedValue({ modifiedCount: 2 });
 
       const result = await repository.removeParticipantEverywhere(participantId);
 
+      expect(result).toBe(2);
       expect(mockCollection.updateMany).toHaveBeenCalledWith({}, [
         {
           $set: {
@@ -219,119 +221,6 @@ describe('AnnouncementRepository', () => {
           $unset: 'hadInParticipants',
         },
       ]);
-      expect(result).toBe(expectedModifiedCount);
-    });
-
-    it('should return 0 when no documents are modified', async () => {
-      const participantId = 'participant-456';
-
-      mockCollection.updateMany = jest.fn().mockResolvedValue({
-        modifiedCount: 0,
-      });
-
-      const result = await repository.removeParticipantEverywhere(participantId);
-
-      expect(mockCollection.updateMany).toHaveBeenCalledWith({}, expect.any(Array));
-      expect(result).toBe(0);
-    });
-
-    it('should handle empty participantId', async () => {
-      const participantId = '';
-
-      mockCollection.updateMany = jest.fn().mockResolvedValue({
-        modifiedCount: 0,
-      });
-
-      const result = await repository.removeParticipantEverywhere(participantId);
-
-      expect(mockCollection.updateMany).toHaveBeenCalledWith({}, expect.any(Array));
-      expect(result).toBe(0);
-    });
-
-    it('should handle null participantId', async () => {
-      const participantId = null;
-
-      mockCollection.updateMany = jest.fn().mockResolvedValue({
-        modifiedCount: 0,
-      });
-
-      const result = await repository.removeParticipantEverywhere(participantId);
-
-      expect(mockCollection.updateMany).toHaveBeenCalledWith({}, expect.any(Array));
-      expect(result).toBe(0);
-    });
-
-    it('should handle undefined participantId', async () => {
-      const participantId = undefined;
-
-      mockCollection.updateMany = jest.fn().mockResolvedValue({
-        modifiedCount: 0,
-      });
-
-      const result = await repository.removeParticipantEverywhere(participantId);
-
-      expect(mockCollection.updateMany).toHaveBeenCalledWith({}, expect.any(Array));
-      expect(result).toBe(0);
-    });
-
-    it('should throw error when updateMany fails', async () => {
-      const participantId = 'participant-789';
-      const error = new Error('Database connection failed');
-
-      mockCollection.updateMany = jest.fn().mockRejectedValue(error);
-
-      await expect(repository.removeParticipantEverywhere(participantId)).rejects.toThrow(
-        'Database connection failed',
-      );
-    });
-  });
-
-  describe('Integration tests for both methods', () => {
-    it('should handle multiple calls to removeVolunteerEverywhere', async () => {
-      const volunteerIds = ['vol-1', 'vol-2', 'vol-3'];
-
-      mockCollection.updateMany = jest.fn().mockResolvedValue({
-        modifiedCount: 1,
-      });
-
-      const results = await Promise.all(
-        volunteerIds.map(id => repository.removeVolunteerEverywhere(id)),
-      );
-
-      expect(mockCollection.updateMany).toHaveBeenCalledTimes(3);
-      expect(results).toEqual([1, 1, 1]);
-    });
-
-    it('should handle multiple calls to removeParticipantEverywhere', async () => {
-      const participantIds = ['part-1', 'part-2', 'part-3'];
-
-      mockCollection.updateMany = jest.fn().mockResolvedValue({
-        modifiedCount: 1,
-      });
-
-      const results = await Promise.all(
-        participantIds.map(id => repository.removeParticipantEverywhere(id)),
-      );
-
-      expect(mockCollection.updateMany).toHaveBeenCalledTimes(3);
-      expect(results).toEqual([1, 1, 1]);
-    });
-
-    it('should handle mixed calls to both methods', async () => {
-      const volunteerId = 'vol-mixed';
-      const participantId = 'part-mixed';
-
-      mockCollection.updateMany = jest
-        .fn()
-        .mockResolvedValueOnce({ modifiedCount: 2 })
-        .mockResolvedValueOnce({ modifiedCount: 1 });
-
-      const volunteerResult = await repository.removeVolunteerEverywhere(volunteerId);
-      const participantResult = await repository.removeParticipantEverywhere(participantId);
-
-      expect(mockCollection.updateMany).toHaveBeenCalledTimes(2);
-      expect(volunteerResult).toBe(2);
-      expect(participantResult).toBe(1);
     });
   });
 
@@ -565,41 +454,6 @@ describe('AnnouncementRepository', () => {
     });
   });
 
-  describe('removeVolunteerWaiting', () => {
-    it('should remove volunteer from waiting list', async () => {
-      const announcementId = '507f1f77bcf86cd799439011';
-      const volunteerId = 'vol-123';
-
-      mockCollection.updateOne = jest.fn().mockResolvedValue({ modifiedCount: 1 });
-
-      await repository.removeVolunteerWaiting(announcementId, volunteerId);
-
-      expect(mockCollection.updateOne).toHaveBeenCalledWith(
-        { _id: expect.any(Object) },
-        { $pull: { volunteersWaiting: { id: volunteerId } } },
-        undefined,
-      );
-    });
-
-    it('should remove volunteer from waiting list with session', async () => {
-      const announcementId = '507f1f77bcf86cd799439011';
-      const volunteerId = 'vol-123';
-      const mockSession = {} as ClientSession;
-
-      mockCollection.updateOne = jest.fn().mockResolvedValue({ modifiedCount: 1 });
-
-      await repository.removeVolunteerWaiting(announcementId, volunteerId, {
-        session: mockSession,
-      });
-
-      expect(mockCollection.updateOne).toHaveBeenCalledWith(
-        { _id: expect.any(Object) },
-        { $pull: { volunteersWaiting: { id: volunteerId } } },
-        { session: mockSession },
-      );
-    });
-  });
-
   describe('removeVolunteer', () => {
     it('should remove volunteer and update nbVolunteers', async () => {
       const announcementId = '507f1f77bcf86cd799439011';
@@ -618,93 +472,103 @@ describe('AnnouncementRepository', () => {
   });
 
   describe('removeParticipant', () => {
-    it('should remove participant and update nbParticipants', async () => {
-      const announcementId = '507f1f77bcf86cd799439011';
+    it('should remove participant from announcement', async () => {
+      const id = '507f1f77bcf86cd799439011';
       const participantId = 'part-123';
-      const nbParticipants = 10;
+      const nbParticipants = 1;
 
       mockCollection.updateOne = jest.fn().mockResolvedValue({ modifiedCount: 1 });
 
-      await repository.removeParticipant(announcementId, participantId, nbParticipants);
+      await repository.removeParticipant(id, participantId, nbParticipants);
 
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
-        { _id: expect.any(Object) },
-        { $pull: { participants: { id: participantId } }, $set: { nbParticipants } },
+        { _id: new ObjectId(id) },
+        {
+          $pull: { participants: { id: participantId } },
+          $set: { nbParticipants },
+        },
       );
     });
   });
 
   describe('updateStatus', () => {
-    it('should update announcement status and return updated announcement', async () => {
-      const announcementId = '507f1f77bcf86cd799439011';
-      const status = AnnouncementStatus.COMPLETED;
-      const mockAnnouncement = { _id: announcementId, status };
+    it('should update announcement status', async () => {
+      const id = '507f1f77bcf86cd799439011';
+      const status = AnnouncementStatus.ACTIVE;
+      const mockAnnouncement = { _id: id, status };
 
       mockCollection.updateOne = jest.fn().mockResolvedValue({ modifiedCount: 1 });
       mockCollection.findOne = jest.fn().mockResolvedValue(mockAnnouncement);
 
-      const result = await repository.updateStatus(announcementId, status);
+      const result = await repository.updateStatus(id, status);
 
+      expect(result).toEqual(mockAnnouncement);
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
-        { _id: expect.any(Object) },
+        { _id: new ObjectId(id) },
         { $set: { status } },
       );
-      expect(mockCollection.findOne).toHaveBeenCalledWith({ _id: expect.any(Object) });
-      expect(result).toEqual(mockAnnouncement);
-    });
-
-    it('should handle invalid ObjectId in updateStatus', async () => {
-      const invalidId = 'invalid-id';
-      const status = AnnouncementStatus.COMPLETED;
-
-      await expect(repository.updateStatus(invalidId, status)).rejects.toThrow('Invalid ObjectId');
+      expect(mockCollection.findOne).toHaveBeenCalledWith({ _id: new ObjectId(id) });
     });
   });
 
   describe('update', () => {
-    it('should update announcement with data and updatedAt', async () => {
-      const announcementId = '507f1f77bcf86cd799439011';
-      const updateData = { nameEvent: 'Updated Event', description: 'Updated Description' };
-
-      mockCollection.updateOne = jest.fn().mockResolvedValue({ modifiedCount: 1 });
-
-      await repository.update(announcementId, updateData);
-
-      expect(mockCollection.updateOne).toHaveBeenCalledWith(
-        { _id: expect.any(Object) },
-        {
-          $set: {
-            ...updateData,
-            updatedAt: expect.any(Date),
-          },
-        },
-      );
-    });
-
-    it('should handle empty update data', async () => {
-      const announcementId = '507f1f77bcf86cd799439011';
-      const updateData = {};
-
-      mockCollection.updateOne = jest.fn().mockResolvedValue({ modifiedCount: 1 });
-
-      await repository.update(announcementId, updateData);
-
-      expect(mockCollection.updateOne).toHaveBeenCalledWith(
-        { _id: expect.any(Object) },
-        {
-          $set: {
-            ...updateData,
-            updatedAt: expect.any(Date),
-          },
-        },
-      );
-    });
-
-    it('should handle invalid ObjectId in update', async () => {
-      const invalidId = 'invalid-id';
+    it('should update announcement with provided data', async () => {
+      const id = '507f1f77bcf86cd799439011';
       const updateData = { nameEvent: 'Updated Event' };
 
-      await expect(repository.update(invalidId, updateData)).rejects.toThrow('Invalid ObjectId');
+      mockCollection.updateOne = jest.fn().mockResolvedValue({ modifiedCount: 1 });
+
+      await repository.update(id, updateData);
+
+      expect(mockCollection.updateOne).toHaveBeenCalledWith(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            ...updateData,
+            updatedAt: expect.any(Date),
+          },
+        },
+      );
+    });
+  });
+
+  describe('removeVolunteer', () => {
+    it('should remove volunteer from announcement', async () => {
+      const id = '507f1f77bcf86cd799439011';
+      const volunteerId = 'vol-123';
+      const nbVolunteers = 2;
+
+      mockCollection.updateOne = jest.fn().mockResolvedValue({ modifiedCount: 1 });
+
+      await repository.removeVolunteer(id, volunteerId, nbVolunteers);
+
+      expect(mockCollection.updateOne).toHaveBeenCalledWith(
+        { _id: new ObjectId(id) },
+        {
+          $pull: { volunteers: { id: volunteerId } },
+          $set: { nbVolunteers },
+        },
+      );
+    });
+  });
+
+  describe('removeParticipant', () => {
+    it('should remove participant from announcement', async () => {
+      const id = '507f1f77bcf86cd799439011';
+      const participantId = 'part-123';
+      const nbParticipants = 1;
+
+      mockCollection.updateOne = jest.fn().mockResolvedValue({ modifiedCount: 1 });
+
+      await repository.removeParticipant(id, participantId, nbParticipants);
+
+      expect(mockCollection.updateOne).toHaveBeenCalledWith(
+        { _id: new ObjectId(id) },
+        {
+          $pull: { participants: { id: participantId } },
+          $set: { nbParticipants },
+        },
+      );
     });
   });
 
@@ -952,6 +816,342 @@ describe('AnnouncementRepository', () => {
       expect(result.meta.limit).toBe(2);
       expect(result.meta.total).toBe(2);
       expect(result.meta.pages).toBe(1);
+    });
+  });
+
+  describe('filterAssociationAnnouncements', () => {
+    it('should return filtered announcements for association', async () => {
+      const filterDto: FilterAssociationAnnouncementDto = {
+        associationId: 'assoc-123',
+        nameEvent: 'Test Event',
+        status: 'ACTIVE',
+        page: 1,
+        limit: 10,
+      };
+
+      const mockResult = [
+        {
+          docs: [mockAnnouncements[0], mockAnnouncements[1]],
+          meta: [{ total: 2 }],
+          total: 2,
+        },
+      ];
+
+      mockCollection.aggregate = jest.fn().mockReturnValue({
+        toArray: jest.fn().mockResolvedValue(mockResult),
+      });
+
+      const result = await repository.filterAssociationAnnouncements(filterDto);
+
+      expect(mockCollection.aggregate).toHaveBeenCalledWith(expect.any(Array));
+      expect(result).toEqual({
+        annonces: [mockAnnouncements[0], mockAnnouncements[1]],
+        meta: { page: 1, limit: 10, total: 2, pages: 1 },
+      });
+    });
+
+    it('should handle empty results for association', async () => {
+      const filterDto: FilterAssociationAnnouncementDto = {
+        associationId: 'assoc-456',
+        page: 1,
+        limit: 10,
+      };
+
+      const mockResult = [{ docs: [], meta: [{ total: 0 }], total: 0 }];
+
+      mockCollection.aggregate = jest.fn().mockReturnValue({
+        toArray: jest.fn().mockResolvedValue(mockResult),
+      });
+
+      const result = await repository.filterAssociationAnnouncements(filterDto);
+
+      expect(mockCollection.aggregate).toHaveBeenCalledWith(expect.any(Array));
+      expect(result.annonces).toEqual([]);
+      expect(result.meta.total).toBe(0);
+    });
+
+    it('should handle stateEvent filter PAST', async () => {
+      const filterDto: FilterAssociationAnnouncementDto = {
+        associationId: 'assoc-123',
+        stateEvent: 'PAST',
+        page: 1,
+        limit: 10,
+      };
+
+      const mockResult = [{ docs: [mockAnnouncements[0]], meta: [{ total: 1 }], total: 1 }];
+
+      mockCollection.aggregate = jest.fn().mockReturnValue({
+        toArray: jest.fn().mockResolvedValue(mockResult),
+      });
+
+      const result = await repository.filterAssociationAnnouncements(filterDto);
+
+      expect(mockCollection.aggregate).toHaveBeenCalledWith(expect.any(Array));
+      expect(result.annonces.length).toBe(1);
+    });
+
+    it('should handle stateEvent filter UPCOMING', async () => {
+      const filterDto: FilterAssociationAnnouncementDto = {
+        associationId: 'assoc-123',
+        stateEvent: 'UPCOMING',
+        page: 1,
+        limit: 10,
+      };
+
+      const mockResult = [{ docs: [mockAnnouncements[1]], meta: [{ total: 1 }], total: 1 }];
+
+      mockCollection.aggregate = jest.fn().mockReturnValue({
+        toArray: jest.fn().mockResolvedValue(mockResult),
+      });
+
+      const result = await repository.filterAssociationAnnouncements(filterDto);
+
+      expect(mockCollection.aggregate).toHaveBeenCalledWith(expect.any(Array));
+      expect(result.annonces.length).toBe(1);
+    });
+
+    it('should handle stateEvent filter NOW', async () => {
+      const filterDto: FilterAssociationAnnouncementDto = {
+        associationId: 'assoc-123',
+        stateEvent: 'NOW',
+        page: 1,
+        limit: 10,
+      };
+
+      const mockResult = [{ docs: [mockAnnouncements[2]], meta: [{ total: 1 }], total: 1 }];
+
+      mockCollection.aggregate = jest.fn().mockReturnValue({
+        toArray: jest.fn().mockResolvedValue(mockResult),
+      });
+
+      const result = await repository.filterAssociationAnnouncements(filterDto);
+
+      expect(mockCollection.aggregate).toHaveBeenCalledWith(expect.any(Array));
+      expect(result.annonces.length).toBe(1);
+    });
+  });
+
+  describe('findVolunteerInAnnouncementByVolunteerId', () => {
+    it('should return announcements where volunteer is registered', async () => {
+      const volunteerId = 'vol-123';
+      const mockAnnouncements = [
+        {
+          _id: 'ann-1',
+          volunteers: [{ id: volunteerId }],
+          dateEvent: '2024-02-15',
+          hoursEvent: '14:00',
+          status: 'ACTIVE',
+        },
+        {
+          _id: 'ann-2',
+          volunteersWaiting: [{ id: volunteerId }],
+          dateEvent: '2024-02-16',
+          hoursEvent: '15:00',
+          status: 'ACTIVE',
+        },
+      ];
+
+      mockCollection.find = jest.fn().mockReturnValue({
+        toArray: jest.fn().mockResolvedValue(mockAnnouncements),
+      });
+
+      const result = await repository.findVolunteerInAnnouncementByVolunteerId(volunteerId);
+
+      expect(mockCollection.find).toHaveBeenCalledWith({
+        $and: [
+          {
+            $or: [{ 'volunteers.id': volunteerId }, { 'volunteersWaiting.id': volunteerId }],
+          },
+          {
+            $or: [
+              { dateEvent: { $gt: '2024-01-15' } },
+              {
+                dateEvent: '2024-01-15',
+                hoursEvent: { $gte: '10:00' },
+              },
+            ],
+          },
+          { status: { $ne: 'INACTIVE' } },
+        ],
+      });
+      expect(result).toEqual(mockAnnouncements);
+    });
+
+    it('should return empty array when volunteer not found', async () => {
+      const volunteerId = 'vol-456';
+
+      mockCollection.find = jest.fn().mockReturnValue({
+        toArray: jest.fn().mockResolvedValue([]),
+      });
+
+      const result = await repository.findVolunteerInAnnouncementByVolunteerId(volunteerId);
+
+      expect(mockCollection.find).toHaveBeenCalledWith({
+        $and: [
+          {
+            $or: [{ 'volunteers.id': volunteerId }, { 'volunteersWaiting.id': volunteerId }],
+          },
+          {
+            $or: [
+              { dateEvent: { $gt: '2024-01-15' } },
+              {
+                dateEvent: '2024-01-15',
+                hoursEvent: { $gte: '10:00' },
+              },
+            ],
+          },
+          { status: { $ne: 'INACTIVE' } },
+        ],
+      });
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('findPastAnnouncementsByParticipantId', () => {
+    it('should return past announcements for a participant', async () => {
+      const participantId = 'part-123';
+      const mockAnnouncements = [
+        {
+          _id: 'ann-1',
+          dateEvent: '2024-01-10',
+          hoursEvent: '09:00',
+          participants: [{ id: participantId }],
+          status: 'ACTIVE',
+        },
+        {
+          _id: 'ann-2',
+          dateEvent: '2024-01-14',
+          hoursEvent: '08:00',
+          volunteers: [{ id: participantId }],
+          status: 'ACTIVE',
+        },
+      ];
+
+      mockCollection.find = jest.fn().mockReturnValue({
+        toArray: jest.fn().mockResolvedValue(mockAnnouncements),
+      });
+
+      const result = await repository.findPastAnnouncementsByParticipantId(participantId);
+
+      expect(mockCollection.find).toHaveBeenCalledWith({
+        $and: [
+          {
+            $or: [{ 'participants.id': participantId }, { 'volunteers.id': participantId }],
+          },
+          {
+            $or: [
+              { dateEvent: { $lt: '2024-01-15' } },
+              {
+                dateEvent: '2024-01-15',
+                hoursEvent: { $lte: '10:00' },
+              },
+            ],
+          },
+          { status: { $ne: 'INACTIVE' } },
+        ],
+      });
+      expect(result).toEqual(mockAnnouncements);
+    });
+
+    it('should return empty array when no past announcements found', async () => {
+      const participantId = 'part-456';
+
+      mockCollection.find = jest.fn().mockReturnValue({
+        toArray: jest.fn().mockResolvedValue([]),
+      });
+
+      const result = await repository.findPastAnnouncementsByParticipantId(participantId);
+
+      expect(mockCollection.find).toHaveBeenCalledWith({
+        $and: [
+          {
+            $or: [{ 'participants.id': participantId }, { 'volunteers.id': participantId }],
+          },
+          {
+            $or: [
+              { dateEvent: { $lt: '2024-01-15' } },
+              {
+                dateEvent: '2024-01-15',
+                hoursEvent: { $lte: '10:00' },
+              },
+            ],
+          },
+          { status: { $ne: 'INACTIVE' } },
+        ],
+      });
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('findParticipantInParticipantsByParticipantId', () => {
+    it('should return future announcements for a participant', async () => {
+      const participantId = 'part-123';
+      const mockAnnouncements = [
+        {
+          _id: 'ann-1',
+          dateEvent: '2024-02-15',
+          hoursEvent: '14:00',
+          participants: [{ id: participantId }],
+          status: 'ACTIVE',
+        },
+        {
+          _id: 'ann-2',
+          dateEvent: '2024-02-16',
+          hoursEvent: '15:00',
+          participants: [{ id: participantId }],
+          status: 'ACTIVE',
+        },
+      ];
+
+      mockCollection.find = jest.fn().mockReturnValue({
+        toArray: jest.fn().mockResolvedValue(mockAnnouncements),
+      });
+
+      const result = await repository.findParticipantInParticipantsByParticipantId(participantId);
+
+      expect(mockCollection.find).toHaveBeenCalledWith({
+        $and: [
+          { 'participants.id': participantId },
+          {
+            $or: [
+              { dateEvent: { $gt: '2024-01-15' } },
+              {
+                dateEvent: '2024-01-15',
+                hoursEvent: { $gte: '10:00' },
+              },
+            ],
+          },
+          { status: { $ne: 'INACTIVE' } },
+        ],
+      });
+      expect(result).toEqual(mockAnnouncements);
+    });
+
+    it('should return empty array when no future announcements found for participant', async () => {
+      const participantId = 'part-456';
+
+      mockCollection.find = jest.fn().mockReturnValue({
+        toArray: jest.fn().mockResolvedValue([]),
+      });
+
+      const result = await repository.findParticipantInParticipantsByParticipantId(participantId);
+
+      expect(mockCollection.find).toHaveBeenCalledWith({
+        $and: [
+          { 'participants.id': participantId },
+          {
+            $or: [
+              { dateEvent: { $gt: '2024-01-15' } },
+              {
+                dateEvent: '2024-01-15',
+                hoursEvent: { $gte: '10:00' },
+              },
+            ],
+          },
+          { status: { $ne: 'INACTIVE' } },
+        ],
+      });
+      expect(result).toEqual([]);
     });
   });
 });

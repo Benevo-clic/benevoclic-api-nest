@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 export const sampleAnnouncements = [
   {
     _id: new ObjectId('687aa7e85cb7bfff2aa313d1'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Rejoignez-nous pour nettoyer le parc.',
     datePublication: '2025-07-01',
     dateEvent: '2025-07-21',
@@ -35,7 +35,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7e95cb7bfff2aa313d2'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Aidez-nous à distribuer des repas.',
     datePublication: '2025-07-02',
     dateEvent: '2025-07-22',
@@ -67,7 +67,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7ea5cb7bfff2aa313d3'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Participez à notre atelier de jardinage.',
     datePublication: '2025-07-03',
     dateEvent: '2025-07-23',
@@ -99,7 +99,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7eb5cb7bfff2aa313d4'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Donnez vos vêtements inutilisés.',
     datePublication: '2025-07-04',
     dateEvent: '2025-07-24',
@@ -131,7 +131,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7ec5cb7bfff2aa313d5'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Sensibilisation au tri des déchets.',
     datePublication: '2025-07-05',
     dateEvent: '2025-07-25',
@@ -163,7 +163,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7ed5cb7bfff2aa313d6'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Visite guidée du musée local.',
     datePublication: '2025-07-06',
     dateEvent: '2025-07-26',
@@ -195,7 +195,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7ee5cb7bfff2aa313d7'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Découverte de sports collectifs.',
     datePublication: '2025-07-07',
     dateEvent: '2025-07-27',
@@ -227,7 +227,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7ef5cb7bfff2aa313d8'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Atelier de peinture en plein air.',
     datePublication: '2025-07-08',
     dateEvent: '2025-07-28',
@@ -259,7 +259,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7f05cb7bfff2aa313d9'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Participez à la collecte de livres.',
     datePublication: '2025-07-09',
     dateEvent: '2025-07-29',
@@ -291,7 +291,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7f15cb7bfff2aa313da'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Aide bénévole aux devoirs.',
     datePublication: '2025-07-10',
     dateEvent: '2025-07-30',
@@ -323,7 +323,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7f25cb7bfff2aa313db'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Tournoi caritatif de football.',
     datePublication: '2025-07-11',
     dateEvent: '2025-07-31',
@@ -355,7 +355,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7f35cb7bfff2aa313dc'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Course solidaire pour la santé.',
     datePublication: '2025-07-12',
     dateEvent: '2025-08-01',
@@ -387,7 +387,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7f45cb7bfff2aa313dd'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Projection en plein air gratuite.',
     datePublication: '2025-07-13',
     dateEvent: '2025-08-02',
@@ -419,7 +419,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7f55cb7bfff2aa313de'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Atelier de conversation en anglais.',
     datePublication: '2025-07-14',
     dateEvent: '2025-08-03',
@@ -451,7 +451,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7f65cb7bfff2aa313df'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Chorale ouverte à tous.',
     datePublication: '2025-07-15',
     dateEvent: '2025-08-04',
@@ -483,7 +483,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7f75cb7bfff2aa313e0'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Atelier de réparation de vélos.',
     datePublication: '2025-07-16',
     dateEvent: '2025-08-05',
@@ -515,7 +515,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7f85cb7bfff2aa313e1'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Atelier bricolage solidaire.',
     datePublication: '2025-07-17',
     dateEvent: '2025-08-06',
@@ -547,7 +547,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7f95cb7bfff2aa313e2'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Nettoyage des berges de la rivière.',
     datePublication: '2025-07-18',
     dateEvent: '2025-08-07',
@@ -579,7 +579,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7fa5cb7bfff2aa313e3'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Jardinage au jardin partagé.',
     datePublication: '2025-07-19',
     dateEvent: '2025-08-08',
@@ -611,7 +611,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687aa7fb5cb7bfff2aa313e4'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: "Initiation à l'informatique.",
     datePublication: '2025-07-20',
     dateEvent: '2025-08-09',
@@ -643,7 +643,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687ab0a15cb7bfff2aa31401'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Atelier découverte JavaScript pour débutants.',
     datePublication: '2025-07-22',
     dateEvent: '2025-08-10',
@@ -675,7 +675,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687ab0a25cb7bfff2aa31402'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Initiation à Python et automatisation.',
     datePublication: '2025-07-23',
     dateEvent: '2025-08-11',
@@ -707,7 +707,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687ab0a35cb7bfff2aa31403'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Workshop Node.js & API REST.',
     datePublication: '2025-07-24',
     dateEvent: '2025-08-12',
@@ -739,7 +739,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687ab0a45cb7bfff2aa31404'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Introduction à React et création de composants.',
     datePublication: '2025-07-25',
     dateEvent: '2025-08-13',
@@ -771,7 +771,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687ab0015cb7bfff2aa313f1'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: "Atelier d'initiation au jardinage urbain.",
     datePublication: '2025-07-21',
     dateEvent: '2025-07-28',
@@ -803,7 +803,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687ab0025cb7bfff2aa313f2'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Collecte de déchets autour du Vieux-Lille.',
     datePublication: '2025-07-22',
     dateEvent: '2025-07-29',
@@ -835,7 +835,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687ab0035cb7bfff2aa313f3'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Distribution de repas solidaires près de la gare.',
     datePublication: '2025-07-23',
     dateEvent: '2025-07-30',
@@ -867,7 +867,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687ab0045cb7bfff2aa313f4'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Atelier de réparation de vélos communautaire.',
     datePublication: '2025-07-24',
     dateEvent: '2025-08-01',
@@ -899,7 +899,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687ab0055cb7bfff2aa313f5'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Atelier couture pour vêtements recyclés.',
     datePublication: '2025-07-25',
     dateEvent: '2025-08-02',
@@ -931,7 +931,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687ab0065cb7bfff2aa313f6'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Projection de film en plein air.',
     datePublication: '2025-07-26',
     dateEvent: '2025-08-03',
@@ -963,7 +963,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687ab0075cb7bfff2aa313f7'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Atelier de poterie solidaire.',
     datePublication: '2025-07-27',
     dateEvent: '2025-08-04',
@@ -995,7 +995,7 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687ab0085cb7bfff2aa313f8'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Randonnée urbaine solidaire.',
     datePublication: '2025-07-28',
     dateEvent: '2025-08-05',
@@ -1027,13 +1027,13 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687ab0095cb7bfff2aa313f9'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: 'Atelier de recyclage créatif pour enfants.',
     datePublication: '2025-07-29',
     dateEvent: '2025-08-06',
     hoursEvent: '14:00',
     nameEvent: 'Créa-recyclage',
-    tags: ['éducation', 'environnement'],
+    tags: ['éducation', 'environnement', 'Formation'],
     associationName: 'benevoclic',
     associationLogo: '',
     announcementImage: '',
@@ -1059,10 +1059,10 @@ export const sampleAnnouncements = [
   },
   {
     _id: new ObjectId('687ab00a5cb7bfff2aa313fa'),
-    associationId: 'JUAlXG81OoTF4p8kNU0NvwMWzyz2',
+    associationId: '3ejhHB8474an36C7RoeZbygYqa23',
     description: "Distribution de kits d'hygiène aux sans-abri.",
     datePublication: '2025-07-30',
-    dateEvent: '2025-08-07',
+    dateEvent: '2025-07-07',
     hoursEvent: '11:30',
     nameEvent: "Kits d'hygiène solidaires",
     tags: ['solidarité', 'santé'],
