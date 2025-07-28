@@ -9,7 +9,6 @@ import {
   UsePipes,
   ValidationPipe,
   UseGuards,
-  Query,
   Request,
   UseInterceptors,
   UploadedFile,
@@ -96,7 +95,7 @@ export class UserController {
 
   @Public()
   @Post('refresh-auth')
-  refreshAuth(@Query('refreshToken') refreshToken: string) {
+  refreshAuth(@Body('refreshToken') refreshToken: string) {
     return this.userService.refreshAuthToken(refreshToken);
   }
 
