@@ -96,6 +96,9 @@ export class UserController {
   @Public()
   @Post('refresh')
   refreshAuth(@Body() body: { refreshToken: string }) {
+    if (!body || !body.refreshToken) {
+      throw new Error('Refresh token is not provided');
+    }
     return this.userService.refreshAuthToken(body.refreshToken);
   }
 
