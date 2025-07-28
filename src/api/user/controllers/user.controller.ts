@@ -94,9 +94,9 @@ export class UserController {
   }
 
   @Public()
-  @Post('refresh-auth')
-  refreshAuth(@Body('refreshToken') refreshToken: string) {
-    return this.userService.refreshAuthToken(refreshToken);
+  @Post('refresh')
+  refreshAuth(@Body('refreshToken') refreshToken: { refreshToken: string }) {
+    return this.userService.refreshAuthToken(refreshToken.refreshToken);
   }
 
   @Public()
