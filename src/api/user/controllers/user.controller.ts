@@ -93,6 +93,7 @@ export class UserController {
     }
   }
 
+  @Public()
   @Post('refresh')
   refreshAuth(@Body() body: { refreshToken: string }) {
     return this.userService.refreshAuthToken(body.refreshToken);
