@@ -147,6 +147,15 @@ export class UserService {
       if (!userRecord) {
         throw new NotFoundException('User not found');
       }
+      const existingUser = await this.userRepository.findByEmail(userRecord.email);
+      if (existingUser) {
+        this.logger.warn(`User already exists: ${userRecord.email}`);
+        return {
+          idUser: userRecord.uid,
+          token: await this.firebaseInstance.getToken(userRecord.uid),
+          expiresIn: 3600,
+        };
+      }
       await this.firebaseInstance.setCustomUserClaims(userRecord.uid, { role: registerUser.role });
       const customToken = await this.firebaseInstance.getToken(userRecord.uid);
       await this.userRepository.create({
@@ -185,6 +194,13 @@ export class UserService {
       if (!userRecord) {
         throw new NotFoundException('User not found');
       }
+      const existingUser = await this.userRepository.findByEmail(userRecord.email);
+      if (existingUser) {
+        this.logger.warn(`User already exists: ${userRecord.email}`);
+        return {
+          uid: userRecord.uid,
+        };
+      }
       await this.setUserRole(userRecord.uid, registerUser.role);
       await this.userRepository.create({
         _id: userRecord.uid,
@@ -215,7 +231,9 @@ export class UserService {
     try {
       const existingUser = await this.userRepository.findByEmail(registerUser.email);
       if (existingUser) {
-        throw new BadRequestException('Email already exists');
+        return {
+          uid: existingUser.userId,
+        };
       }
 
       const userRecord = await this.registerUserInFirebase(registerUser);
