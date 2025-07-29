@@ -432,7 +432,6 @@ export class UserService {
   private async signInWithEmailAndPassword(email: string, password: string) {
     try {
       this.logger.log(`Tentative de connexion avec email: ${email}`);
-      this.logger.debug('FIREBASE_API_URL:', process.env.FIREBASE_API_KEY);
       this.logger.log('voici la key', AuthConfig.apiKey);
       if (!AuthConfig.apiKey) {
         this.logger.error('Clé API Firebase manquante dans AuthConfig');
@@ -464,8 +463,17 @@ export class UserService {
       });
       return response.data;
     } catch (error) {
-      this.logger.error('Erreur lors de la requête HTTP', error.stack);
-      throw new InternalServerErrorException('Erreur lors de la requête HTTP');
+      if (axios.isAxiosError(error)) {
+        const firebaseError = error.response?.data?.error;
+        this.logger.error(
+          `Erreur Firebase [${firebaseError?.code} - ${firebaseError?.message}]`,
+          JSON.stringify(firebaseError, null, 2),
+        );
+        throw new InternalServerErrorException(firebaseError?.message || 'Erreur Firebase');
+      } else {
+        this.logger.error('Erreur inconnue', error.stack);
+        throw new InternalServerErrorException('Erreur inconnue');
+      }
     }
   }
 
