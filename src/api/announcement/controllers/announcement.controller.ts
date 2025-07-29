@@ -52,7 +52,7 @@ export class AnnouncementController {
   constructor(private readonly service: AnnouncementService) {}
 
   @Public()
-  @Get()
+  @Get('allAnnouncements')
   @ApiOperation({ summary: 'Récupérer toutes les annonces' })
   @ApiResponse({
     status: 200,
@@ -96,7 +96,7 @@ export class AnnouncementController {
     }
   }
 
-  @Post()
+  @Post('createAnnouncement')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
@@ -118,7 +118,7 @@ export class AnnouncementController {
   }
 
   @Public()
-  @Post('filter')
+  @Post('filter/announcements')
   async filterAnnouncementsAggregation(
     @Body(new ValidationPipe({ transform: true, whitelist: true }))
     filterDto: FilterAnnouncementDto,
@@ -218,7 +218,7 @@ export class AnnouncementController {
     }
   }
 
-  @Get('past/participant/:volunteerId')
+  @Get('participant/past/:volunteerId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER, UserRole.ADMIN)
   @ApiBearerAuth()
@@ -345,7 +345,7 @@ export class AnnouncementController {
     }
   }
 
-  @Patch('/register/volunteer/:announcementId')
+  @Patch('volunteer/register/:announcementId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER, UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiBearerAuth()
@@ -377,7 +377,7 @@ export class AnnouncementController {
     }
   }
 
-  @Patch('/register/volunteerWaiting/:announcementId')
+  @Patch('volunteerWaiting/register/:announcementId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER)
   @ApiBearerAuth()
@@ -408,7 +408,7 @@ export class AnnouncementController {
     }
   }
 
-  @Patch('/presence/volunteer/:announcementId')
+  @Patch('volunteer/presence/:announcementId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER, UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiBearerAuth()
@@ -442,7 +442,7 @@ export class AnnouncementController {
     }
   }
 
-  @Patch('/presence/participant/:announcementId')
+  @Patch('participant/presence/:announcementId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER, UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiBearerAuth()
@@ -476,7 +476,7 @@ export class AnnouncementController {
     }
   }
 
-  @Patch('/register/participant/:announcementId')
+  @Patch('participant/register/:announcementId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER)
   @ApiBearerAuth()
@@ -510,7 +510,7 @@ export class AnnouncementController {
     }
   }
 
-  @Patch('/unregister/volunteer/:volunteer/:announcementId')
+  @Patch('volunteer/unregister/:volunteer/:announcementId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER, UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiBearerAuth()
@@ -540,7 +540,7 @@ export class AnnouncementController {
     }
   }
 
-  @Patch('/unregister/participant/:participant/:announcementId')
+  @Patch('/participant/unregister/:participant/:announcementId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER, UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiOperation({ summary: 'Désinscrire un participant d’une annonce' })
@@ -569,7 +569,7 @@ export class AnnouncementController {
     }
   }
 
-  @Patch('/unregister/volunteerWaiting/:volunteer/:announcementId')
+  @Patch('/volunteerWaiting/unregister/:volunteer/:announcementId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER, UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiBearerAuth()
@@ -599,7 +599,7 @@ export class AnnouncementController {
     }
   }
 
-  @Patch('/cover-announcement/:id')
+  @Patch('/coverAnnouncement/:id')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()

@@ -6,7 +6,6 @@ import { UserRole } from '../../../common/enums/roles.enum';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { CreateFavoritesAnnouncementDto } from '../dto/create-favorites-announcement.dto';
 import { Announcement } from '../../announcement/entities/announcement.entity';
-
 @Controller('favorites-announcement')
 export class FavoritesAnnouncementController {
   private readonly logger = new Logger(FavoritesAnnouncementController.name);
@@ -29,7 +28,7 @@ export class FavoritesAnnouncementController {
     }
   }
 
-  @Get()
+  @Get('all')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
@@ -37,7 +36,7 @@ export class FavoritesAnnouncementController {
     return this.favoritesAnnouncementService.findAll();
   }
 
-  @Get(':volunteerId')
+  @Get('volunteer/:volunteerId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
@@ -45,7 +44,7 @@ export class FavoritesAnnouncementController {
     return this.favoritesAnnouncementService.findAllByVolunteerId(volunteerId);
   }
 
-  @Get(':announcementId')
+  @Get('announcement/:announcementId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
@@ -53,7 +52,7 @@ export class FavoritesAnnouncementController {
     return this.favoritesAnnouncementService.findAllByAnnouncementId(announcementId);
   }
 
-  @Get(':volunteerId/:announcementId')
+  @Get('volunteer/:volunteerId/announcement/:announcementId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
@@ -67,7 +66,7 @@ export class FavoritesAnnouncementController {
     );
   }
 
-  @Get(':volunteerId/favoritesVolunteer')
+  @Get('volunteer/:volunteerId/favorites')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
@@ -85,7 +84,7 @@ export class FavoritesAnnouncementController {
     return favorites;
   }
 
-  @Delete(':volunteerId/:announcementId')
+  @Delete('volunteer/:volunteerId/announcement/:announcementId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER)
   @ApiBearerAuth()
@@ -107,7 +106,7 @@ export class FavoritesAnnouncementController {
     }
   }
 
-  @Delete(':volunteerId')
+  @Delete('volunteer/:volunteerId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER)
   @ApiBearerAuth()
@@ -116,14 +115,14 @@ export class FavoritesAnnouncementController {
       return this.favoritesAnnouncementService.removeByVolunteerId(volunteerId);
     } catch (error) {
       this.logger.error(
-        `Erreur lors de la suppression de l'annonce favorite: ${volunteerId}`,
+        `Erreur lors de la suppression des annonces favorites du bénévole: ${volunteerId}`,
         error.stack,
       );
       throw error;
     }
   }
 
-  @Delete(':announcementId')
+  @Delete('announcement/:announcementId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER)
   @ApiBearerAuth()
@@ -132,7 +131,7 @@ export class FavoritesAnnouncementController {
       return this.favoritesAnnouncementService.removeByAnnouncementId(announcementId);
     } catch (error) {
       this.logger.error(
-        `Erreur lors de la suppression de l'annonce favorite: ${announcementId}`,
+        `Erreur lors de la suppression des favoris de l'annonce: ${announcementId}`,
         error.stack,
       );
       throw error;

@@ -12,7 +12,6 @@ import {
   Request,
   UseInterceptors,
   UploadedFile,
-  Logger,
 } from '@nestjs/common';
 import { UserService } from '../../../common/services/user/user.service';
 import { UpdateUserDto } from '../dto/update-user.dto';
@@ -32,261 +31,150 @@ import { fileSchema } from '../../../common/utils/file-utils';
 
 @Controller('user')
 export class UserController {
-  private readonly logger = new Logger(UserController.name);
   constructor(private readonly userService: UserService) {}
 
   @Public()
   @Post('register')
   @UsePipes(new ValidationPipe({ transform: true }))
-  registerUser(@Body() registerUserDto: RegisterUserDto) {
-    try {
-      return this.userService.registerUser(registerUserDto);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la création de l'utilisateur: ${registerUserDto.email}`,
-        error.stack,
-      );
-      throw error;
-    }
+  registerUser(@Body() dto: RegisterUserDto) {
+    return this.userService.registerUser(dto);
   }
 
   @Public()
   @Post('register-user-verified')
   @UsePipes(new ValidationPipe({ transform: true }))
-  registerUserVerified(@Body() registerUserDto: RegisterUserVerifiedDto) {
-    try {
-      return this.userService.registerWithEmailAndPasswordVerification(registerUserDto);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la création de l'utilisateur: ${registerUserDto.email}`,
-        error.stack,
-      );
-      throw error;
-    }
+  registerUserVerified(@Body() dto: RegisterUserVerifiedDto) {
+    return this.userService.registerWithEmailAndPasswordVerification(dto);
   }
 
   @Public()
   @Post('register-google')
   @UsePipes(new ValidationPipe({ transform: true }))
-  registerGoogle(@Body() registerUserDto: RegisterUserGoogleDto) {
-    try {
-      return this.userService.registerWithGoogle(registerUserDto);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la création de l'utilisateur: ${registerUserDto.role}`,
-        error.stack,
-      );
-      throw error;
-    }
-  }
-
-  @Get('current-user')
-  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard)
-  async getCurrentUser(@Request() req) {
-    try {
-      return this.userService.getCurrentUser(req);
-    } catch (error) {
-      this.logger.error(`Erreur lors de la recuperation de l'utilisateur`, error.stack);
-      throw error;
-    }
-  }
-
-  @Public()
-  @Post('refresh')
-  refreshAuth(@Body() body: { refreshToken: string }) {
-    if (!body || !body.refreshToken) {
-      throw new Error('Refresh token is not provided');
-    }
-    return this.userService.refreshAuthToken(body.refreshToken);
+  registerGoogle(@Body() dto: RegisterUserGoogleDto) {
+    return this.userService.registerWithGoogle(dto);
   }
 
   @Public()
   @Post('login')
   @UsePipes(new ValidationPipe({ transform: true }))
-  login(@Body() loginDto: LoginDto) {
-    try {
-      return this.userService.loginUser(loginDto);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la connexion de l'utilisateur: ${loginDto.email}`,
-        error.stack,
-      );
-      throw error;
-    }
+  login(@Body() dto: LoginDto) {
+    return this.userService.loginUser(dto);
   }
 
-  @Get()
+  @Public()
+  @Post('refresh')
+  refreshAuth(@Body() body: { refreshToken: string }) {
+    if (!body?.refreshToken) throw new Error('Refresh token is not provided');
+    return this.userService.refreshAuthToken(body.refreshToken);
+  }
+
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
+  @Get('current-user')
+  getCurrentUser(@Request() req) {
+    return this.userService.getCurrentUser(req);
+  }
+
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Get('volunteers')
+  findVolunteers() {
+    return this.userService.findByRole(UserRole.VOLUNTEER);
+  }
+
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Get('association')
+  findAssociation() {
+    return this.userService.findByRole(UserRole.ASSOCIATION);
+  }
+
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
+  @Get()
   findAll() {
     return this.userService.findAll();
   }
 
-  @Get('volunteers')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
-  findVolunteers() {
-    try {
-      return this.userService.findByRole(UserRole.VOLUNTEER);
-    } catch (error) {
-      this.logger.error('Erreur lors de la récupération des bénévoles', error.stack);
-      throw error;
-    }
-  }
-
-  @Get('association')
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
-  findAssociation() {
-    try {
-      return this.userService.findByRole(UserRole.ASSOCIATION);
-    } catch (error) {
-      this.logger.error('Erreur lors de la récupération des associations', error.stack);
-      throw error;
-    }
-  }
-
-  @Get(':id')
-  @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
-  @ApiBearerAuth()
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(id);
-  }
-
-  @Patch(':id/isCompleted/:isCompleted')
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
-  @ApiBearerAuth()
-  async updateIsCompleted(
-    @Param('id') id: string,
-    @Param('isCompleted') isCompleted: string,
-  ): Promise<User | null> {
-    try {
-      return this.userService.updateIsCompleted(id, isCompleted === 'true');
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la mise à jour de l'état de complétion de l'utilisateur: ${id}`,
-        error.stack,
-      );
-      throw error;
-    }
-  }
-
   @Get('email/:email')
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
-  @ApiBearerAuth()
   findByEmail(@Param('email') email: string) {
     return this.userService.findByEmail(email);
   }
 
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.userService.findOne(id);
+  }
+
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @Patch(':id')
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
-  @ApiBearerAuth()
-  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    try {
-      return await this.userService.update(id, updateUserDto);
-    } catch (error) {
-      this.logger.error(`Erreur lors de la mise à jour de l'utilisateur: ${id}`, error.stack);
-      throw error;
-    }
+  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+    return this.userService.update(id, dto);
   }
 
-  @Delete(':id')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  async remove(@Param('id') id: string) {
-    try {
-      return await this.userService.remove(id);
-    } catch (error) {
-      this.logger.error(`Erreur lors de la suppression de l'utilisateur: ${id}`, error.stack);
-      throw error;
-    }
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
+  @Patch(':id/location')
+  updateLocation(@Param('id') id: string, @Body() location: Location) {
+    return this.userService.updateLocation(id, location);
   }
 
-  @Post('logout')
   @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
+  @Patch(':id/isCompleted/:isCompleted')
+  updateIsCompleted(@Param('id') id: string, @Param('isCompleted') status: string) {
+    return this.userService.updateIsCompleted(id, status === 'true');
+  }
+
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
+  @Patch(':id/update-connected/:connected')
+  updateConnected(@Param('id') id: string, @Param('connected') connected: string) {
+    return this.userService.updateConnectionStatus(id, connected === 'true');
+  }
+
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @Roles(UserRole.ASSOCIATION, UserRole.VOLUNTEER)
-  @ApiBearerAuth()
-  async logout(@Request() req) {
-    try {
-      return await this.userService.logout(req.user.uid);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la déconnexion de l'utilisateur: ${req.user.uid}`,
-        error.stack,
-      );
-      throw error;
-    }
+  @Post('logout')
+  logout(@Request() req) {
+    return this.userService.logout(req.user.uid);
   }
 
   @Public()
   @UseInterceptors(FileInterceptor('file'))
   @Patch(':id/update-avatar')
-  async updateAvatarImage(@Param('id') id: string, @UploadedFile() file): Promise<User> {
-    try {
-      const submittedFile = fileSchema.parse(file);
-      return await this.userService.updateAvatar(id, submittedFile);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la mise à jour de l'image de profil de l'utilisateur:`,
-        error.stack,
-      );
-      throw error;
-    }
+  updateAvatarImage(@Param('id') id: string, @UploadedFile() file): Promise<User> {
+    const submittedFile = fileSchema.parse(file);
+    return this.userService.updateAvatar(id, submittedFile);
   }
 
   @Public()
   @Get('avatar/:id')
-  async getAvatar(@Param('id') id: string): Promise<string> {
-    try {
-      return await this.userService.getAvatarFileUrl(id);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la récupération de l'avatar de l'utilisateur: ${id}`,
-        error.stack,
-      );
-      throw error;
-    }
+  getAvatar(@Param('id') id: string): Promise<string> {
+    return this.userService.getAvatarFileUrl(id);
   }
 
-  @Patch(':id/location')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  async updateLocation(@Param('id') id: string, @Body() location: Location) {
-    try {
-      return await this.userService.updateLocation(id, location);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la mise à jour de la localisation de l'utilisateur: ${id}`,
-        error.stack,
-      );
-      throw error;
-    }
-  }
-
-  @Patch(':id/update-connected/:connected')
-  @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
-  @ApiBearerAuth()
-  async updateConnected(@Param('id') id: string, @Param('connected') connected: string) {
-    try {
-      return await this.userService.updateConnectionStatus(id, connected === 'true');
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la mise à jour de la connexion de l'utilisateur: ${id}`,
-        error.stack,
-      );
-      throw error;
-    }
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.userService.remove(id);
   }
 }

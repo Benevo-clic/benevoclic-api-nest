@@ -9,7 +9,6 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  Logger,
 } from '@nestjs/common';
 import { AssociationService } from '../services/association.service';
 import { CreateAssociationDto } from '../dto/create-association.dto';
@@ -21,79 +20,42 @@ import { ApiBearerAuth, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { Association } from '../entities/association.entity';
 import { InfoUserDto } from '../dto/info-user.dto';
 
-@Controller('/api/v2/association')
+@Controller('association')
 export class AssociationController {
-  private readonly logger = new Logger(AssociationController.name);
   constructor(private readonly associationService: AssociationService) {}
 
-  @Post()
-  @HttpCode(HttpStatus.OK)
+  @Post('createAssociation')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiBody({
-    type: CreateAssociationDto,
-    description: 'Create a new association',
-    required: true,
-  })
+  @ApiBody({ type: CreateAssociationDto })
   create(@Body() createAssociationDto: CreateAssociationDto) {
-    try {
-      return this.associationService.create(createAssociationDto);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la création de l'association: ${createAssociationDto.email}`,
-        error.stack,
-      );
-    }
+    return this.associationService.create(createAssociationDto);
   }
 
-  @Get()
+  @Get('all')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiResponse({
-    type: [Association],
-    description: 'Retrieve all associations',
-  })
+  @ApiResponse({ type: [Association] })
   findAll(): Promise<Association[]> {
     return this.associationService.findAll();
   }
 
-  @Get(':associationId')
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION)
-  @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
-  @ApiResponse({
-    type: Association,
-    description: 'Retrieve an association by its ID',
-  })
-  findOne(@Param('associationId') associationId: string) {
-    return this.associationService.findOne(associationId);
-  }
-
-  @Get(':associationId/getAssociationsWaitingListVolunteer/:volunteerId')
+  @Get('waiting-list/:associationId/:volunteerId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  async getAssociationsWaitingList(
+  getAssociationsWaitingList(
     @Param('associationId') associationId: string,
     @Param('volunteerId') volunteerId: string,
   ) {
-    try {
-      return await this.associationService.getVolunteersInWaitingList(associationId, volunteerId);
-    } catch (error) {
-      this.logger.error(
-        "Erreur lors de la récupération de la liste d'attente des associations: %s",
-        associationId,
-        error.stack,
-      );
-    }
+    return this.associationService.getVolunteersInWaitingList(associationId, volunteerId);
   }
 
-  @Get(':associationId/getAssociationsVolunteerList/:volunteerId')
+  @Get('volunteer-list/:associationId/:volunteerId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
@@ -101,126 +63,68 @@ export class AssociationController {
     @Param('associationId') associationId: string,
     @Param('volunteerId') volunteerId: string,
   ) {
-    try {
-      return this.associationService.getAssociationsVolunteerList(associationId, volunteerId);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la récupération de la liste d'attente des associations: ${associationId}`,
-        error.stack,
-      );
-    }
+    return this.associationService.getAssociationsVolunteerList(associationId, volunteerId);
   }
 
-  @Patch(':associationId')
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION)
-  @ApiBearerAuth()
-  @ApiBody({
-    type: UpdateAssociationDto,
-    description: 'Update an existing association',
-    required: true,
-  })
-  update(
-    @Param('associationId') associationId: string,
-    @Body() updateAssociationDto: UpdateAssociationDto,
-  ) {
-    try {
-      return this.associationService.update(associationId, updateAssociationDto);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la mise à jour de l'association: ${associationId}`,
-        error.stack,
-      );
-    }
-  }
-
-  @Delete(':associationId')
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION)
-  @ApiBearerAuth()
-  remove(@Param('associationId') associationId: string) {
-    try {
-      return this.associationService.remove(associationId);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la suppression de l'association: ${associationId}`,
-        error.stack,
-      );
-    }
-  }
-
-  @Patch(':associationId/addAssociationVolunteers')
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.ASSOCIATION)
-  @ApiBearerAuth()
-  async addAssociationVolunteers(
-    @Param('associationId') associationId: string,
-    @Body() volunteers: InfoUserDto,
-  ) {
-    try {
-      return await this.associationService.registerVolunteer(associationId, volunteers);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de l'ajout de bénévoles à l'association: ${associationId}`,
-        error.stack,
-      );
-      throw error;
-    }
-  }
-
-  @Patch(':associationId/removeAssociationVolunteers/:volunteers')
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
-  @ApiBearerAuth()
-  async removeAssociationVolunteers(
-    @Param('associationId') associationId: string,
-    @Param('volunteers') volunteers: string,
-  ) {
-    try {
-      return await this.associationService.removeVolunteer(associationId, volunteers);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la suppression de bénévoles de l'association: ${associationId}`,
-        error.stack,
-      );
-      throw error;
-    }
-  }
-
-  @Get(':volunteerId/AllAssociationsVolunteerFromWaitingList')
+  @Get('volunteer-waiting-list/all/:volunteerId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
   getAllAssociationsVolunteerFromWaitingList(@Param('volunteerId') volunteerId: string) {
-    try {
-      return this.associationService.getAllAssociationsVolunteerFromWaitingList(volunteerId);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la récupération des associations du bénévole depuis la liste d'attente: ${volunteerId}`,
-        error.stack,
-      );
-      throw error;
-    }
+    return this.associationService.getAllAssociationsVolunteerFromWaitingList(volunteerId);
   }
 
-  @Get(':volunteerId/getAssociationVolunteersList')
+  @Get('volunteer-list/all/:volunteerId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
   getAssociationVolunteersList(@Param('volunteerId') volunteerId: string) {
-    try {
-      return this.associationService.getAllAssociationsVolunteerFromList(volunteerId);
-    } catch (error) {
-      this.logger.error(
-        "Erreur lors de la récupération de la liste des bénévoles de l'association: %s",
-        volunteerId,
-        error.stack,
-      );
-      throw error;
-    }
+    return this.associationService.getAllAssociationsVolunteerFromList(volunteerId);
   }
 
-  @Patch(':associationId/addAssociationVolunteersWaiting')
+  @Patch('update/:associationId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION)
+  @ApiBearerAuth()
+  @ApiBody({ type: UpdateAssociationDto })
+  update(
+    @Param('associationId') associationId: string,
+    @Body() updateAssociationDto: UpdateAssociationDto,
+  ) {
+    return this.associationService.update(associationId, updateAssociationDto);
+  }
+
+  @Delete('delete/:associationId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION)
+  @ApiBearerAuth()
+  remove(@Param('associationId') associationId: string) {
+    return this.associationService.remove(associationId);
+  }
+
+  @Patch('volunteer/add/:associationId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ASSOCIATION)
+  @ApiBearerAuth()
+  addAssociationVolunteers(
+    @Param('associationId') associationId: string,
+    @Body() volunteers: InfoUserDto,
+  ) {
+    return this.associationService.registerVolunteer(associationId, volunteers);
+  }
+
+  @Patch('volunteer/remove/:associationId/:volunteerId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  removeAssociationVolunteers(
+    @Param('associationId') associationId: string,
+    @Param('volunteerId') volunteerId: string,
+  ) {
+    return this.associationService.removeVolunteer(associationId, volunteerId);
+  }
+
+  @Patch('volunteer-waiting/register/:associationId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
@@ -228,42 +132,10 @@ export class AssociationController {
     @Param('associationId') associationId: string,
     @Body() volunteers: InfoUserDto,
   ) {
-    try {
-      return this.associationService.addVolunteerWaiting(associationId, volunteers);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de l'ajout de bénévoles en attente à l'association: ${associationId}`,
-        error.stack,
-      );
-      throw error;
-    }
+    return this.associationService.addVolunteerWaiting(associationId, volunteers);
   }
 
-  @Get(':volunteerId/getAssociationWaiting')
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.VOLUNTEER)
-  @ApiBearerAuth()
-  getAssociationWaiting(@Param('volunteerId') volunteerId: string) {
-    try {
-      return this.associationService.getAssociationWaitingByVolunteer(volunteerId);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la récupération des associations en attente du bénévole: ${volunteerId}`,
-        error.stack,
-      );
-      throw error;
-    }
-  }
-
-  @Get(':volunteerId/getAssociation')
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.VOLUNTEER)
-  @ApiBearerAuth()
-  getAssociation(@Param('volunteerId') volunteerId: string) {
-    return this.associationService.getAssociationByVolunteer(volunteerId);
-  }
-
-  @Patch(':associationId/removeAssociationVolunteersWaiting/:volunteer')
+  @Patch('volunteer-waiting/remove/:associationId/:volunteer')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
@@ -271,14 +143,31 @@ export class AssociationController {
     @Param('associationId') associationId: string,
     @Param('volunteer') volunteer: string,
   ) {
-    try {
-      return this.associationService.removeVolunteerWaiting(associationId, volunteer);
-    } catch (error) {
-      this.logger.error(
-        `Erreur lors de la suppression de bénévoles en attente de l'association: ${associationId}`,
-        error.stack,
-      );
-      throw error;
-    }
+    return this.associationService.removeVolunteerWaiting(associationId, volunteer);
+  }
+
+  @Get('waiting/by-volunteer/:volunteerId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  getAssociationWaiting(@Param('volunteerId') volunteerId: string) {
+    return this.associationService.getAssociationWaitingByVolunteer(volunteerId);
+  }
+
+  @Get('by-volunteer/:volunteerId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  getAssociation(@Param('volunteerId') volunteerId: string) {
+    return this.associationService.getAssociationByVolunteer(volunteerId);
+  }
+
+  @Get('by-id/:associationId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION)
+  @ApiBearerAuth()
+  @ApiResponse({ type: Association })
+  findOne(@Param('associationId') associationId: string) {
+    return this.associationService.findOne(associationId);
   }
 }

@@ -8,6 +8,8 @@ import {
   Delete,
   UseGuards,
   Logger,
+  HttpStatus,
+  HttpCode,
 } from '@nestjs/common';
 import { VolunteerService } from '../services/volunteer.service';
 import { CreateVolunteerDto } from '../dto/create-volunteer.dto';
@@ -20,15 +22,17 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 @Controller('volunteer')
 export class VolunteerController {
   private readonly logger = new Logger(VolunteerController.name);
+
   constructor(private readonly volunteerService: VolunteerService) {}
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  create(@Body() createVolunteerDto: CreateVolunteerDto) {
+  async create(@Body() createVolunteerDto: CreateVolunteerDto) {
     try {
-      return this.volunteerService.create(createVolunteerDto);
+      return await this.volunteerService.create(createVolunteerDto);
     } catch (error) {
       this.logger.error(
         `Erreur lors de la création du bénévole: ${createVolunteerDto.email}`,
@@ -42,27 +46,37 @@ export class VolunteerController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
-  findAll() {
-    return this.volunteerService.findAll();
+  async findAll() {
+    try {
+      return await this.volunteerService.findAll();
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération des bénévoles`, error.stack);
+      throw error;
+    }
   }
 
   @Get(':id')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  findOne(@Param('id') id: string) {
-    return this.volunteerService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    try {
+      return await this.volunteerService.findOne(id);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération du bénévole ${id}`, error.stack);
+      throw error;
+    }
   }
 
   @Patch(':id')
   @UseGuards(AuthGuard)
   @Roles(UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  update(@Param('id') id: string, @Body() updateVolunteerDto: UpdateVolunteerDto) {
+  async update(@Param('id') id: string, @Body() updateVolunteerDto: UpdateVolunteerDto) {
     try {
-      return this.volunteerService.update(id, updateVolunteerDto);
+      return await this.volunteerService.update(id, updateVolunteerDto);
     } catch (error) {
-      this.logger.error(`Erreur lors de la mise à jour du bénévole: ${id}`, error.stack);
+      this.logger.error(`Erreur lors de la mise à jour du bénévole ${id}`, error.stack);
       throw error;
     }
   }
@@ -75,7 +89,7 @@ export class VolunteerController {
     try {
       return await this.volunteerService.remove(id);
     } catch (error) {
-      this.logger.error(`Erreur lors de la suppression du bénévole: ${id}`, error.stack);
+      this.logger.error(`Erreur lors de la suppression du bénévole ${id}`, error.stack);
       throw error;
     }
   }
