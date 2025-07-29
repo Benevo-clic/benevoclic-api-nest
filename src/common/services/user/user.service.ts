@@ -371,6 +371,7 @@ export class UserService {
     try {
       this.logger.log(`Tentative de connexion pour: ${payload.email}`);
       const response = await this.signInWithEmailAndPassword(payload.email, payload.password);
+      this.logger.log(`Réponse de Firebase pour: ${payload.email}`, response.refreshToken);
       if (!response || !response.idToken) {
         this.logger.error(
           `Identifiants invalides ou réponse Firebase incorrecte pour: ${payload.email}`,
@@ -430,6 +431,13 @@ export class UserService {
 
   private async signInWithEmailAndPassword(email: string, password: string) {
     try {
+      this.logger.log(`Tentative de connexion avec email: ${email}`);
+      this.logger.debug('FIREBASE_API_URL:', process.env.FIREBASE_API_KEY);
+      this.logger.log('voici la key', AuthConfig.apiKey);
+      if (!AuthConfig.apiKey) {
+        this.logger.error('Clé API Firebase manquante dans AuthConfig');
+        throw new InternalServerErrorException('Clé API Firebase manquante');
+      }
       const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${AuthConfig.apiKey}`;
       return await this.sendPostRequest(url, {
         email,
@@ -437,8 +445,15 @@ export class UserService {
         returnSecureToken: true,
       });
     } catch (error) {
-      this.logger.error('Erreur lors de la connexion avec email/mot de passe', error.stack);
-      throw new InternalServerErrorException('Erreur lors de la connexion avec email/mot de passe');
+      if (axios.isAxiosError(error)) {
+        this.logger.error('Erreur Axios:', JSON.stringify(error.response?.data, null, 2));
+        throw new InternalServerErrorException(
+          error.response?.data?.error?.message || 'Erreur HTTP Firebase',
+        );
+      } else {
+        this.logger.error('Erreur inconnue:', error.stack);
+        throw new InternalServerErrorException('Erreur inattendue');
+      }
     }
   }
 
