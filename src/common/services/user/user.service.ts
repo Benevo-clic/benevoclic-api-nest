@@ -431,12 +431,9 @@ export class UserService {
 
   private async signInWithEmailAndPassword(email: string, password: string) {
     try {
-      this.logger.log(`Tentative de connexion avec email: ${email}`);
-      this.logger.log('voici la key', AuthConfig.apiKey);
-      if (!AuthConfig.apiKey) {
-        this.logger.error('Clé API Firebase manquante dans AuthConfig');
-        throw new InternalServerErrorException('Clé API Firebase manquante');
-      }
+      this.logger.debug(
+        `Tentative de connexion avec email: ${email}, mot de passe: ${password.length} caractères`,
+      );
       const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${AuthConfig.apiKey}`;
       return await this.sendPostRequest(url, {
         email,
