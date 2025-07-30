@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { AssociationService } from '../services/association.service';
 import { CreateAssociationDto } from '../dto/create-association.dto';
@@ -22,6 +23,7 @@ import { InfoUserDto } from '../dto/info-user.dto';
 
 @Controller('association')
 export class AssociationController {
+  private readonly logger = new Logger(AssociationController.name);
   constructor(private readonly associationService: AssociationService) {}
 
   @Post('createAssociation')
@@ -70,16 +72,35 @@ export class AssociationController {
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  getAllAssociationsVolunteerFromWaitingList(@Param('volunteerId') volunteerId: string) {
-    return this.associationService.getAllAssociationsVolunteerFromWaitingList(volunteerId);
+  async getAllAssociationsVolunteerFromWaitingList(@Param('volunteerId') volunteerId: string) {
+    const associationByVolunteer =
+      await this.associationService.getAllAssociationsVolunteerFromWaitingList(volunteerId);
+    if (!associationByVolunteer) {
+      throw new Error('No association found for this volunteer in waiting list');
+    }
+    this.logger.log(
+      `Fetching all associations for volunteer ${volunteerId} from waiting list`,
+      associationByVolunteer.length,
+    );
+    return associationByVolunteer;
   }
 
   @Get('volunteer-list/all/:volunteerId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
-  getAssociationVolunteersList(@Param('volunteerId') volunteerId: string) {
-    return this.associationService.getAllAssociationsVolunteerFromList(volunteerId);
+  async getAssociationVolunteersList(@Param('volunteerId') volunteerId: string) {
+    const associationByVolunteer =
+      await this.associationService.getAllAssociationsVolunteerFromList(volunteerId);
+
+    if (!associationByVolunteer) {
+      throw new Error('No association found for this volunteer');
+    }
+    this.logger.log(
+      `Fetching all associations for volunteer ${volunteerId}`,
+      associationByVolunteer.length,
+    );
+    return associationByVolunteer;
   }
 
   @Patch('update/:associationId')
