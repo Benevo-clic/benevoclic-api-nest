@@ -1,4 +1,4 @@
-import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit, Logger } from '@nestjs/common';
 import { MongoClient } from 'mongodb';
 import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { Association } from '../entities/association.entity';
@@ -8,6 +8,7 @@ import { InfoAssociation, VolunteerAssociationFollowing } from '../type/associat
 
 @Injectable()
 export class AssociationRepository implements OnModuleInit {
+  private readonly logger = new Logger(AssociationRepository.name);
   constructor(
     @Inject(MONGODB_CONNECTION)
     private readonly mongoClient: MongoClient,
@@ -149,12 +150,17 @@ export class AssociationRepository implements OnModuleInit {
   }
 
   async findAllAssociationsVolunteerFromList(volunteerId: string): Promise<InfoAssociation[]> {
-    return this.collection
+    const association = await this.collection
       .find(
         { 'volunteers.volunteerId': volunteerId },
         { projection: { _id: 0, associationId: 1, associationName: 1 } },
       )
       .toArray();
+    this.logger.log(
+      `Fetching all associations for volunteer ${volunteerId} from list`,
+      association,
+    );
+    return association;
   }
 
   async removeVolunteerEverywhere(volunteerId: string): Promise<number> {

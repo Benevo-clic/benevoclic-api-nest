@@ -78,14 +78,11 @@ export class AssociationController {
     if (!associationByVolunteer) {
       throw new Error('No association found for this volunteer in waiting list');
     }
-    this.logger.log(
-      `Fetching all associations for volunteer ${volunteerId} from waiting list`,
-      associationByVolunteer.length,
-    );
+
     return associationByVolunteer;
   }
 
-  @Get('volunteer-list/all/:volunteerId')
+  @Get('volunteer-list/:volunteerId')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
   @ApiBearerAuth()
@@ -96,10 +93,7 @@ export class AssociationController {
     if (!associationByVolunteer) {
       throw new Error('No association found for this volunteer');
     }
-    this.logger.log(
-      `Fetching all associations for volunteer ${volunteerId}`,
-      associationByVolunteer.length,
-    );
+
     return associationByVolunteer;
   }
 

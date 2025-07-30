@@ -124,7 +124,6 @@ export class AnnouncementController {
     filterDto: FilterAnnouncementDto,
   ): Promise<FilterAnnouncementResponse> {
     try {
-      this.logger.log('Filtrage des annonces avec les critères suivants:', filterDto);
       return await this.service.filterAnnouncementsAggregation(filterDto);
     } catch (error) {
       this.logger.error('Erreur lors de la récupération des annonces filtrées', error.stack);
