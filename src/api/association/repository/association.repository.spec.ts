@@ -149,7 +149,7 @@ describe('AssociationRepository', () => {
 
         const result = await repository.findAssociationsByVolunteer('vol123');
 
-        expect(collection.find).toHaveBeenCalledWith({ 'volunteers.id': 'vol123' });
+        expect(collection.find).toHaveBeenCalledWith({ 'volunteers.volunteerId': 'vol123' });
         expect(result).toEqual([mockAssociation]);
       });
     });
@@ -164,7 +164,7 @@ describe('AssociationRepository', () => {
         const result: FindAssociationDto[] =
           await repository.findAssociationsByVolunteerWaiting('vol123');
 
-        expect(collection.find).toHaveBeenCalledWith({ 'volunteersWaiting.id': 'vol123' });
+        expect(collection.find).toHaveBeenCalledWith({ 'volunteersWaiting.volunteerId': 'vol123' });
         expect(result).toEqual([mockAssociation]);
       });
     });
@@ -202,11 +202,11 @@ describe('AssociationRepository', () => {
       it('should return the volunteer in the waiting list', async () => {
         const association = {
           ...mockAssociation,
-          volunteersWaiting: [{ id: 'vol1', name: 'Jane' }],
+          volunteersWaiting: [{ volunteerId: 'vol1', volunteerName: 'Jane' }],
         };
         jest.spyOn(collection, 'findOne').mockResolvedValue(association);
         const result = await repository.findVolunteersInWaitingList('test123', 'vol1');
-        expect(result).toEqual({ id: 'vol1', name: 'Jane' });
+        expect(result).toEqual({ volunteerId: 'vol1', volunteerName: 'Jane' });
       });
       it('should return null if the volunteer is not in the waiting list', async () => {
         jest.spyOn(collection, 'findOne').mockResolvedValue(null);
@@ -219,11 +219,11 @@ describe('AssociationRepository', () => {
       it('should return the volunteer in the active list', async () => {
         const association = {
           ...mockAssociation,
-          volunteers: [{ id: 'vol2', name: 'John' }],
+          volunteers: [{ volunteerId: 'vol2', volunteerName: 'John' }],
         };
         jest.spyOn(collection, 'findOne').mockResolvedValue(association);
         const result = await repository.findVolunteersList('test123', 'vol2');
-        expect(result).toEqual({ id: 'vol2', name: 'John' });
+        expect(result).toEqual({ volunteerId: 'vol2', volunteerName: 'John' });
       });
       it('should return null if the volunteer is not in the active list', async () => {
         jest.spyOn(collection, 'findOne').mockResolvedValue(null);

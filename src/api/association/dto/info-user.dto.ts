@@ -5,10 +5,10 @@ export class InfoUserDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  id: string;
+  volunteerId: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  name: string;
+  volunteerName: string;
 }

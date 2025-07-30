@@ -11,12 +11,12 @@
       "volunteers": [],
       "volunteersWaiting": [
         {
-          "id": "mockVolunteerId123",
-          "name": "Jean Dupont"
+          "volunteerId": "mockVolunteerId123",
+          "volunteerName": "Jean Dupont"
         },
         {
-          "id": "volTest",
-          "name": "Test User"
+          "volunteerId": "volTest",
+          "volunteerName": "Test User"
         }
       ]
     },
@@ -30,12 +30,12 @@
       "country": "France",
       "volunteers": [
         {
-          "id": "mockVolunteerId1234",
-          "name": "Jean Dupont"
+          "volunteerId": "mockVolunteerId1234",
+          "volunteerName": "Jean Dupont"
         },
         {
-          "id": "volTest",
-          "name": "Test User"
+          "volunteerId": "volTest",
+          "volunteerName": "Test User"
         }
       ],
       "volunteersWaiting": []
@@ -51,8 +51,8 @@
       "volunteers": [],
       "volunteersWaiting": [
         {
-          "id": "mockVolunteerId123",
-          "name": "Jean Dupont"
+          "volunteerId": "mockVolunteerId123",
+          "volunteerName": "Jean Dupont"
         }
       ]
     },

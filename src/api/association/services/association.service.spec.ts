@@ -232,7 +232,7 @@ describe('AssociationService', () => {
   });
 
   describe('volunteer management', () => {
-    const mockVolunteer = { id: 'vol123', name: 'John Doe' };
+    const mockVolunteer = { volunteerId: 'vol123', volunteerName: 'John Doe' };
 
     describe('removeVolunteer', () => {
       it('should remove a volunteer from an association', async () => {
@@ -241,13 +241,13 @@ describe('AssociationService', () => {
           volunteers: [mockVolunteer],
         };
         mockRepository.findById.mockResolvedValue(associationWithVolunteer);
-        mockRepository.removeVolunteerFromAssociation.mockResolvedValue(mockVolunteer.id);
+        mockRepository.removeVolunteerFromAssociation.mockResolvedValue(mockVolunteer.volunteerId);
 
         const result = await associationService.removeVolunteer(
           'mockFirebaseUid123',
-          mockVolunteer.id,
+          mockVolunteer.volunteerId,
         );
-        expect(result).toBe(mockVolunteer.id);
+        expect(result).toBe(mockVolunteer.volunteerId);
         expect(associationRepository.removeVolunteerFromAssociation).toHaveBeenCalled();
       });
 
@@ -259,7 +259,7 @@ describe('AssociationService', () => {
         mockRepository.findById.mockResolvedValue(associationWithoutVolunteer);
 
         await expect(
-          associationService.removeVolunteer('mockFirebaseUid123', mockVolunteer.id),
+          associationService.removeVolunteer('mockFirebaseUid123', mockVolunteer.volunteerId),
         ).rejects.toThrow(BadRequestException);
       });
     });
@@ -271,13 +271,15 @@ describe('AssociationService', () => {
           volunteersWaiting: [mockVolunteer],
         };
         mockRepository.findById.mockResolvedValue(associationWithWaiting);
-        mockRepository.removeVolunteerWaitingFromAssociation.mockResolvedValue(mockVolunteer.id);
+        mockRepository.removeVolunteerWaitingFromAssociation.mockResolvedValue(
+          mockVolunteer.volunteerId,
+        );
 
         const result = await associationService.removeVolunteerWaiting(
           'mockFirebaseUid123',
-          mockVolunteer.id,
+          mockVolunteer.volunteerId,
         );
-        expect(result).toBe(mockVolunteer.id);
+        expect(result).toBe(mockVolunteer.volunteerId);
         expect(associationRepository.removeVolunteerWaitingFromAssociation).toHaveBeenCalled();
       });
 
@@ -289,7 +291,10 @@ describe('AssociationService', () => {
         mockRepository.findById.mockResolvedValue(associationWithoutWaiting);
 
         await expect(
-          associationService.removeVolunteerWaiting('mockFirebaseUid123', mockVolunteer.id),
+          associationService.removeVolunteerWaiting(
+            'mockFirebaseUid123',
+            mockVolunteer.volunteerId,
+          ),
         ).rejects.toThrow(BadRequestException);
       });
     });
@@ -354,7 +359,7 @@ describe('AssociationService', () => {
     it('should allow a volunteer to be added to two different associations (service)', async () => {
       const associationId1 = 'assoc1';
       const associationId2 = 'assoc2';
-      const volunteer = { id: 'multiAssocVolunteer', name: 'Jane Doe' };
+      const volunteer = { volunteerId: 'multiAssocVolunteer', volunteerName: 'Jane Doe' };
 
       const assoc1 = {
         ...mockAssociation,
@@ -369,7 +374,7 @@ describe('AssociationService', () => {
       });
       mockRepository.removeVolunteerWaitingFromAssociation.mockResolvedValue(undefined);
       mockRepository.update.mockResolvedValue(undefined);
-      await associationService.removeVolunteerWaiting(associationId1, volunteer.id);
+      await associationService.removeVolunteerWaiting(associationId1, volunteer.volunteerId);
       assoc1.volunteersWaiting = [];
       await associationService.addVolunteer(associationId1, volunteer);
       assoc1.volunteers = [volunteer];
@@ -380,18 +385,22 @@ describe('AssociationService', () => {
         volunteers: [],
         volunteersWaiting: [volunteer],
       };
-      await associationService.removeVolunteerWaiting(associationId2, volunteer.id);
+      await associationService.removeVolunteerWaiting(associationId2, volunteer.volunteerId);
       assoc2.volunteersWaiting = [];
       await associationService.addVolunteer(associationId2, volunteer);
       assoc2.volunteers = [volunteer];
 
-      expect(assoc1.volunteers).toContainEqual(expect.objectContaining({ id: volunteer.id }));
-      expect(assoc2.volunteers).toContainEqual(expect.objectContaining({ id: volunteer.id }));
+      expect(assoc1.volunteers).toContainEqual(
+        expect.objectContaining({ volunteerId: volunteer.volunteerId }),
+      );
+      expect(assoc2.volunteers).toContainEqual(
+        expect.objectContaining({ volunteerId: volunteer.volunteerId }),
+      );
       expect(assoc1.volunteersWaiting).not.toContainEqual(
-        expect.objectContaining({ id: volunteer.id }),
+        expect.objectContaining({ volunteerId: volunteer.volunteerId }),
       );
       expect(assoc2.volunteersWaiting).not.toContainEqual(
-        expect.objectContaining({ id: volunteer.id }),
+        expect.objectContaining({ volunteerId: volunteer.volunteerId }),
       );
     });
   });

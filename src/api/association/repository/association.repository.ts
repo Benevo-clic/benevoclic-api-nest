@@ -4,7 +4,7 @@ import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { Association } from '../entities/association.entity';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
 import { FindAssociationDto } from '../dto/find-association.dto';
-import { InfoAssociation, InfoVolunteer } from '../type/association.type';
+import { InfoAssociation, VolunteerAssociationFollowing } from '../type/association.type';
 
 @Injectable()
 export class AssociationRepository implements OnModuleInit {
@@ -31,7 +31,7 @@ export class AssociationRepository implements OnModuleInit {
       },
     );
 
-    const volunteerPaths = ['volunteers.id', 'volunteersWaiting.id'];
+    const volunteerPaths = ['volunteers.volunteerId', 'volunteersWaiting.volunteerId'];
     for (const path of volunteerPaths) {
       await this.collection.createIndex(
         { [path]: 1 },
@@ -74,27 +74,29 @@ export class AssociationRepository implements OnModuleInit {
   }
 
   async findAssociationsByVolunteer(volunteerId: string): Promise<FindAssociationDto[]> {
-    return await this.collection.find({ 'volunteers.id': volunteerId }).toArray();
+    return await this.collection.find({ 'volunteers.volunteerId': volunteerId }).toArray();
   }
 
   async findAssociationsByVolunteerWaiting(volunteerId: string): Promise<FindAssociationDto[]> {
-    return await this.collection.find({ 'volunteersWaiting.id': volunteerId }).toArray();
+    return await this.collection.find({ 'volunteersWaiting.volunteerId': volunteerId }).toArray();
   }
 
   async findVolunteersInWaitingList(
     associationId: string,
     volunteerId: string,
-  ): Promise<InfoVolunteer | null> {
+  ): Promise<VolunteerAssociationFollowing | null> {
     const association = await this.collection.findOne({
       associationId: associationId,
-      'volunteersWaiting.id': volunteerId,
+      'volunteersWaiting.volunteerId': volunteerId,
     });
 
     if (!association) {
       return null;
     }
 
-    return association.volunteersWaiting.find(volunteer => volunteer.id === volunteerId) || null;
+    return (
+      association.volunteersWaiting.find(volunteer => volunteer.volunteerId === volunteerId) || null
+    );
   }
 
   async removeVolunteerFromAssociation(
@@ -103,7 +105,7 @@ export class AssociationRepository implements OnModuleInit {
   ): Promise<string> {
     await this.collection.updateOne(
       { associationId: associationId },
-      { $pull: { volunteers: { id: volunteerId } } },
+      { $pull: { volunteers: { volunteerId: volunteerId } } },
     );
     return volunteerId;
   }
@@ -114,7 +116,7 @@ export class AssociationRepository implements OnModuleInit {
   ): Promise<void> {
     await this.collection.updateOne(
       { associationId: associationId },
-      { $pull: { volunteersWaiting: { id: volunteerId } } },
+      { $pull: { volunteersWaiting: { volunteerId: volunteerId } } },
     );
   }
 
@@ -125,14 +127,14 @@ export class AssociationRepository implements OnModuleInit {
   async findVolunteersList(associationId: string, volunteerId: string) {
     const association = await this.collection.findOne({
       associationId: associationId,
-      'volunteers.id': volunteerId,
+      'volunteers.volunteerId': volunteerId,
     });
 
     if (!association) {
       return null;
     }
 
-    return association.volunteers.find(volunteer => volunteer.id === volunteerId) || null;
+    return association.volunteers.find(volunteer => volunteer.volunteerId === volunteerId) || null;
   }
 
   async findAllAssociationsVolunteerFromWaitingList(
@@ -160,8 +162,8 @@ export class AssociationRepository implements OnModuleInit {
       {},
       {
         $pull: {
-          volunteers: { id: volunteerId },
-          volunteersWaiting: { id: volunteerId },
+          volunteers: { volunteerId: volunteerId },
+          volunteersWaiting: { volunteerId: volunteerId },
         },
       },
     );

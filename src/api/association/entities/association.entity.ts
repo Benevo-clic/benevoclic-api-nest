@@ -1,4 +1,4 @@
-import { InfoVolunteer } from '../type/association.type';
+import { VolunteerAssociationFollowing } from '../type/association.type';
 import { LocationGeoJson } from '../../../common/type/usersInfo.type';
 
 export class Association {
@@ -11,6 +11,6 @@ export class Association {
   postalCode: string;
   country: string;
   locationAssociation?: LocationGeoJson;
-  volunteers?: InfoVolunteer[];
-  volunteersWaiting?: InfoVolunteer[];
+  volunteers?: VolunteerAssociationFollowing[];
+  volunteersWaiting?: VolunteerAssociationFollowing[];
 }

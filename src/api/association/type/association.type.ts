@@ -8,3 +8,8 @@ export type InfoAssociation = {
   associationId: string;
   associationName: string;
 };
+
+export type VolunteerAssociationFollowing = {
+  volunteerId: string;
+  volunteerName: string;
+};

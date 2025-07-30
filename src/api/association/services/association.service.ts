@@ -12,7 +12,7 @@ import { UpdateAssociationDto } from '../dto/update-association.dto';
 import { Association } from '../entities/association.entity';
 import { AssociationRepository } from '../repository/association.repository';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
-import { InfoVolunteer } from '../type/association.type';
+import { VolunteerAssociationFollowing } from '../type/association.type';
 import { FindAssociationDto } from '../dto/find-association.dto';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
 
@@ -133,9 +133,9 @@ export class AssociationService {
     }
   }
 
-  async registerVolunteer(associationId: string, volunteer: InfoVolunteer) {
+  async registerVolunteer(associationId: string, volunteer: VolunteerAssociationFollowing) {
     try {
-      await this.removeVolunteerWaiting(associationId, volunteer.id);
+      await this.removeVolunteerWaiting(associationId, volunteer.volunteerId);
       await this.addVolunteer(associationId, volunteer);
       return volunteer;
     } catch (error) {
@@ -144,17 +144,22 @@ export class AssociationService {
     }
   }
 
-  async addVolunteer(associationId: string, volunteerInfo: InfoVolunteer) {
+  async addVolunteer(associationId: string, volunteerInfo: VolunteerAssociationFollowing) {
     try {
       const association: Association = await this.associationRepository.findById(associationId);
       if (!association) {
         throw new NotFoundException('Association not found');
       }
-      const isExist = association.volunteers.find(volunteer => volunteer.id === volunteerInfo.id);
+      const isExist = association.volunteers.find(
+        volunteer => volunteer.volunteerId === volunteerInfo.volunteerId,
+      );
       if (isExist) {
         throw new BadRequestException('Volunteer already exist');
       }
-      association.volunteers.push(volunteerInfo);
+      association.volunteers.push({
+        volunteerId: volunteerInfo.volunteerId,
+        volunteerName: volunteerInfo.volunteerName,
+      });
       await this.associationRepository.update(associationId, association);
       return volunteerInfo;
     } catch (error) {
@@ -165,19 +170,22 @@ export class AssociationService {
     }
   }
 
-  async addVolunteerWaiting(associationId: string, volunteerInfo: InfoVolunteer) {
+  async addVolunteerWaiting(associationId: string, volunteerInfo: VolunteerAssociationFollowing) {
     try {
       const association: Association = await this.associationRepository.findById(associationId);
       if (!association) {
         throw new NotFoundException('Association not found');
       }
       const isExist = association.volunteersWaiting.find(
-        volunteer => volunteer.id === volunteerInfo.id,
+        volunteer => volunteer.volunteerId === volunteerInfo.volunteerId,
       );
       if (isExist) {
         throw new BadRequestException('Volunteer already exist');
       }
-      association.volunteersWaiting.push(volunteerInfo);
+      association.volunteersWaiting.push({
+        volunteerId: volunteerInfo.volunteerId,
+        volunteerName: volunteerInfo.volunteerName,
+      });
       await this.associationRepository.update(associationId, association);
       return volunteerInfo;
     } catch (error) {
@@ -197,7 +205,9 @@ export class AssociationService {
       if (!association) {
         throw new NotFoundException('Association not found');
       }
-      const isExist = association.volunteersWaiting.find(volunteer => volunteer.id === volunteerId);
+      const isExist = association.volunteersWaiting.find(
+        volunteer => volunteer.volunteerId === volunteerId,
+      );
       if (!isExist) {
         throw new BadRequestException('Volunteer not exist');
       }
@@ -223,7 +233,9 @@ export class AssociationService {
       if (!association) {
         throw new NotFoundException('Association not found');
       }
-      const isExist = association.volunteers.find(volunteer => volunteer.id === volunteerId);
+      const isExist = association.volunteers.find(
+        volunteer => volunteer.volunteerId === volunteerId,
+      );
       if (!isExist) {
         throw new BadRequestException('Volunteer not exist');
       }
@@ -250,7 +262,7 @@ export class AssociationService {
   async getVolunteersInWaitingList(
     associationId: string,
     volunteerId: string,
-  ): Promise<InfoVolunteer> {
+  ): Promise<VolunteerAssociationFollowing> {
     try {
       return await this.associationRepository.findVolunteersInWaitingList(
         associationId,
