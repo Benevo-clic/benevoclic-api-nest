@@ -247,7 +247,7 @@ describe('AssociationRepository', () => {
         const result = await repository.findAllAssociationsVolunteerFromWaitingList(volunteerId);
 
         expect(findMock).toHaveBeenCalledWith(
-          { 'volunteersWaiting.id': volunteerId },
+          { 'volunteersWaiting.volunteerId': volunteerId },
           { projection: { _id: 0, associationId: 1, associationName: 1 } },
         );
         expect(result).toEqual(mockAssociations);
@@ -266,7 +266,7 @@ describe('AssociationRepository', () => {
         const result = await repository.findAllAssociationsVolunteerFromList(volunteerId);
 
         expect(findMock).toHaveBeenCalledWith(
-          { 'volunteers.id': volunteerId },
+          { 'volunteers.volunteerId': volunteerId },
           { projection: { _id: 0, associationId: 1, associationName: 1 } },
         );
         expect(result).toEqual(mockAssociations);

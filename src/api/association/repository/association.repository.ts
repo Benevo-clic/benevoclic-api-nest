@@ -140,7 +140,7 @@ export class AssociationRepository implements OnModuleInit {
   ): Promise<InfoAssociation[]> {
     return this.collection
       .find(
-        { 'volunteersWaiting.id': volunteerId },
+        { 'volunteersWaiting.volunteerId': volunteerId },
         { projection: { _id: 0, associationId: 1, associationName: 1 } },
       )
       .toArray();
@@ -149,7 +149,7 @@ export class AssociationRepository implements OnModuleInit {
   async findAllAssociationsVolunteerFromList(volunteerId: string): Promise<InfoAssociation[]> {
     return this.collection
       .find(
-        { 'volunteers.id': volunteerId },
+        { 'volunteers.volunteerId': volunteerId },
         { projection: { _id: 0, associationId: 1, associationName: 1 } },
       )
       .toArray();
