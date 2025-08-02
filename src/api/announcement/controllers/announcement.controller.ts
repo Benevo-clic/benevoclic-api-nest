@@ -73,6 +73,7 @@ export class AnnouncementController {
     }
   }
 
+  @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Récupérer une annonce par son ID' })
   @ApiParam({ name: 'id', description: "ID de l'annonce" })
@@ -88,6 +89,7 @@ export class AnnouncementController {
   @ApiResponse({ status: 404, description: 'Annonce non trouvée' })
   @ApiResponse({ status: 500, description: 'Erreur interne du serveur' })
   async findById(@Param('id') id: string): Promise<Announcement> {
+    this.logger.log(`Récupération de l'annonce avec l'ID: ${id}`);
     try {
       return await this.service.findById(id);
     } catch (error) {
