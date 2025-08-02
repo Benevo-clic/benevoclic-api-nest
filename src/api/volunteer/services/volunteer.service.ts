@@ -70,6 +70,15 @@ export class VolunteerService {
     }
   }
 
+  async getNumberOfVolunteers(): Promise<number> {
+    try {
+      return await this.volunteerRepository.countAll();
+    } catch (error) {
+      this.logger.error('Erreur lors du comptage des bénévoles', error.stack);
+      throw new InternalServerErrorException('Erreur lors du comptage des bénévoles');
+    }
+  }
+
   async findOne(id: string) {
     try {
       const volunteer = await this.volunteerRepository.findById(id);

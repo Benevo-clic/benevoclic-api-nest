@@ -74,6 +74,17 @@ export class AssociationService {
     }
   }
 
+  async getNumberOfAssociations(): Promise<number> {
+    try {
+      return await this.associationRepository.countAll();
+    } catch (error) {
+      this.logger.error("Erreur lors de la récupération du nombre d'associations", error.stack);
+      throw new InternalServerErrorException(
+        "Erreur lors de la récupération du nombre d'associations",
+      );
+    }
+  }
+
   async findOne(id: string): Promise<Association | null> {
     try {
       const association = await this.associationRepository.findById(id);

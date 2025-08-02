@@ -52,6 +52,9 @@ export class VolunteerRepository implements OnModuleInit {
   async findAll() {
     return await this.collection.find().toArray();
   }
+  async countAll(): Promise<number> {
+    return await this.collection.countDocuments();
+  }
 
   async remove(id: string) {
     return await this.collection.deleteOne({ volunteerId: id });

@@ -70,6 +70,10 @@ export class AssociationRepository implements OnModuleInit {
     return this.collection.find().toArray();
   }
 
+  async countAll(): Promise<number> {
+    return this.collection.countDocuments();
+  }
+
   async remove(id: string) {
     await this.collection.deleteOne({ associationId: id });
   }

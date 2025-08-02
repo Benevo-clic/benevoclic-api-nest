@@ -20,6 +20,7 @@ import { UserRole } from '../../../common/enums/roles.enum';
 import { ApiBearerAuth, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { Association } from '../entities/association.entity';
 import { InfoUserDto } from '../dto/info-user.dto';
+import { Public } from '../../../common/decorators/public.decorator';
 
 @Controller('association')
 export class AssociationController {
@@ -44,6 +45,15 @@ export class AssociationController {
   @ApiResponse({ type: [Association] })
   findAll(): Promise<Association[]> {
     return this.associationService.findAll();
+  }
+
+  @Public()
+  @Get('nb-association')
+  async getNumberOfAssociations(): Promise<{ nbAssociation: number }> {
+    const nbAssociation = await this.associationService.getNumberOfAssociations();
+    return {
+      nbAssociation: nbAssociation,
+    };
   }
 
   @Get('waiting-list/:associationId/:volunteerId')
