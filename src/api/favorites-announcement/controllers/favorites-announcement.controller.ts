@@ -6,6 +6,7 @@ import { UserRole } from '../../../common/enums/roles.enum';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { CreateFavoritesAnnouncementDto } from '../dto/create-favorites-announcement.dto';
 import { Announcement } from '../../announcement/entities/announcement.entity';
+
 @Controller('favorites-announcement')
 export class FavoritesAnnouncementController {
   private readonly logger = new Logger(FavoritesAnnouncementController.name);
@@ -42,6 +43,18 @@ export class FavoritesAnnouncementController {
   @ApiBearerAuth()
   findAllByVolunteerId(@Param('volunteerId') volunteerId: string) {
     return this.favoritesAnnouncementService.findAllByVolunteerId(volunteerId);
+  }
+
+  @Get('volunteer/announcements/:volunteerId')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
+  @ApiBearerAuth()
+  async findAllFavoritesAnnouncementsByVolunteerId(
+    @Param('volunteerId') volunteerId: string,
+  ): Promise<(Announcement & { isFavorite: true })[]> {
+    return await this.favoritesAnnouncementService.findAllFavoritesAnnouncementsByVolunteerId(
+      volunteerId,
+    );
   }
 
   @Get('announcement/:announcementId')

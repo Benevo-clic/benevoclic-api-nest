@@ -96,6 +96,31 @@ export class FavoritesAnnouncementService {
     }
   }
 
+  async findAllFavoritesAnnouncementsByVolunteerId(
+    volunteerId: string,
+  ): Promise<(Announcement & { isFavorite: true })[]> {
+    try {
+      const favorites =
+        await this.favoritesAnnouncementRepository.findAllByVolunteerId(volunteerId);
+
+      const announcements = await Promise.all(
+        favorites.map(fav => this.announcementService.findById(fav.announcementId)),
+      );
+
+      return announcements
+        .filter((a): a is Announcement => a != null && a.status !== 'INACTIVE')
+        .map(a => ({ ...a, isFavorite: true }));
+    } catch (error) {
+      this.logger.error(
+        'Erreur lors de la récupération des favoris du bénévole',
+        error?.stack ?? error,
+      );
+      throw new InternalServerErrorException(
+        'Erreur lors de la récupération des favoris du bénévole',
+      );
+    }
+  }
+
   async findAllByAnnouncementId(announcementId: string) {
     try {
       return await this.favoritesAnnouncementRepository.findAllByAnnouncementId(announcementId);
