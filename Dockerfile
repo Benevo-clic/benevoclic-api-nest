@@ -27,5 +27,11 @@ COPY .env.production ./.env
 
 EXPOSE 3000
 
-# Utiliser node directement pour lancer l'application compilée
-CMD ["node", "dist/main"]
+# Installer PM2 globalement
+RUN npm install -g pm2
+
+# Copier la configuration PM2
+COPY ecosystem.config.js .
+
+# Utiliser PM2 pour lancer l'application
+CMD ["pm2-runtime", "start", "ecosystem.config.js", "--env", "production"]

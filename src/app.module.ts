@@ -11,6 +11,7 @@ import { FavoritesAnnouncementModule } from './api/favorites-announcement/favori
 import { AnnouncementModule } from './api/announcement/announcement.module';
 import { OrphanCleanupController } from './api/cleanup/controllers/orphan-cleanup.controller';
 import { VolunteerModule } from './api/volunteer/volunteer.module';
+import { HealthModule } from './api/health/health.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { VolunteerModule } from './api/volunteer/volunteer.module';
     forwardRef(() => FavoritesAnnouncementModule),
     forwardRef(() => AnnouncementModule),
     forwardRef(() => VolunteerModule),
+    HealthModule,
   ],
   providers: [
     {
