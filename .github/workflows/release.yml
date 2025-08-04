@@ -210,7 +210,7 @@ jobs:
             
             # Vérifier le déploiement
             sleep 10
-            curl -f http://IP_VPS:3000/health || exit 1
+            curl -f http://${{secrets.IP}}:3000/health || exit 1
             
             echo "✅ Déploiement de la version ${{ steps.version.outputs.version }} terminé !"
 
@@ -219,7 +219,7 @@ jobs:
         run: |
           if [ "${{ job.status }}" = "success" ]; then
             curl -X POST -H "Content-Type: application/json" \
-              -d "{\"content\":\"✅ **Release v${{ steps.version.outputs.version }} déployée avec succès !**\\n\\n📦 Version: v${{ steps.version.outputs.version }}\\n🔗 [Voir les changements](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }})\\n📊 [Monitoring](http://IP_VPS:9090)\"}" \
+              -d "{\"content\":\"✅ **Release v${{ steps.version.outputs.version }} déployée avec succès !**\\n\\n📦 Version: v${{ steps.version.outputs.version }}\\n🔗 [Voir les changements](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }})\\n📊 [Monitoring](http://${{secrets.IP}}:9090)\"}" \
               ${{ secrets.WEBHOOK_URL }}
           else
             curl -X POST -H "Content-Type: application/json" \
