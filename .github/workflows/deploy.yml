@@ -28,7 +28,7 @@ jobs:
           envs: MONGODB_URL,MONGODB_DB_NAME,FIREBASE_CLIENT_EMAIL,FIREBASE_PRIVATE_KEY,FIREBASE_PROJECT_ID,FIREBASE_API_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_BUCKET_NAME,AWS_REGION
           script: |
             set -e
-            echo "🚀 Déploiement BenevoClic avec Discord"
+            echo "🚀 Déploiement BenevoClic avec monitoring et alertes Discord"
             
             # Créer répertoires
             mkdir -p ~/benevoclic/grafana/dashboards ~/benevoclic/grafana/datasources
@@ -98,6 +98,115 @@ jobs:
                     - targets: [alertmanager:9093]
             EOL
             
+            # Alert rules
+            cat > ~/benevoclic/alert_rules.yml << 'EOL'
+            groups:
+              - name: benevoclic-api
+                rules:
+                  - alert: ServerDown
+                    expr: up{job="benevoclic-api"} == 0
+                    for: 1m
+                    labels:
+                      severity: critical
+                      service: benevoclic-api
+                      alert_type: server_down
+                    annotations:
+                      summary: "🚨 SERVEUR TOMBÉ - BenevoClic"
+                      description: "Le serveur BenevoClic est complètement inaccessible depuis {{ $labels.instance }}"
+                      template: "discord.server.down"
+
+                  - alert: ServerUp
+                    expr: up{job="benevoclic-api"} == 1
+                    for: 30s
+                    labels:
+                      severity: info
+                      service: benevoclic-api
+                      alert_type: server_up
+                    annotations:
+                      summary: "✅ SERVEUR RÉTABLI - BenevoClic"
+                      description: "Le serveur BenevoClic est de nouveau opérationnel sur {{ $labels.instance }}"
+                      template: "discord.server.up"
+
+                  - alert: ServerInactive
+                    expr: rate(http_requests_total{job="benevoclic-api"}[10m]) == 0
+                    for: 10m
+                    labels:
+                      severity: warning
+                      service: benevoclic-api
+                      alert_type: server_inactive
+                    annotations:
+                      summary: "⚠️ SERVEUR INACTIF - BenevoClic"
+                      description: "Le serveur BenevoClic est inactif depuis plus de 10 minutes sur {{ $labels.instance }}"
+                      template: "discord.server.inactive"
+                      last_activity: "{{ $value }}"
+
+                  - alert: APIHighErrorRate
+                    expr: rate(http_requests_total{job="benevoclic-api", status=~"5.."}[5m]) > 0.1
+                    for: 2m
+                    labels:
+                      severity: warning
+                      service: benevoclic-api
+                    annotations:
+                      summary: "Taux d'erreur élevé"
+                      description: "Le taux d'erreur 5xx est élevé sur {{ $labels.instance }}"
+
+                  - alert: APINoRequests
+                    expr: rate(http_requests_total{job="benevoclic-api"}[5m]) == 0
+                    for: 5m
+                    labels:
+                      severity: warning
+                      service: benevoclic-api
+                    annotations:
+                      summary: "Aucune requête API"
+                      description: "Aucune requête reçue sur {{ $labels.instance }} depuis 5 minutes"
+
+              - name: system-resources
+                rules:
+                  - alert: HighCPUUsage
+                    expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+                    for: 5m
+                    labels:
+                      severity: warning
+                      service: system
+                    annotations:
+                      summary: "Utilisation CPU élevée"
+                      description: "L'utilisation CPU est élevée sur {{ $labels.instance }}"
+
+                  - alert: HighMemoryUsage
+                    expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+                    for: 5m
+                    labels:
+                      severity: warning
+                      service: system
+                    annotations:
+                      summary: "Utilisation mémoire élevée"
+                      description: "L'utilisation mémoire est élevée sur {{ $labels.instance }}"
+
+                  - alert: SystemDown
+                    expr: up{job="node-exporter"} == 0
+                    for: 2m
+                    labels:
+                      severity: critical
+                      service: system
+                      alert_type: server_down
+                    annotations:
+                      summary: "🚨 SYSTÈME TOMBÉ - BenevoClic"
+                      description: "Le système de monitoring est inaccessible sur {{ $labels.instance }}"
+                      template: "discord.server.down"
+
+                  - alert: SystemUp
+                    expr: up{job="node-exporter"} == 1
+                    for: 30s
+                    labels:
+                      severity: info
+                      service: system
+                      alert_type: server_up
+                    annotations:
+                      summary: "✅ SYSTÈME RÉTABLI - BenevoClic"
+                      description: "Le système de monitoring est de nouveau opérationnel sur {{ $labels.instance }}"
+                      template: "discord.server.up"
+            EOL
+            
             # Alertmanager Discord
             cat > ~/benevoclic/alertmanager.yml << 'EOL'
             global:
@@ -107,26 +216,244 @@ jobs:
               group_wait: 10s
               group_interval: 10s
               repeat_interval: 1h
-              receiver: 'discord-only'
+              receiver: 'discord-server-down'
               routes:
-                - match: {severity: critical}
-                  receiver: 'discord-only'
+                - match:
+                    alert_type: server_down
+                  receiver: 'discord-server-down'
                   repeat_interval: 30m
-                - match: {severity: warning}
-                  receiver: 'discord-only'
+                - match:
+                    alert_type: server_up
+                  receiver: 'discord-server-up'
                   repeat_interval: 1h
+                - match:
+                    alert_type: server_inactive
+                  receiver: 'discord-server-inactive'
+                  repeat_interval: 15m
+                - match:
+                    severity: critical
+                  receiver: 'discord-critical'
+                  repeat_interval: 30m
+                - match:
+                    severity: warning
+                  receiver: 'discord-warning'
+                  repeat_interval: 1h
+                - match:
+                    severity: info
+                  receiver: 'discord-info'
+                  repeat_interval: 2h
             receivers:
-              - name: 'discord-only'
+              - name: 'discord-server-down'
                 discord_configs:
                   - webhook_url: 'https://discord.com/api/webhooks/1401898793477214259/tJtF0qpbWZh38taEXVfEu23qdbY53sb_Td3UROUItw-AFzoAeFZAEW5lRp-zTNiYBXLt'
-                    title: '🚨 Alerte BenevoClic'
-                    message: '{{ template "discord.benevoclic.message" . }}'
+                    title: '🚨 SERVEUR TOMBÉ - BenevoClic'
+                    message: |
+                      🚨 **SERVEUR TOMBÉ - BenevoClic**
+
+                      **⚠️ URGENCE: Le serveur est inaccessible !**
+
+                      **Résumé:** {{ .CommonAnnotations.summary }}
+                      **Description:** {{ .CommonAnnotations.description }}
+                      **Sévérité:** {{ .CommonLabels.severity }}
+                      **Service:** {{ .CommonLabels.service }}
+
+                      **Détails de l'incident:**
+                      {{ range .Alerts }}
+                      • **Instance:** {{ .Labels.instance }}
+                      • **Status:** {{ .Status }}
+                      • **Durée:** {{ .StartsAt | since }}
+                      {{ end }}
+
+                      **Actions requises:**
+                      • 🔍 Vérifier l'état du serveur
+                      • 🔄 Redémarrer les services si nécessaire
+                      • 📞 Contacter l'équipe technique
+
+                      **Liens utiles:**
+                      • 📊 [Prometheus](http://151.80.152.63:9090)
+                      • 📈 [Grafana](http://151.80.152.63:3001)
+                      • 🔍 [API Health](http://151.80.152.63:3000/health)
+
+                      ---
+                      *🚨 ALERTE CRITIQUE - Serveur Down*
                     send_resolved: true
+
+              - name: 'discord-server-up'
+                discord_configs:
+                  - webhook_url: 'https://discord.com/api/webhooks/1401898793477214259/tJtF0qpbWZh38taEXVfEu23qdbY53sb_Td3UROUItw-AFzoAeFZAEW5lRp-zTNiYBXLt'
+                    title: '✅ SERVEUR RÉTABLI - BenevoClic'
+                    message: |
+                      ✅ **SERVEUR RÉTABLI - BenevoClic**
+
+                      **🎉 BONNE NOUVELLE: Le serveur est de nouveau opérationnel !**
+
+                      **Résumé:** {{ .CommonAnnotations.summary }}
+                      **Description:** {{ .CommonAnnotations.description }}
+                      **Sévérité:** {{ .CommonLabels.severity }}
+                      **Service:** {{ .CommonLabels.service }}
+
+                      **Détails de la récupération:**
+                      {{ range .Alerts }}
+                      • **Instance:** {{ .Labels.instance }}
+                      • **Status:** {{ .Status }}
+                      • **Durée de l'incident:** {{ .StartsAt | since }} - {{ .EndsAt | since }}
+                      {{ end }}
+
+                      **Services rétablis:**
+                      • ✅ API BenevoClic
+                      • ✅ Monitoring Prometheus
+                      • ✅ Alertes Discord
+                      • ✅ Dashboards Grafana
+
+                      **Liens utiles:**
+                      • 📊 [Prometheus](http://151.80.152.63:9090)
+                      • 📈 [Grafana](http://151.80.152.63:3001)
+                      • 🔍 [API Health](http://151.80.152.63:3000/health)
+
+                      ---
+                      *✅ RÉCUPÉRATION - Serveur Opérationnel*
+                    send_resolved: true
+
+              - name: 'discord-server-inactive'
+                discord_configs:
+                  - webhook_url: 'https://discord.com/api/webhooks/1401898793477214259/tJtF0qpbWZh38taEXVfEu23qdbY53sb_Td3UROUItw-AFzoAeFZAEW5lRp-zTNiYBXLt'
+                    title: '⚠️ SERVEUR INACTIF - BenevoClic'
+                    message: |
+                      ⚠️ **SERVEUR INACTIF - BenevoClic**
+
+                      **📉 ATTENTION: Le serveur est inactif depuis trop longtemps !**
+
+                      **Résumé:** {{ .CommonAnnotations.summary }}
+                      **Description:** {{ .CommonAnnotations.description }}
+                      **Sévérité:** {{ .CommonLabels.severity }}
+                      **Service:** {{ .CommonLabels.service }}
+
+                      **Détails de l'inactivité:**
+                      {{ range .Alerts }}
+                      • **Instance:** {{ .Labels.instance }}
+                      • **Status:** {{ .Status }}
+                      • **Durée d'inactivité:** {{ .StartsAt | since }}
+                      • **Dernière activité:** {{ .Annotations.last_activity | default "Inconnue" }}
+                      {{ end }}
+
+                      **Causes possibles:**
+                      • 🔌 Problème de connectivité réseau
+                      • 💾 Surcharge du serveur
+                      • 🔄 Service en cours de redémarrage
+                      • ⚡ Problème d'alimentation
+
+                      **Actions recommandées:**
+                      • 🔍 Vérifier la connectivité
+                      • 📊 Consulter les métriques système
+                      • 🔄 Redémarrer si nécessaire
+
+                      **Liens utiles:**
+                      • 📊 [Prometheus](http://151.80.152.63:9090)
+                      • 📈 [Grafana](http://151.80.152.63:3001)
+                      • 🔍 [API Health](http://151.80.152.63:3000/health)
+
+                      ---
+                      *⚠️ ALERTE INACTIVITÉ - Surveillance Requise*
+                    send_resolved: true
+
+              - name: 'discord-critical'
+                discord_configs:
+                  - webhook_url: 'https://discord.com/api/webhooks/1401898793477214259/tJtF0qpbWZh38taEXVfEu23qdbY53sb_Td3UROUItw-AFzoAeFZAEW5lRp-zTNiYBXLt'
+                    title: '🚨 ALERTE CRITIQUE - BenevoClic'
+                    message: |
+                      🚨 **Alerte BenevoClic**
+
+                      **Résumé:** {{ .CommonAnnotations.summary }}
+                      **Description:** {{ .CommonAnnotations.description }}
+                      **Sévérité:** {{ .CommonLabels.severity }}
+                      **Service:** {{ .CommonLabels.service }}
+
+                      **Détails:**
+                      {{ range .Alerts }}
+                      • **Instance:** {{ .Labels.instance }}
+                      • **Valeur:** {{ .Annotations.value }}
+                      • **Status:** {{ .Status }}
+                      {{ end }}
+
+                      **Liens utiles:**
+                      • 📊 [Prometheus](http://151.80.152.63:9090)
+                      • 📈 [Grafana](http://151.80.152.63:3001)
+                      • 🔍 [API Health](http://151.80.152.63:3000/health)
+
+                      ---
+                      *Alertmanager - BenevoClic Monitoring*
+                    send_resolved: true
+
+              - name: 'discord-warning'
+                discord_configs:
+                  - webhook_url: 'https://discord.com/api/webhooks/1401898793477214259/tJtF0qpbWZh38taEXVfEu23qdbY53sb_Td3UROUItw-AFzoAeFZAEW5lRp-zTNiYBXLt'
+                    title: '⚠️ ALERTE WARNING - BenevoClic'
+                    message: |
+                      🚨 **Alerte BenevoClic**
+
+                      **Résumé:** {{ .CommonAnnotations.summary }}
+                      **Description:** {{ .CommonAnnotations.description }}
+                      **Sévérité:** {{ .CommonLabels.severity }}
+                      **Service:** {{ .CommonLabels.service }}
+
+                      **Détails:**
+                      {{ range .Alerts }}
+                      • **Instance:** {{ .Labels.instance }}
+                      • **Valeur:** {{ .Annotations.value }}
+                      • **Status:** {{ .Status }}
+                      {{ end }}
+
+                      **Liens utiles:**
+                      • 📊 [Prometheus](http://151.80.152.63:9090)
+                      • 📈 [Grafana](http://151.80.152.63:3001)
+                      • 🔍 [API Health](http://151.80.152.63:3000/health)
+
+                      ---
+                      *Alertmanager - BenevoClic Monitoring*
+                    send_resolved: true
+
+              - name: 'discord-info'
+                discord_configs:
+                  - webhook_url: 'https://discord.com/api/webhooks/1401898793477214259/tJtF0qpbWZh38taEXVfEu23qdbY53sb_Td3UROUItw-AFzoAeFZAEW5lRp-zTNiYBXLt'
+                    title: 'ℹ️ INFO - BenevoClic'
+                    message: |
+                      🚨 **Alerte BenevoClic**
+
+                      **Résumé:** {{ .CommonAnnotations.summary }}
+                      **Description:** {{ .CommonAnnotations.description }}
+                      **Sévérité:** {{ .CommonLabels.severity }}
+                      **Service:** {{ .CommonLabels.service }}
+
+                      **Détails:**
+                      {{ range .Alerts }}
+                      • **Instance:** {{ .Labels.instance }}
+                      • **Valeur:** {{ .Annotations.value }}
+                      • **Status:** {{ .Status }}
+                      {{ end }}
+
+                      **Liens utiles:**
+                      • 📊 [Prometheus](http://151.80.152.63:9090)
+                      • 📈 [Grafana](http://151.80.152.63:3001)
+                      • 🔍 [API Health](http://151.80.152.63:3000/health)
+
+                      ---
+                      *Alertmanager - BenevoClic Monitoring*
+                    send_resolved: true
+
             inhibit_rules:
-              - source_match: {severity: 'critical'}
-                target_match: {severity: 'warning'}
+              - source_match:
+                  severity: 'critical'
+                target_match:
+                  severity: 'warning'
                 equal: ['alertname']
+              - source_match:
+                  alert_type: 'server_down'
+                target_match:
+                  alert_type: 'server_inactive'
+                equal: ['service']
             EOL
+            
+
             
             # Monitoring docker-compose
             cat > ~/benevoclic/docker-compose.monitoring.yml << 'EOL'
@@ -138,6 +465,7 @@ jobs:
                 ports: ["9090:9090"]
                 volumes:
                   - ./prometheus.yml:/etc/prometheus/prometheus.yml
+                  - ./alert_rules.yml:/etc/prometheus/alert_rules.yml
                   - prometheus_data:/prometheus
                 command:
                   - '--config.file=/etc/prometheus/prometheus.yml'
@@ -147,6 +475,7 @@ jobs:
                   - '--storage.tsdb.retention.time=200h'
                   - '--web.enable-lifecycle'
                 networks: [benevoclic-network]
+
               grafana:
                 image: grafana/grafana:latest
                 container_name: grafana
@@ -161,6 +490,7 @@ jobs:
                   - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
                   - ./grafana/datasources:/etc/grafana/provisioning/datasources
                 networks: [benevoclic-network]
+
               node-exporter:
                 image: prom/node-exporter:latest
                 container_name: node-exporter
@@ -176,6 +506,7 @@ jobs:
                   - '--path.sysfs=/host/sys'
                   - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
                 networks: [benevoclic-network]
+
               alertmanager:
                 image: prom/alertmanager:latest
                 container_name: alertmanager
@@ -189,10 +520,12 @@ jobs:
                   - '--storage.path=/alertmanager'
                   - '--web.listen-address=:9093'
                 networks: [benevoclic-network]
+
             volumes:
               prometheus_data:
               grafana_data:
               alertmanager_data:
+
             networks:
               benevoclic-network:
                 external: true
@@ -223,7 +556,7 @@ jobs:
                 options:
                   path: /etc/grafana/provisioning/dashboards
             EOL
-            
+
             cd ~/benevoclic
             
             # Déployer
@@ -244,7 +577,7 @@ jobs:
             docker-compose -f docker-compose.monitoring.yml up -d
             
             echo "⏳ Attente du démarrage..."
-            sleep 15
+            sleep 20
             
             echo "✅ Déploiement terminé !"
             echo "📊 Prometheus: http://151.80.152.63:9090"

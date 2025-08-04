@@ -1,30 +1,65 @@
 groups:
-  - name: benevoclic-api-alerts
+  - name: benevoclic-api
     rules:
-      # ===== ALERTES CRASH SERVEUR =====
-      - alert: APIDown
+      - alert: ServerDown
         expr: up{job="benevoclic-api"} == 0
-        for: 30s
+        for: 1m
         labels:
           severity: critical
           service: benevoclic-api
+          alert_type: server_down
         annotations:
-          summary: "API BenevoClic est down"
-          description: "L'API BenevoClic n'est plus accessible depuis {{ $labels.instance }}"
-          value: "{{ $value }}"
+          summary: "🚨 SERVEUR TOMBÉ - BenevoClic"
+          description: "Le serveur BenevoClic est complètement inaccessible depuis {{ $labels.instance }}"
+          template: "discord.server.down"
+
+      - alert: ServerUp
+        expr: up{job="benevoclic-api"} == 1
+        for: 30s
+        labels:
+          severity: info
+          service: benevoclic-api
+          alert_type: server_up
+        annotations:
+          summary: "✅ SERVEUR RÉTABLI - BenevoClic"
+          description: "Le serveur BenevoClic est de nouveau opérationnel sur {{ $labels.instance }}"
+          template: "discord.server.up"
+
+      - alert: ServerInactive
+        expr: rate(http_requests_total{job="benevoclic-api"}[10m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+          service: benevoclic-api
+          alert_type: server_inactive
+        annotations:
+          summary: "⚠️ SERVEUR INACTIF - BenevoClic"
+          description: "Le serveur BenevoClic est inactif depuis plus de 10 minutes sur {{ $labels.instance }}"
+          template: "discord.server.inactive"
+          last_activity: "{{ $value }}"
 
       - alert: APIHighErrorRate
-        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        expr: rate(http_requests_total{job="benevoclic-api", status=~"5.."}[5m]) > 0.1
         for: 2m
         labels:
           severity: warning
           service: benevoclic-api
         annotations:
-          summary: "Taux d'erreur élevé sur l'API"
-          description: "Plus de 10% d'erreurs 5xx sur l'API BenevoClic"
-          value: "{{ $value }}"
+          summary: "Taux d'erreur élevé"
+          description: "Le taux d'erreur 5xx est élevé sur {{ $labels.instance }}"
 
-      # ===== ALERTES RESSOURCES SYSTÈME =====
+      - alert: APINoRequests
+        expr: rate(http_requests_total{job="benevoclic-api"}[5m]) == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: benevoclic-api
+        annotations:
+          summary: "Aucune requête API"
+          description: "Aucune requête reçue sur {{ $labels.instance }} depuis 5 minutes"
+
+  - name: system-resources
+    rules:
       - alert: HighCPUUsage
         expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
         for: 5m
@@ -33,8 +68,7 @@ groups:
           service: system
         annotations:
           summary: "Utilisation CPU élevée"
-          description: "CPU usage > 80% sur {{ $labels.instance }}"
-          value: "{{ $value }}%"
+          description: "L'utilisation CPU est élevée sur {{ $labels.instance }}"
 
       - alert: HighMemoryUsage
         expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
@@ -44,110 +78,28 @@ groups:
           service: system
         annotations:
           summary: "Utilisation mémoire élevée"
-          description: "Mémoire utilisée > 85% sur {{ $labels.instance }}"
-          value: "{{ $value }}%"
+          description: "L'utilisation mémoire est élevée sur {{ $labels.instance }}"
 
-      - alert: HighDiskUsage
-        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 85
-        for: 5m
-        labels:
-          severity: warning
-          service: system
-        annotations:
-          summary: "Espace disque faible"
-          description: "Espace disque utilisé > 85% sur {{ $labels.instance }}"
-          value: "{{ $value }}%"
-
-      # ===== ALERTES MÉTRIQUES API =====
-      - alert: APIHighResponseTime
-        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
-        for: 3m
-        labels:
-          severity: warning
-          service: benevoclic-api
-        annotations:
-          summary: "Temps de réponse API élevé"
-          description: "95e percentile du temps de réponse > 2s sur l'API"
-          value: "{{ $value }}s"
-
-      - alert: APINoRequests
-        expr: rate(http_requests_total[10m]) == 0
-        for: 5m
-        labels:
-          severity: warning
-          service: benevoclic-api
-        annotations:
-          summary: "Aucune requête API"
-          description: "Aucune requête reçue sur l'API depuis 10 minutes"
-          value: "{{ $value }}"
-
-      - alert: APIHighRequestRate
-        expr: rate(http_requests_total[5m]) > 100
+      - alert: SystemDown
+        expr: up{job="node-exporter"} == 0
         for: 2m
-        labels:
-          severity: info
-          service: benevoclic-api
-        annotations:
-          summary: "Taux de requêtes élevé"
-          description: "Plus de 100 requêtes/seconde sur l'API"
-          value: "{{ $value }} req/s"
-
-      # ===== ALERTES MÉMOIRE PROCESSUS =====
-      - alert: ProcessHighMemoryUsage
-        expr: process_resident_memory_bytes / 1024 / 1024 > 500
-        for: 5m
-        labels:
-          severity: warning
-          service: benevoclic-api
-        annotations:
-          summary: "Utilisation mémoire processus élevée"
-          description: "Le processus API utilise plus de 500MB de RAM"
-          value: "{{ $value }}MB"
-
-      # ===== ALERTES CONNECTIONS =====
-      - alert: HighActiveConnections
-        expr: nodejs_active_handles > 1000
-        for: 3m
-        labels:
-          severity: warning
-          service: benevoclic-api
-        annotations:
-          summary: "Nombre de connexions actives élevé"
-          description: "Plus de 1000 connexions actives sur l'API"
-          value: "{{ $value }}"
-
-      # ===== ALERTES EVENT LOOP =====
-      - alert: EventLoopLag
-        expr: nodejs_eventloop_lag_seconds > 1
-        for: 2m
-        labels:
-          severity: warning
-          service: benevoclic-api
-        annotations:
-          summary: "Lag de l'event loop"
-          description: "Event loop lag > 1s sur l'API"
-          value: "{{ $value }}s"
-
-      # ===== ALERTES CRASH DÉTECTÉ =====
-      - alert: ProcessRestart
-        expr: changes(process_start_time_seconds[10m]) > 0
-        for: 0s
         labels:
           severity: critical
-          service: benevoclic-api
+          service: system
+          alert_type: server_down
         annotations:
-          summary: "Processus API redémarré"
-          description: "Le processus API a été redémarré sur {{ $labels.instance }}"
-          value: "{{ $value }} redémarrages"
+          summary: "🚨 SYSTÈME TOMBÉ - BenevoClic"
+          description: "Le système de monitoring est inaccessible sur {{ $labels.instance }}"
+          template: "discord.server.down"
 
-      # ===== ALERTES RÉSEAU =====
-      - alert: NetworkErrors
-        expr: rate(nodejs_net_connections_total[5m]) > 0 and rate(nodejs_net_connections_total[5m]) < 0.1
-        for: 5m
+      - alert: SystemUp
+        expr: up{job="node-exporter"} == 1
+        for: 30s
         labels:
-          severity: warning
-          service: benevoclic-api
+          severity: info
+          service: system
+          alert_type: server_up
         annotations:
-          summary: "Erreurs réseau détectées"
-          description: "Problèmes de connexions réseau sur l'API"
-          value: "{{ $value }}" 
+          summary: "✅ SYSTÈME RÉTABLI - BenevoClic"
+          description: "Le système de monitoring est de nouveau opérationnel sur {{ $labels.instance }}"
+          template: "discord.server.up"
