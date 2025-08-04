@@ -69,7 +69,7 @@ jobs:
 
             networks:
               benevoclic-network:
-                driver: bridge
+                external: true
             EOL
 
             # Configuration Prometheus
