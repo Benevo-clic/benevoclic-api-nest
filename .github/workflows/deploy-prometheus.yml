@@ -71,8 +71,8 @@ jobs:
                       service: benevoclic-api
                       alert_type: server_down
                     annotations:
-                      summary: "🚨 SERVEUR TOMBÉ - BenevoClic"
-                      description: "Le serveur BenevoClic est complètement inaccessible depuis {{ $labels.instance }}"
+                      summary: "🚨 SERVEUR TOMBÉ - Benevoclic"
+                      description: "Le serveur Benevoclic est complètement inaccessible depuis {{ $labels.instance }}"
                       template: "discord.server.down"
 
                   - alert: ServerUp
@@ -83,8 +83,8 @@ jobs:
                       service: benevoclic-api
                       alert_type: server_up
                     annotations:
-                      summary: "✅ SERVEUR RÉTABLI - BenevoClic"
-                      description: "Le serveur BenevoClic est de nouveau opérationnel sur {{ $labels.instance }}"
+                      summary: "✅ SERVEUR RÉTABLI - Benevoclic"
+                      description: "Le serveur Benevoclic est de nouveau opérationnel sur {{ $labels.instance }}"
                       template: "discord.server.up"
 
                   - alert: ServerInactive
@@ -95,8 +95,8 @@ jobs:
                       service: benevoclic-api
                       alert_type: server_inactive
                     annotations:
-                      summary: "⚠️ SERVEUR INACTIF - BenevoClic"
-                      description: "Le serveur BenevoClic est inactif depuis plus de 10 minutes sur {{ $labels.instance }}"
+                      summary: "⚠️ SERVEUR INACTIF - Benevoclic"
+                      description: "Le serveur Benevoclic est inactif depuis plus de 10 minutes sur {{ $labels.instance }}"
                       template: "discord.server.inactive"
                       last_activity: "{{ $value }}"
 
@@ -150,7 +150,7 @@ jobs:
                       service: system
                       alert_type: server_down
                     annotations:
-                      summary: "🚨 SYSTÈME TOMBÉ - BenevoClic"
+                      summary: "🚨 SYSTÈME TOMBÉ - Benevoclic"
                       description: "Le système de monitoring est inaccessible sur {{ $labels.instance }}"
                       template: "discord.server.down"
 
@@ -162,7 +162,7 @@ jobs:
                       service: system
                       alert_type: server_up
                     annotations:
-                      summary: "✅ SYSTÈME RÉTABLI - BenevoClic"
+                      summary: "✅ SYSTÈME RÉTABLI - Benevoclic"
                       description: "Le système de monitoring est de nouveau opérationnel sur {{ $labels.instance }}"
                       template: "discord.server.up"
             EOL

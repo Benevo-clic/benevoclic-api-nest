@@ -4,7 +4,32 @@
     "type-enum": [
       2,
       "always",
-      ["feat", "fix", "docs", "style", "refactor", "test", "chore", "revert"]
-    ]
-  }
+      [
+        "feat",
+        "fix",
+        "docs",
+        "style",
+        "refactor",
+        "perf",
+        "test",
+        "chore",
+        "revert",
+        "ci",
+        "build",
+        "security",
+        "config"
+      ]
+    ],
+    "type-case": [2, "always", "lower"],
+    "type-empty": [2, "never"],
+    "subject-case": [2, "always", "lower"],
+    "subject-empty": [2, "never"],
+    "subject-full-stop": [2, "never", "."],
+    "header-max-length": [2, "always", 72],
+    "body-leading-blank": [2, "always"],
+    "body-max-line-length": [2, "always", 100],
+    "footer-leading-blank": [2, "always"],
+    "footer-max-line-length": [2, "always", 100]
+  },
+  "helpUrl": "https://github.com/conventional-changelog/commitlint/#what-is-commitlint"
 } 

@@ -1,4 +1,4 @@
-# 🚀 Guide de Déploiement - BenevoClic API avec Monitoring
+# 🚀 Guide de Déploiement - Benevoclic API avec Monitoring
 
 ## 📋 Résumé des Corrections Appliquées
 
@@ -22,7 +22,7 @@
 ### **Étape 1: Préparer le VPS**
 ```bash
 # Se connecter au VPS
-ssh debian@151.80.152.63
+ssh debian@IP_VPS
 
 # Créer le répertoire
 mkdir -p ~/benevoclic
@@ -224,9 +224,9 @@ curl http://localhost:3001/api/health
 
 ## 📊 **Accès aux Services**
 
-- **Grafana** : http://151.80.152.63:3001 (admin/admin123)
-- **Prometheus** : http://151.80.152.63:9090
-- **API** : http://151.80.152.63:3000
+- **Grafana** : http://IP_VPS:3001 (admin/admin123)
+- **Prometheus** : http://IP_VPS:9090
+- **API** : http://IP_VPS:3000
 
 ## 🚨 **Dépannage**
 
