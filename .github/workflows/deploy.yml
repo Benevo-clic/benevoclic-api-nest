@@ -10,35 +10,25 @@ jobs:
       - name: Deploy to Production
         uses: appleboy/ssh-action@v1.0.3
         env:
-          API_BASE_URL: ${{ secrets.API_BASE_URL }}
-          API_SIRENE_URL: ${{ secrets.API_SIRENE_URL }}
-          API_KEY: ${{ secrets.API_KEY }}
-          API_SIRENE_KEY: ${{ secrets.API_SIRENE_KEY }}
-          STORAGE_BUCKET: ${{ secrets.STORAGE_BUCKET }}
-          MESSAGING_SENDER_ID: ${{ secrets.MESSAGING_SENDER_ID }}
-          APP_ID: ${{ secrets.APP_ID }}
-          MEASUREMENT_ID: ${{ secrets.MEASUREMENT_ID }}
-          PORT: ${{ secrets.PORT }}
-          NODE_ENV: ${{ secrets.NODE_ENV }}
-          API_TIMEOUT: ${{ secrets.API_TIMEOUT }}
-          API_RETRY_COUNT: ${{ secrets.API_RETRY_COUNT }}
-          GOOGLE_CALLBACK_URL: ${{ secrets.GOOGLE_CALLBACK_URL }}
-          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
-          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          MONGODB_URL: ${{ secrets.MONGODB_URL }}
+          MONGODB_DB_NAME: benevoclic
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
-          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
-          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
-          FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.OVH_SSH_KEY }}
           port: 22
-          envs: API_BASE_URL,API_SIRENE_URL,API_KEY,API_SIRENE_KEY,STORAGE_BUCKET,MESSAGING_SENDER_ID,APP_ID,MEASUREMENT_ID,PORT,NODE_ENV,API_TIMEOUT,API_RETRY_COUNT,GOOGLE_CALLBACK_URL,FIREBASE_API_KEY,FIREBASE_AUTH_DOMAIN,FIREBASE_PROJECT_ID,FIREBASE_STORAGE_BUCKET,FIREBASE_MESSAGING_SENDER_ID,FIREBASE_APP_ID,FIREBASE_MEASUREMENT_ID
+          envs: MONGODB_URL,MONGODB_DB_NAME,FIREBASE_CLIENT_EMAIL,FIREBASE_PRIVATE_KEY,FIREBASE_PROJECT_ID,FIREBASE_API_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_BUCKET_NAME,AWS_REGION
           script: |
             set -e
-            echo "�� Déploiement BenevoClic avec Discord"
+            echo "🚀 Déploiement BenevoClic avec Discord"
             
             # Créer répertoires
             mkdir -p ~/benevoclic/grafana/dashboards ~/benevoclic/grafana/datasources
@@ -54,24 +44,16 @@ jobs:
                 environment:
                   NODE_ENV: production
                   PORT: 3000
-                  API_BASE_URL: ${API_BASE_URL}
-                  API_SIRENE_URL: ${API_SIRENE_URL}
-                  API_KEY: ${API_KEY}
-                  API_SIRENE_KEY: ${API_SIRENE_KEY}
-                  STORAGE_BUCKET: ${STORAGE_BUCKET}
-                  MESSAGING_SENDER_ID: ${MESSAGING_SENDER_ID}
-                  APP_ID: ${APP_ID}
-                  MEASUREMENT_ID: ${MEASUREMENT_ID}
-                  API_TIMEOUT: ${API_TIMEOUT}
-                  API_RETRY_COUNT: ${API_RETRY_COUNT}
-                  GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
-                  FIREBASE_API_KEY: ${FIREBASE_API_KEY}
-                  FIREBASE_AUTH_DOMAIN: ${FIREBASE_AUTH_DOMAIN}
+                  MONGODB_URL: ${MONGODB_URL}
+                  MONGODB_DB_NAME: ${MONGODB_DB_NAME}
+                  FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+                  FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
                   FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
-                  FIREBASE_STORAGE_BUCKET: ${FIREBASE_STORAGE_BUCKET}
-                  FIREBASE_MESSAGING_SENDER_ID: ${FIREBASE_MESSAGING_SENDER_ID}
-                  FIREBASE_APP_ID: ${FIREBASE_APP_ID}
-                  FIREBASE_MEASUREMENT_ID: ${FIREBASE_MEASUREMENT_ID}
+                  FIREBASE_API_KEY: ${FIREBASE_API_KEY}
+                  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+                  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+                  AWS_BUCKET_NAME: ${AWS_BUCKET_NAME}
+                  AWS_REGION: ${AWS_REGION}
                 healthcheck:
                   test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
                   interval: 30s
@@ -245,17 +227,17 @@ jobs:
             cd ~/benevoclic
             
             # Déployer
-            echo "�� Arrêt des services..."
+            echo "🛑 Arrêt des services..."
             docker-compose down || true
             docker-compose -f docker-compose.monitoring.yml down || true
             
-            echo "�� Création du réseau..."
+            echo "🌐 Création du réseau..."
             docker network create benevoclic-network 2>/dev/null || true
             
-            echo "�� Téléchargement des images..."
+            echo "📥 Téléchargement des images..."
             docker-compose pull
             
-            echo "�� Démarrage de l'API..."
+            echo "🚀 Démarrage de l'API..."
             docker-compose up -d
             
             echo "📊 Démarrage du monitoring..."
@@ -266,6 +248,6 @@ jobs:
             
             echo "✅ Déploiement terminé !"
             echo "📊 Prometheus: http://151.80.152.63:9090"
-            echo "�� Alertmanager: http://151.80.152.63:9093"
-            echo "📈 Grafana: http://151.80.152.63:3001 (admin/admin123)"
+            echo "🚨 Alertmanager: http://151.80.152.63:9093"
+            echo "📈 Grafana: http://151.80.152.63:3001"
             echo "🔍 API Health: http://151.80.152.63:3000/health"
