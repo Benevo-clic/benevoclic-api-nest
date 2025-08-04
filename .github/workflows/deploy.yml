@@ -10,31 +10,43 @@ jobs:
       - name: Deploy to Production
         uses: appleboy/ssh-action@v1.0.3
         env:
-          MONGODB_URL: ${{ secrets.MONGODB_URL }}
-          MONGODB_DB_NAME: benevoclic
-          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
-          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          # Variables d'environnement de l'application
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          API_SIRENE_URL: ${{ secrets.API_SIRENE_URL }}
+          API_KEY: ${{ secrets.API_KEY }}
+          API_SIRENE_KEY: ${{ secrets.API_SIRENE_KEY }}
+          STORAGE_BUCKET: ${{ secrets.STORAGE_BUCKET }}
+          MESSAGING_SENDER_ID: ${{ secrets.MESSAGING_SENDER_ID }}
+          APP_ID: ${{ secrets.APP_ID }}
+          MEASUREMENT_ID: ${{ secrets.MEASUREMENT_ID }}
+          PORT: ${{ secrets.PORT }}
+          NODE_ENV: ${{ secrets.NODE_ENV }}
+          API_TIMEOUT: ${{ secrets.API_TIMEOUT }}
+          API_RETRY_COUNT: ${{ secrets.API_RETRY_COUNT }}
+          GOOGLE_CALLBACK_URL: ${{ secrets.GOOGLE_CALLBACK_URL }}
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
+          # Discord est configuré directement dans alertmanager.yml
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.OVH_SSH_KEY }}
           port: 22
-          envs: MONGODB_URL,MONGODB_DB_NAME,FIREBASE_CLIENT_EMAIL,FIREBASE_PRIVATE_KEY,FIREBASE_PROJECT_ID,FIREBASE_API_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_BUCKET_NAME,AWS_REGION
+          envs: API_BASE_URL,API_SIRENE_URL,API_KEY,API_SIRENE_KEY,STORAGE_BUCKET,MESSAGING_SENDER_ID,APP_ID,MEASUREMENT_ID,PORT,NODE_ENV,API_TIMEOUT,API_RETRY_COUNT,GOOGLE_CALLBACK_URL,FIREBASE_API_KEY,FIREBASE_AUTH_DOMAIN,FIREBASE_PROJECT_ID,FIREBASE_STORAGE_BUCKET,FIREBASE_MESSAGING_SENDER_ID,FIREBASE_APP_ID,FIREBASE_MEASUREMENT_ID
           script: |
-            set -e  # Arrêter en cas d'erreur
-            
-            # Créer les dossiers nécessaires
+            set -e
+
+            # Créer les répertoires nécessaires
             mkdir -p ~/benevoclic
             mkdir -p ~/benevoclic/grafana/dashboards
             mkdir -p ~/benevoclic/grafana/datasources
-            
-            # Configuration de l'API
+
+            # Configuration de l'API (docker-compose.yml)
             cat > ~/benevoclic/docker-compose.yml << EOL
             services:
               api:
@@ -46,53 +58,54 @@ jobs:
                 environment:
                   NODE_ENV: production
                   PORT: 3000
-                  MONGODB_URL: \${MONGODB_URL}
-                  MONGODB_DB_NAME: \${MONGODB_DB_NAME}
-                  FIREBASE_CLIENT_EMAIL: \${FIREBASE_CLIENT_EMAIL}
-                  FIREBASE_PRIVATE_KEY: \${FIREBASE_PRIVATE_KEY}
-                  FIREBASE_PROJECT_ID: \${FIREBASE_PROJECT_ID}
+                  API_BASE_URL: \${API_BASE_URL}
+                  API_SIRENE_URL: \${API_SIRENE_URL}
+                  API_KEY: \${API_KEY}
+                  API_SIRENE_KEY: \${API_SIRENE_KEY}
+                  STORAGE_BUCKET: \${STORAGE_BUCKET}
+                  MESSAGING_SENDER_ID: \${MESSAGING_SENDER_ID}
+                  APP_ID: \${APP_ID}
+                  MEASUREMENT_ID: \${MEASUREMENT_ID}
+                  API_TIMEOUT: \${API_TIMEOUT}
+                  API_RETRY_COUNT: \${API_RETRY_COUNT}
+                  GOOGLE_CALLBACK_URL: \${GOOGLE_CALLBACK_URL}
                   FIREBASE_API_KEY: \${FIREBASE_API_KEY}
-                  AWS_ACCESS_KEY_ID: \${AWS_ACCESS_KEY_ID}
-                  AWS_SECRET_ACCESS_KEY: \${AWS_SECRET_ACCESS_KEY}
-                  AWS_BUCKET_NAME: \${AWS_BUCKET_NAME}
-                  AWS_REGION: \${AWS_REGION}
-                volumes:
-                  - ./logs:/app/logs
+                  FIREBASE_AUTH_DOMAIN: \${FIREBASE_AUTH_DOMAIN}
+                  FIREBASE_PROJECT_ID: \${FIREBASE_PROJECT_ID}
+                  FIREBASE_STORAGE_BUCKET: \${FIREBASE_STORAGE_BUCKET}
+                  FIREBASE_MESSAGING_SENDER_ID: \${FIREBASE_MESSAGING_SENDER_ID}
+                  FIREBASE_APP_ID: \${FIREBASE_APP_ID}
+                  FIREBASE_MEASUREMENT_ID: \${FIREBASE_MEASUREMENT_ID}
                 healthcheck:
                   test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
                   interval: 30s
-                  timeout: 10s
+                  timeout: 3s
                   retries: 3
-                  start_period: 40s
+                  start_period: 10s
                 networks:
                   - benevoclic-network
-
             networks:
               benevoclic-network:
                 external: true
             EOL
 
-            # Configuration Prometheus
+            # Configuration Prometheus (prometheus.yml)
             cat > ~/benevoclic/prometheus.yml << EOL
             global:
               scrape_interval: 15s
               evaluation_interval: 15s
-
             rule_files:
               - "alert_rules.yml"
-
             scrape_configs:
               - job_name: 'prometheus'
                 static_configs:
                   - targets: ['localhost:9090']
-
               - job_name: 'benevoclic-api'
                 static_configs:
                   - targets: ['benevoclic-api:3000']
                 metrics_path: '/metrics'
                 scrape_interval: 10s
                 scrape_timeout: 5s
-                
                 relabel_configs:
                   - source_labels: [__address__]
                     target_label: instance
@@ -102,20 +115,238 @@ jobs:
                     target_label: service
                     regex: '(.+)'
                     replacement: 'benevoclic-api'
-
               - job_name: 'node-exporter'
                 static_configs:
                   - targets: ['node-exporter:9100']
                 scrape_interval: 15s
-
             alerting:
               alertmanagers:
                 - static_configs:
                     - targets:
-                      # - alertmanager:9093
+                      - alertmanager:9093
             EOL
 
-            # Configuration monitoring
+            # Configuration des règles d'alerte (alert_rules.yml)
+            cat > ~/benevoclic/alert_rules.yml << EOL
+            groups:
+              - name: benevoclic-api-alerts
+                rules:
+                  # ===== ALERTES CRASH SERVEUR =====
+                  - alert: APIDown
+                    expr: up{job="benevoclic-api"} == 0
+                    for: 30s
+                    labels:
+                      severity: critical
+                      service: benevoclic-api
+                    annotations:
+                      summary: "API BenevoClic est down"
+                      description: "L'API BenevoClic n'est plus accessible depuis {{ \$labels.instance }}"
+                      value: "{{ \$value }}"
+
+                  - alert: APIHighErrorRate
+                    expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+                    for: 2m
+                    labels:
+                      severity: warning
+                      service: benevoclic-api
+                    annotations:
+                      summary: "Taux d'erreur élevé sur l'API"
+                      description: "Plus de 10% d'erreurs 5xx sur l'API BenevoClic"
+                      value: "{{ \$value }}"
+
+                  # ===== ALERTES RESSOURCES SYSTÈME =====
+                  - alert: HighCPUUsage
+                    expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+                    for: 5m
+                    labels:
+                      severity: warning
+                      service: system
+                    annotations:
+                      summary: "Utilisation CPU élevée"
+                      description: "CPU usage > 80% sur {{ \$labels.instance }}"
+                      value: "{{ \$value }}%"
+
+                  - alert: HighMemoryUsage
+                    expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+                    for: 5m
+                    labels:
+                      severity: warning
+                      service: system
+                    annotations:
+                      summary: "Utilisation mémoire élevée"
+                      description: "Mémoire utilisée > 85% sur {{ \$labels.instance }}"
+                      value: "{{ \$value }}%"
+
+                  - alert: HighDiskUsage
+                    expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 85
+                    for: 5m
+                    labels:
+                      severity: warning
+                      service: system
+                    annotations:
+                      summary: "Espace disque faible"
+                      description: "Espace disque utilisé > 85% sur {{ \$labels.instance }}"
+                      value: "{{ \$value }}%"
+
+                  # ===== ALERTES MÉTRIQUES API =====
+                  - alert: APIHighResponseTime
+                    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+                    for: 3m
+                    labels:
+                      severity: warning
+                      service: benevoclic-api
+                    annotations:
+                      summary: "Temps de réponse API élevé"
+                      description: "95e percentile du temps de réponse > 2s sur l'API"
+                      value: "{{ \$value }}s"
+
+                  - alert: APINoRequests
+                    expr: rate(http_requests_total[10m]) == 0
+                    for: 5m
+                    labels:
+                      severity: warning
+                      service: benevoclic-api
+                    annotations:
+                      summary: "Aucune requête API"
+                      description: "Aucune requête reçue sur l'API depuis 10 minutes"
+                      value: "{{ \$value }}"
+
+                  - alert: APIHighRequestRate
+                    expr: rate(http_requests_total[5m]) > 100
+                    for: 2m
+                    labels:
+                      severity: info
+                      service: benevoclic-api
+                    annotations:
+                      summary: "Taux de requêtes élevé"
+                      description: "Plus de 100 requêtes/seconde sur l'API"
+                      value: "{{ \$value }} req/s"
+
+                  # ===== ALERTES MÉMOIRE PROCESSUS =====
+                  - alert: ProcessHighMemoryUsage
+                    expr: process_resident_memory_bytes / 1024 / 1024 > 500
+                    for: 5m
+                    labels:
+                      severity: warning
+                      service: benevoclic-api
+                    annotations:
+                      summary: "Utilisation mémoire processus élevée"
+                      description: "Le processus API utilise plus de 500MB de RAM"
+                      value: "{{ \$value }}MB"
+
+                  # ===== ALERTES CONNECTIONS =====
+                  - alert: HighActiveConnections
+                    expr: nodejs_active_handles > 1000
+                    for: 3m
+                    labels:
+                      severity: warning
+                      service: benevoclic-api
+                    annotations:
+                      summary: "Nombre de connexions actives élevé"
+                      description: "Plus de 1000 connexions actives sur l'API"
+                      value: "{{ \$value }}"
+
+                  # ===== ALERTES EVENT LOOP =====
+                  - alert: EventLoopLag
+                    expr: nodejs_eventloop_lag_seconds > 1
+                    for: 2m
+                    labels:
+                      severity: warning
+                      service: benevoclic-api
+                    annotations:
+                      summary: "Lag de l'event loop"
+                      description: "Event loop lag > 1s sur l'API"
+                      value: "{{ \$value }}s"
+
+                  # ===== ALERTES CRASH DÉTECTÉ =====
+                  - alert: ProcessRestart
+                    expr: changes(process_start_time_seconds[10m]) > 0
+                    for: 0s
+                    labels:
+                      severity: critical
+                      service: benevoclic-api
+                    annotations:
+                      summary: "Processus API redémarré"
+                      description: "Le processus API a été redémarré sur {{ \$labels.instance }}"
+                      value: "{{ \$value }} redémarrages"
+
+                  # ===== ALERTES RÉSEAU =====
+                  - alert: NetworkErrors
+                    expr: rate(nodejs_net_connections_total[5m]) > 0 and rate(nodejs_net_connections_total[5m]) < 0.1
+                    for: 5m
+                    labels:
+                      severity: warning
+                      service: benevoclic-api
+                    annotations:
+                      summary: "Erreurs réseau détectées"
+                      description: "Problèmes de connexions réseau sur l'API"
+                      value: "{{ \$value }}"
+            EOL
+
+            # Configuration Alertmanager (alertmanager.yml)
+            cat > ~/benevoclic/alertmanager.yml << EOL
+            global:
+              resolve_timeout: 5m
+            route:
+              group_by: ['alertname']
+              group_wait: 10s
+              group_interval: 10s
+              repeat_interval: 1h
+              receiver: 'discord-only'
+              routes:
+                - match:
+                    severity: critical
+                  receiver: 'discord-only'
+                  repeat_interval: 30m
+                - match:
+                    severity: warning
+                  receiver: 'discord-only'
+                  repeat_interval: 1h
+            receivers:
+              - name: 'discord-only'
+                discord_configs:
+                  - webhook_url: 'https://discord.com/api/webhooks/1401898793477214259/tJtF0qpbWZh38taEXVfEu23qdbY53sb_Td3UROUItw-AFzoAeFZAEW5lRp-zTNiYBXLt'
+                    title: '🚨 Alerte BenevoClic'
+                    message: '{{ template "discord.benevoclic.message" . }}'
+                    send_resolved: true
+            inhibit_rules:
+              - source_match:
+                  severity: 'critical'
+                target_match:
+                  severity: 'warning'
+                equal: ['alertname']
+            EOL
+
+            # Configuration templates Discord (alertmanager-templates.yml)
+            cat > ~/benevoclic/alertmanager-templates.yml << EOL
+            {{ define "discord.benevoclic.message" }}
+            {{ if gt (len .Alerts) 0 }}
+            🚨 **Alerte BenevoClic**
+            
+            **Résumé:** {{ .CommonAnnotations.summary }}
+            **Description:** {{ .CommonAnnotations.description }}
+            **Sévérité:** {{ .CommonLabels.severity }}
+            **Service:** {{ .CommonLabels.service }}
+            
+            **Détails:**
+            {{ range .Alerts }}
+            • **Instance:** {{ .Labels.instance }}
+            • **Valeur:** {{ .Annotations.value }}
+            • **Status:** {{ .Status }}
+            {{ end }}
+            
+            **Liens utiles:**
+            • 📊 [Prometheus](http://151.80.152.63:9090)
+            • 📈 [Grafana](http://151.80.152.63:3001)
+            • 🔍 [API Health](http://151.80.152.63:3000/health)
+            
+            ---
+            *Alertmanager - BenevoClic Monitoring*
+            {{ end }}
+            {{ end }}
+            EOL
+
+            # Configuration monitoring (docker-compose.monitoring.yml)
             cat > ~/benevoclic/docker-compose.monitoring.yml << EOL
             services:
               prometheus:
@@ -144,8 +375,8 @@ jobs:
                 ports:
                   - "3001:3000"
                 environment:
-                  - GF_SECURITY_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}
-                  - GF_SECURITY_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+                  - GF_SECURITY_ADMIN_USER=admin
+                  - GF_SECURITY_ADMIN_PASSWORD=admin123
                   - GF_USERS_ALLOW_SIGN_UP=false
                 volumes:
                   - grafana_data:/var/lib/grafana
@@ -172,9 +403,26 @@ jobs:
                 networks:
                   - benevoclic-network
 
+              alertmanager:
+                image: prom/alertmanager:latest
+                container_name: alertmanager
+                restart: always
+                ports:
+                  - "9093:9093"
+                volumes:
+                  - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+                  - alertmanager_data:/alertmanager
+                command:
+                  - '--config.file=/etc/alertmanager/alertmanager.yml'
+                  - '--storage.path=/alertmanager'
+                  - '--web.listen-address=:9093'
+                networks:
+                  - benevoclic-network
+
             volumes:
               prometheus_data:
               grafana_data:
+              alertmanager_data:
 
             networks:
               benevoclic-network:
@@ -210,22 +458,507 @@ jobs:
                   path: /etc/grafana/provisioning/dashboards
             EOL
 
+            # Dashboard API Metrics
+            cat > ~/benevoclic/grafana/dashboards/api-metrics-dashboard.json << EOL
+            {
+              "annotations": {
+                "list": [
+                  {
+                    "builtIn": 1,
+                    "datasource": {
+                      "type": "grafana",
+                      "uid": "-- Grafana --"
+                    },
+                    "enable": true,
+                    "hide": true,
+                    "iconColor": "rgba(0, 211, 255, 1)",
+                    "name": "Annotations & Alerts",
+                    "type": "dashboard"
+                  }
+                ]
+              },
+              "editable": true,
+              "fiscalYearStartMonth": 0,
+              "graphTooltip": 0,
+              "id": null,
+              "links": [],
+              "liveNow": false,
+              "panels": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PBFA97CFB590B2093"
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "color": {
+                        "mode": "palette-classic"
+                      },
+                      "custom": {
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "drawStyle": "line",
+                        "fillOpacity": 10,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                          "legend": false,
+                          "tooltip": false,
+                          "vis": false
+                        },
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                          "type": "linear"
+                        },
+                        "showPoints": "never",
+                        "spanNulls": false,
+                        "stacking": {
+                          "group": "A",
+                          "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                          "mode": "off"
+                        }
+                      },
+                      "mappings": [],
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "color": "green",
+                            "value": null
+                          },
+                          {
+                            "color": "red",
+                            "value": 80
+                          }
+                        ]
+                      },
+                      "unit": "reqps"
+                    },
+                    "overrides": []
+                  },
+                  "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 0
+                  },
+                  "id": 1,
+                  "options": {
+                    "legend": {
+                      "calcs": [],
+                      "displayMode": "list",
+                      "placement": "bottom"
+                    },
+                    "tooltip": {
+                      "mode": "single",
+                      "sort": "none"
+                    }
+                  },
+                  "targets": [
+                    {
+                      "datasource": {
+                        "type": "prometheus",
+                        "uid": "PBFA97CFB590B2093"
+                      },
+                      "expr": "rate(http_requests_total[5m])",
+                      "legendFormat": "{{method}} {{path}} - {{status}}",
+                      "refId": "A"
+                    }
+                  ],
+                  "title": "Requêtes HTTP par seconde",
+                  "type": "timeseries"
+                },
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PBFA97CFB590B2093"
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "color": {
+                        "mode": "palette-classic"
+                      },
+                      "custom": {
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "drawStyle": "line",
+                        "fillOpacity": 10,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                          "legend": false,
+                          "tooltip": false,
+                          "vis": false
+                        },
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                          "type": "linear"
+                        },
+                        "showPoints": "never",
+                        "spanNulls": false,
+                        "stacking": {
+                          "group": "A",
+                          "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                          "mode": "off"
+                        }
+                      },
+                      "mappings": [],
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "color": "green",
+                            "value": null
+                          },
+                          {
+                            "color": "red",
+                            "value": 80
+                          }
+                        ]
+                      },
+                      "unit": "s"
+                    },
+                    "overrides": []
+                  },
+                  "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 0
+                  },
+                  "id": 2,
+                  "options": {
+                    "legend": {
+                      "calcs": [],
+                      "displayMode": "list",
+                      "placement": "bottom"
+                    },
+                    "tooltip": {
+                      "mode": "single",
+                      "sort": "none"
+                    }
+                  },
+                  "targets": [
+                    {
+                      "datasource": {
+                        "type": "prometheus",
+                        "uid": "PBFA97CFB590B2093"
+                      },
+                      "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+                      "legendFormat": "{{method}} {{path}} - 95e percentile",
+                      "refId": "A"
+                    }
+                  ],
+                  "title": "Durée des requêtes (95e percentile)",
+                  "type": "timeseries"
+                },
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PBFA97CFB590B2093"
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "color": {
+                        "mode": "palette-classic"
+                      },
+                      "custom": {
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "drawStyle": "line",
+                        "fillOpacity": 10,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                          "legend": false,
+                          "tooltip": false,
+                          "vis": false
+                        },
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                          "type": "linear"
+                        },
+                        "showPoints": "never",
+                        "spanNulls": false,
+                        "stacking": {
+                          "group": "A",
+                          "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                          "mode": "off"
+                        }
+                      },
+                      "mappings": [],
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "color": "green",
+                            "value": null
+                          },
+                          {
+                            "color": "red",
+                            "value": 80
+                          }
+                        ]
+                      },
+                      "unit": "short"
+                    },
+                    "overrides": []
+                  },
+                  "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 8
+                  },
+                  "id": 3,
+                  "options": {
+                    "legend": {
+                      "calcs": [],
+                      "displayMode": "list",
+                      "placement": "bottom"
+                    },
+                    "tooltip": {
+                      "mode": "single",
+                      "sort": "none"
+                    }
+                  },
+                  "targets": [
+                    {
+                      "datasource": {
+                        "type": "prometheus",
+                        "uid": "PBFA97CFB590B2093"
+                      },
+                      "expr": "http_requests_total",
+                      "legendFormat": "{{method}} {{path}} - {{status}}",
+                      "refId": "A"
+                    }
+                  ],
+                  "title": "Total des requêtes HTTP",
+                  "type": "timeseries"
+                },
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PBFA97CFB590B2093"
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "color": {
+                        "mode": "palette-classic"
+                      },
+                      "custom": {
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "drawStyle": "line",
+                        "fillOpacity": 10,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                          "legend": false,
+                          "tooltip": false,
+                          "vis": false
+                        },
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                          "type": "linear"
+                        },
+                        "showPoints": "never",
+                        "spanNulls": false,
+                        "stacking": {
+                          "group": "A",
+                          "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                          "mode": "off"
+                        }
+                      },
+                      "mappings": [],
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "color": "green",
+                            "value": null
+                          },
+                          {
+                            "color": "red",
+                            "value": 80
+                          }
+                        ]
+                      },
+                      "unit": "bytes"
+                    },
+                    "overrides": []
+                  },
+                  "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 8
+                  },
+                  "id": 4,
+                  "options": {
+                    "legend": {
+                      "calcs": [],
+                      "displayMode": "list",
+                      "placement": "bottom"
+                    },
+                    "tooltip": {
+                      "mode": "single",
+                      "sort": "none"
+                    }
+                  },
+                  "targets": [
+                    {
+                      "datasource": {
+                        "type": "prometheus",
+                        "uid": "PBFA97CFB590B2093"
+                      },
+                      "expr": "memory_usage_bytes",
+                      "legendFormat": "{{type}}",
+                      "refId": "A"
+                    }
+                  ],
+                  "title": "Utilisation mémoire",
+                  "type": "timeseries"
+                },
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PBFA97CFB590B2093"
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "color": {
+                        "mode": "palette-classic"
+                      },
+                      "custom": {
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "drawStyle": "line",
+                        "fillOpacity": 10,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                          "legend": false,
+                          "tooltip": false,
+                          "vis": false
+                        },
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                          "type": "linear"
+                        },
+                        "showPoints": "never",
+                        "spanNulls": false,
+                        "stacking": {
+                          "group": "A",
+                          "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                          "mode": "off"
+                        }
+                      },
+                      "mappings": [],
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "color": "green",
+                            "value": null
+                          },
+                          {
+                            "color": "red",
+                            "value": 80
+                          }
+                        ]
+                      },
+                      "unit": "short"
+                    },
+                    "overrides": []
+                  },
+                  "gridPos": {
+                    "h": 8,
+                    "w": 24,
+                    "x": 0,
+                    "y": 16
+                  },
+                  "id": 5,
+                  "options": {
+                    "legend": {
+                      "calcs": [],
+                      "displayMode": "list",
+                      "placement": "bottom"
+                    },
+                    "tooltip": {
+                      "mode": "single",
+                      "sort": "none"
+                    }
+                  },
+                  "targets": [
+                    {
+                      "datasource": {
+                        "type": "prometheus",
+                        "uid": "PBFA97CFB590B2093"
+                      },
+                      "expr": "rate(http_requests_total{status=~\"4..|5..\"}[5m])",
+                      "legendFormat": "{{method}} {{path}} - {{status}}",
+                      "refId": "A"
+                    }
+                  ],
+                  "title": "Erreurs HTTP (4xx/5xx)",
+                  "type": "timeseries"
+                }
+              ],
+              "refresh": "5s",
+              "schemaVersion": 38,
+              "style": "dark",
+              "tags": ["benevoclic", "api", "metrics"],
+              "templating": {
+                "list": []
+              },
+              "time": {
+                "from": "now-1h",
+                "to": "now"
+              },
+              "timepicker": {},
+              "timezone": "",
+              "title": "BenevoClic API Metrics Dashboard",
+              "uid": "benevoclic-api-metrics",
+              "version": 1,
+              "weekStart": ""
+            }
+            EOL
+
             cd ~/benevoclic
-            
+
             # Nettoyer et corriger les réseaux
             echo "🔧 Nettoyage des réseaux..."
-            docker stop benevoclic-api prometheus grafana node-exporter 2>/dev/null || true
-            docker rm benevoclic-api prometheus grafana node-exporter 2>/dev/null || true
+            docker stop benevoclic-api prometheus grafana node-exporter alertmanager 2>/dev/null || true
+            docker rm benevoclic-api prometheus grafana node-exporter alertmanager 2>/dev/null || true
             docker network rm benevoclic_benevoclic-network benevoclic-network 2>/dev/null || true
-            
+
             # Créer le réseau unifié
             echo "🌐 Création du réseau unifié..."
             docker network create benevoclic-network
-            
 
-            
-            # Arrêter et nettoyer proprement
-            echo "�� Arrêt des services existants..."
+            # Arrêter et nettoyer proprement (existing services)
+            echo "🛑 Arrêt des services existants..."
             docker compose down || true
             docker compose -f docker-compose.monitoring.yml down || true
 
@@ -236,8 +969,7 @@ jobs:
             # Pull et redémarrage de l'API
             echo "📥 Téléchargement de l'image API..."
             docker compose pull
-
-            echo "�� Démarrage de l'API..."
+            echo "🚀 Démarrage de l'API..."
             docker compose up -d
 
             # Démarrer le monitoring
@@ -255,21 +987,37 @@ jobs:
             echo "=== Logs Prometheus ==="
             docker logs prometheus
             echo ""
+            echo "=== Logs Alertmanager ==="
+            docker logs alertmanager
+            echo ""
             echo "=== Logs Grafana ==="
             docker logs grafana
             echo ""
             echo "=== Statut des conteneurs ==="
             docker ps
-            
             echo "=== Vérification des réseaux ==="
             echo "Réseau de l'API:"
             docker inspect benevoclic-api --format '{{.NetworkSettings.Networks}}' 2>/dev/null || echo "API non trouvée"
             echo "Réseau de Prometheus:"
             docker inspect prometheus --format '{{.NetworkSettings.Networks}}' 2>/dev/null || echo "Prometheus non trouvé"
-            
+            echo "Réseau d'Alertmanager:"
+            docker inspect alertmanager --format '{{.NetworkSettings.Networks}}' 2>/dev/null || echo "Alertmanager non trouvé"
             echo "=== Test de connectivité ==="
             echo "Test depuis Prometheus vers l'API:"
             docker exec prometheus wget -qO- http://benevoclic-api:3000/metrics 2>/dev/null | head -3 || echo "Connexion échouée"
-            
+            echo "Test depuis Alertmanager vers Prometheus:"
+            docker exec alertmanager wget -qO- http://prometheus:9090/api/v1/status 2>/dev/null || echo "Connexion échouée"
             echo "=== Targets Prometheus ==="
             curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | {job: .labels.job, health: .health}' 2>/dev/null || curl -s http://localhost:9090/api/v1/targets
+            echo "=== Alertes actives ==="
+            curl -s http://localhost:9090/api/v1/alerts | jq '.data.alerts[] | {alertname: .labels.alertname, severity: .labels.severity, state: .state}' 2>/dev/null || curl -s http://localhost:9090/api/v1/alerts
+
+            echo "✅ Déploiement terminé avec succès !"
+            echo ""
+            echo "🌐 URLs d'accès:"
+            echo "=================="
+            echo "📊 Prometheus:     http://151.80.152.63:9090"
+            echo "🚨 Alertmanager:   http://151.80.152.63:9093"
+            echo "📈 Grafana:        http://151.80.152.63:3001 (admin/admin123)"
+            echo "🔍 API Health:     http://151.80.152.63:3000/health"
+            echo "📊 API Metrics:    http://151.80.152.63:3000/metrics"
