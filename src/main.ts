@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { initializeFirebase } from '@config/firebase.config';
+import { PrometheusMiddleware } from './common/middleware/prometheus.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -29,6 +30,10 @@ async function bootstrap() {
 
   // Initialize Firebase
   initializeFirebase();
+
+  // Configure Prometheus middleware globally
+  const prometheusMiddleware = app.get(PrometheusMiddleware);
+  app.use(prometheusMiddleware.use.bind(prometheusMiddleware));
 
   await app.listen(3000);
 }

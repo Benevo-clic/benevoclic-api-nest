@@ -13,6 +13,7 @@ import { OrphanCleanupController } from './api/cleanup/controllers/orphan-cleanu
 import { VolunteerModule } from './api/volunteer/volunteer.module';
 import { HealthModule } from './api/health/health.module';
 import { PrometheusModule } from './api/prometheus/prometheus.module';
+import { PrometheusMiddleware } from './common/middleware/prometheus.middleware';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { PrometheusModule } from './api/prometheus/prometheus.module';
     },
     LoggerService,
     OrphanCleanupService,
+    PrometheusMiddleware,
   ],
   controllers: [OrphanCleanupController],
   exports: [LoggerService, OrphanCleanupService],
