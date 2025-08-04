@@ -2,15 +2,30 @@ name: Create Release
 
 on:
   workflow_run:
-    workflows: ["Main CI/CD"]
+    workflows: ["Deploy to DockerHub"]
     types:
       - completed
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Type de release'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      custom_version:
+        description: 'Version personnalisée (optionnel)'
+        required: false
+        type: string
 
 jobs:
   create-release:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -21,7 +36,12 @@ jobs:
 
     - name: Get version from package.json
       id: package-version
-      run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.custom_version }}" ]; then
+          echo "version=${{ github.event.inputs.custom_version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        fi
 
     - name: Get commit messages
       id: get-commits
@@ -92,6 +112,10 @@ jobs:
           ## 📋 CHANGELOG
           
           Consultez le [CHANGELOG.md](CHANGELOG.md) pour plus de détails.
+          
+          ## 🚀 Déclenchement
+          
+          ${{ github.event_name == 'workflow_dispatch' && 'Release déclenchée manuellement' || 'Release déclenchée automatiquement après déploiement DockerHub' }}
         draft: false
         prerelease: false
         token: ${{ secrets.GITHUB_TOKEN }}
