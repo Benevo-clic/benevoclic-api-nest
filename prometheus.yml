@@ -14,7 +14,7 @@ scrape_configs:
   # API NestJS BenevoClic
   - job_name: 'benevoclic-api'
     static_configs:
-      - targets: ['localhost:3000']
+      - targets: ['benevoclic-api:3000']
     metrics_path: '/metrics'
     scrape_interval: 10s
     scrape_timeout: 5s
@@ -33,7 +33,7 @@ scrape_configs:
   # Métriques système (optionnel)
   - job_name: 'node-exporter'
     static_configs:
-      - targets: ['localhost:9100']
+      - targets: ['node-exporter:9100']
     scrape_interval: 15s
 
 # Alerting (optionnel)
@@ -41,8 +41,4 @@ alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          # - alertmanager:9093
-
-# Règles d'alerting
-rule_files:
-  - "alert_rules.yml" 
+          # - alertmanager:9093 

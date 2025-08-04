@@ -113,9 +113,6 @@ jobs:
                 - static_configs:
                     - targets:
                       # - alertmanager:9093
-
-            rule_files:
-              - "alert_rules.yml"
             EOL
 
             # Configuration monitoring
@@ -181,7 +178,7 @@ jobs:
 
             networks:
               benevoclic-network:
-                driver: bridge
+                external: true
             EOL
 
             # Configuration Grafana datasources
@@ -214,6 +211,10 @@ jobs:
             EOL
 
             cd ~/benevoclic
+            
+            # Créer le réseau s'il n'existe pas
+            echo "🌐 Création du réseau..."
+            docker network create benevoclic-network 2>/dev/null || true
             
             # Arrêter et nettoyer proprement
             echo "�� Arrêt des services existants..."
