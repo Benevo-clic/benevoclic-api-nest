@@ -1,3 +1,21 @@
+## [0.1.0] - 2025-08-04
+
+### 🚀 Ajouté
+- ajout de la fonctionnalité de test
+- ajout de la fonctionnalité de recherche avancée
+- streamline release process with unified create-release job and improved deployment steps (#84)
+- refactor release workflow to streamline versioning and changelog updates
+- refactor release workflow to streamline versioning and changelog updates (#82)
+
+### 🐛 Corrigé
+- correct release workflow syntax errors
+
+### 📚 Documentation
+- update CHANGELOG for version 0.0.5
+- update CHANGELOG for version 0.0.5
+
+---
+
 # 📋 Changelog - Benevoclic API
 
 Toutes les modifications notables de ce projet seront documentées dans ce fichier.
