@@ -1,0 +1,296 @@
+name: Deploy Alertmanager to OVH VPS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'alertmanager.yml'
+      - 'alertmanager-templates.yml'
+      - '.github/workflows/deploy-alertmanager.yml'
+
+jobs:
+  deploy-alertmanager:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Alertmanager to Production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.OVH_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            echo "🚨 Déploiement Alertmanager"
+            
+            cd ~/benevoclic
+            
+            # Alertmanager config
+            cat > alertmanager.yml << 'EOL'
+            global:
+              resolve_timeout: 5m
+            route:
+              group_by: ['alertname']
+              group_wait: 10s
+              group_interval: 10s
+              repeat_interval: 1h
+              receiver: 'discord-server-down'
+              routes:
+                - match:
+                    alert_type: server_down
+                  receiver: 'discord-server-down'
+                  repeat_interval: 30m
+                - match:
+                    alert_type: server_up
+                  receiver: 'discord-server-up'
+                  repeat_interval: 1h
+                - match:
+                    alert_type: server_inactive
+                  receiver: 'discord-server-inactive'
+                  repeat_interval: 15m
+                - match:
+                    severity: critical
+                  receiver: 'discord-critical'
+                  repeat_interval: 30m
+                - match:
+                    severity: warning
+                  receiver: 'discord-warning'
+                  repeat_interval: 1h
+                - match:
+                    severity: info
+                  receiver: 'discord-info'
+                  repeat_interval: 2h
+            receivers:
+              - name: 'discord-server-down'
+                discord_configs:
+                  - webhook_url: 'https://discord.com/api/webhooks/1401898793477214259/tJtF0qpbWZh38taEXVfEu23qdbY53sb_Td3UROUItw-AFzoAeFZAEW5lRp-zTNiYBXLt'
+                    title: '🚨 SERVEUR TOMBÉ - BenevoClic'
+                    message: '{{ template "discord.server.down" . }}'
+                    send_resolved: true
+
+              - name: 'discord-server-up'
+                discord_configs:
+                  - webhook_url: 'https://discord.com/api/webhooks/1401898793477214259/tJtF0qpbWZh38taEXVfEu23qdbY53sb_Td3UROUItw-AFzoAeFZAEW5lRp-zTNiYBXLt'
+                    title: '✅ SERVEUR RÉTABLI - BenevoClic'
+                    message: '{{ template "discord.server.up" . }}'
+                    send_resolved: true
+
+              - name: 'discord-server-inactive'
+                discord_configs:
+                  - webhook_url: 'https://discord.com/api/webhooks/1401898793477214259/tJtF0qpbWZh38taEXVfEu23qdbY53sb_Td3UROUItw-AFzoAeFZAEW5lRp-zTNiYBXLt'
+                    title: '⚠️ SERVEUR INACTIF - BenevoClic'
+                    message: '{{ template "discord.server.inactive" . }}'
+                    send_resolved: true
+
+              - name: 'discord-critical'
+                discord_configs:
+                  - webhook_url: 'https://discord.com/api/webhooks/1401898793477214259/tJtF0qpbWZh38taEXVfEu23qdbY53sb_Td3UROUItw-AFzoAeFZAEW5lRp-zTNiYBXLt'
+                    title: '🚨 ALERTE CRITIQUE - BenevoClic'
+                    message: '{{ template "discord.benevoclic.message" . }}'
+                    send_resolved: true
+
+              - name: 'discord-warning'
+                discord_configs:
+                  - webhook_url: 'https://discord.com/api/webhooks/1401898793477214259/tJtF0qpbWZh38taEXVfEu23qdbY53sb_Td3UROUItw-AFzoAeFZAEW5lRp-zTNiYBXLt'
+                    title: '⚠️ ALERTE WARNING - BenevoClic'
+                    message: '{{ template "discord.benevoclic.message" . }}'
+                    send_resolved: true
+
+              - name: 'discord-info'
+                discord_configs:
+                  - webhook_url: 'https://discord.com/api/webhooks/1401898793477214259/tJtF0qpbWZh38taEXVfEu23qdbY53sb_Td3UROUItw-AFzoAeFZAEW5lRp-zTNiYBXLt'
+                    title: 'ℹ️ INFO - BenevoClic'
+                    message: '{{ template "discord.benevoclic.message" . }}'
+                    send_resolved: true
+
+            inhibit_rules:
+              - source_match:
+                  severity: 'critical'
+                target_match:
+                  severity: 'warning'
+                equal: ['alertname']
+              - source_match:
+                  alert_type: 'server_down'
+                target_match:
+                  alert_type: 'server_inactive'
+                equal: ['service']
+            EOL
+            
+            # Alertmanager templates
+            cat > alertmanager-templates.yml << 'EOL'
+            templates:
+              - '/etc/alertmanager/template/*.tmpl'
+
+            {{ define "discord.server.down" }}
+            {{ if gt (len .Alerts) 0 }}
+            🚨 **SERVEUR TOMBÉ - BenevoClic**
+
+            **⚠️ URGENCE: Le serveur est inaccessible !**
+
+            **Résumé:** {{ .CommonAnnotations.summary }}
+            **Description:** {{ .CommonAnnotations.description }}
+            **Sévérité:** {{ .CommonLabels.severity }}
+            **Service:** {{ .CommonLabels.service }}
+
+            **Détails de l'incident:**
+            {{ range .Alerts }}
+            • **Instance:** {{ .Labels.instance }}
+            • **Status:** {{ .Status }}
+            • **Durée:** {{ .StartsAt | since }}
+            {{ end }}
+
+            **Actions requises:**
+            • 🔍 Vérifier l'état du serveur
+            • 🔄 Redémarrer les services si nécessaire
+            • 📞 Contacter l'équipe technique
+
+            **Liens utiles:**
+            • 📊 [Prometheus](http://151.80.152.63:9090)
+            • 📈 [Grafana](http://151.80.152.63:3001)
+            • 🔍 [API Health](http://151.80.152.63:3000/health)
+
+            ---
+            *🚨 ALERTE CRITIQUE - Serveur Down*
+            {{ end }}
+            {{ end }}
+
+            {{ define "discord.server.up" }}
+            {{ if gt (len .Alerts) 0 }}
+            ✅ **SERVEUR RÉTABLI - BenevoClic**
+
+            **🎉 BONNE NOUVELLE: Le serveur est de nouveau opérationnel !**
+
+            **Résumé:** {{ .CommonAnnotations.summary }}
+            **Description:** {{ .CommonAnnotations.description }}
+            **Sévérité:** {{ .CommonLabels.severity }}
+            **Service:** {{ .CommonLabels.service }}
+
+            **Détails de la récupération:**
+            {{ range .Alerts }}
+            • **Instance:** {{ .Labels.instance }}
+            • **Status:** {{ .Status }}
+            • **Durée de l'incident:** {{ .StartsAt | since }} - {{ .EndsAt | since }}
+            {{ end }}
+
+            **Services rétablis:**
+            • ✅ API BenevoClic
+            • ✅ Monitoring Prometheus
+            • ✅ Alertes Discord
+            • ✅ Dashboards Grafana
+
+            **Liens utiles:**
+            • 📊 [Prometheus](http://151.80.152.63:9090)
+            • 📈 [Grafana](http://151.80.152.63:3001)
+            • 🔍 [API Health](http://151.80.152.63:3000/health)
+
+            ---
+            *✅ RÉCUPÉRATION - Serveur Opérationnel*
+            {{ end }}
+            {{ end }}
+
+            {{ define "discord.server.inactive" }}
+            {{ if gt (len .Alerts) 0 }}
+            ⚠️ **SERVEUR INACTIF - BenevoClic**
+
+            **📉 ATTENTION: Le serveur est inactif depuis trop longtemps !**
+
+            **Résumé:** {{ .CommonAnnotations.summary }}
+            **Description:** {{ .CommonAnnotations.description }}
+            **Sévérité:** {{ .CommonLabels.severity }}
+            **Service:** {{ .CommonLabels.service }}
+
+            **Détails de l'inactivité:**
+            {{ range .Alerts }}
+            • **Instance:** {{ .Labels.instance }}
+            • **Status:** {{ .Status }}
+            • **Durée d'inactivité:** {{ .StartsAt | since }}
+            • **Dernière activité:** {{ .Annotations.last_activity | default "Inconnue" }}
+            {{ end }}
+
+            **Causes possibles:**
+            • 🔌 Problème de connectivité réseau
+            • 💾 Surcharge du serveur
+            • 🔄 Service en cours de redémarrage
+            • ⚡ Problème d'alimentation
+
+            **Actions recommandées:**
+            • 🔍 Vérifier la connectivité
+            • 📊 Consulter les métriques système
+            • 🔄 Redémarrer si nécessaire
+
+            **Liens utiles:**
+            • 📊 [Prometheus](http://151.80.152.63:9090)
+            • 📈 [Grafana](http://151.80.152.63:3001)
+            • 🔍 [API Health](http://151.80.152.63:3000/health)
+
+            ---
+            *⚠️ ALERTE INACTIVITÉ - Surveillance Requise*
+            {{ end }}
+            {{ end }}
+
+            {{ define "discord.benevoclic.message" }}
+            {{ if gt (len .Alerts) 0 }}
+            🚨 **Alerte BenevoClic**
+
+            **Résumé:** {{ .CommonAnnotations.summary }}
+            **Description:** {{ .CommonAnnotations.description }}
+            **Sévérité:** {{ .CommonLabels.severity }}
+            **Service:** {{ .CommonLabels.service }}
+
+            **Détails:**
+            {{ range .Alerts }}
+            • **Instance:** {{ .Labels.instance }}
+            • **Valeur:** {{ .Annotations.value }}
+            • **Status:** {{ .Status }}
+            {{ end }}
+
+            **Liens utiles:**
+            • 📊 [Prometheus](http://151.80.152.63:9090)
+            • 📈 [Grafana](http://151.80.152.63:3001)
+            • 🔍 [API Health](http://151.80.152.63:3000/health)
+
+            ---
+            *Alertmanager - BenevoClic Monitoring*
+            {{ end }}
+            {{ end }}
+            EOL
+            
+            # Alertmanager docker-compose
+            cat > docker-compose.alertmanager.yml << 'EOL'
+            services:
+              alertmanager:
+                image: prom/alertmanager:latest
+                container_name: alertmanager
+                restart: always
+                ports: ["9093:9093"]
+                volumes:
+                  - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+                  - ./alertmanager-templates.yml:/etc/alertmanager/template/alertmanager-templates.yml
+                  - alertmanager_data:/alertmanager
+                command:
+                  - '--config.file=/etc/alertmanager/alertmanager.yml'
+                  - '--storage.path=/alertmanager'
+                  - '--web.listen-address=:9093'
+                networks: [benevoclic-network]
+
+            volumes:
+              alertmanager_data:
+
+            networks:
+              benevoclic-network:
+                external: true
+            EOL
+            
+            # Déployer Alertmanager
+            echo "🛑 Arrêt d'Alertmanager..."
+            docker-compose -f docker-compose.alertmanager.yml down || true
+            
+            echo "🚨 Démarrage d'Alertmanager..."
+            docker-compose -f docker-compose.alertmanager.yml up -d
+            
+            echo "⏳ Attente du démarrage..."
+            sleep 10
+            
+            echo "✅ Déploiement Alertmanager terminé !"
+            echo "�� Alertmanager: http://151.80.152.63:9093"

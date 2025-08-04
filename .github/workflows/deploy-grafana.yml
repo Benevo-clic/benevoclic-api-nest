@@ -1,0 +1,95 @@
+name: Deploy Grafana to OVH VPS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'grafana/**'
+      - '.github/workflows/deploy-grafana.yml'
+
+jobs:
+  deploy-grafana:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Grafana to Production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.OVH_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            echo "📈 Déploiement Grafana"
+            
+            cd ~/benevoclic
+            
+            # Créer répertoires
+            mkdir -p grafana/dashboards grafana/datasources
+            
+            # Grafana datasource
+            cat > grafana/datasources/prometheus.yml << 'EOL'
+            apiVersion: 1
+            datasources:
+              - name: Prometheus
+                type: prometheus
+                access: proxy
+                url: http://prometheus:9090
+                isDefault: true
+                editable: true
+            EOL
+            
+            # Grafana dashboards
+            cat > grafana/dashboards/dashboards.yml << 'EOL'
+            apiVersion: 1
+            providers:
+              - name: 'default'
+                orgId: 1
+                folder: ''
+                type: file
+                disableDeletion: false
+                updateIntervalSeconds: 10
+                allowUiUpdates: true
+                options:
+                  path: /etc/grafana/provisioning/dashboards
+            EOL
+            
+            # Grafana docker-compose
+            cat > docker-compose.grafana.yml << 'EOL'
+            services:
+              grafana:
+                image: grafana/grafana:latest
+                container_name: grafana
+                restart: always
+                ports: ["3001:3000"]
+                environment:
+                  - GF_SECURITY_ADMIN_USER=admin
+                  - GF_SECURITY_ADMIN_PASSWORD=admin123
+                  - GF_USERS_ALLOW_SIGN_UP=false
+                volumes:
+                  - grafana_data:/var/lib/grafana
+                  - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+                  - ./grafana/datasources:/etc/grafana/provisioning/datasources
+                networks: [benevoclic-network]
+
+            volumes:
+              grafana_data:
+
+            networks:
+              benevoclic-network:
+                external: true
+            EOL
+            
+            # Déployer Grafana
+            echo "🛑 Arrêt de Grafana..."
+            docker-compose -f docker-compose.grafana.yml down || true
+            
+            echo "📈 Démarrage de Grafana..."
+            docker-compose -f docker-compose.grafana.yml up -d
+            
+            echo "⏳ Attente du démarrage..."
+            sleep 15
+            
+            echo "✅ Déploiement Grafana terminé !"
+            echo "📈 Grafana: http://151.80.152.63:3001"

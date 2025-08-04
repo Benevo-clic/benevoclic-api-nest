@@ -1,0 +1,210 @@
+name: Deploy Prometheus to OVH VPS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'prometheus.yml'
+      - 'alert_rules.yml'
+      - '.github/workflows/deploy-prometheus.yml'
+
+jobs:
+  deploy-prometheus:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Prometheus to Production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.OVH_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            echo "📊 Déploiement Prometheus"
+            
+            cd ~/benevoclic
+            
+            # Prometheus config
+            cat > prometheus.yml << 'EOL'
+            global:
+              scrape_interval: 15s
+              evaluation_interval: 15s
+            rule_files: ["alert_rules.yml"]
+            scrape_configs:
+              - job_name: 'prometheus'
+                static_configs: [{'targets': ['localhost:9090']}]
+              - job_name: 'benevoclic-api'
+                static_configs: [{'targets': ['benevoclic-api:3000']}]
+                metrics_path: '/metrics'
+                scrape_interval: 10s
+                scrape_timeout: 5s
+                relabel_configs:
+                  - source_labels: [__address__]
+                    target_label: instance
+                    regex: '(.+)'
+                    replacement: '${1}'
+                  - source_labels: [__address__]
+                    target_label: service
+                    regex: '(.+)'
+                    replacement: 'benevoclic-api'
+              - job_name: 'node-exporter'
+                static_configs: [{'targets': ['node-exporter:9100']}]
+                scrape_interval: 15s
+            alerting:
+              alertmanagers:
+                - static_configs:
+                    - targets: [alertmanager:9093]
+            EOL
+            
+            # Alert rules
+            cat > alert_rules.yml << 'EOL'
+            groups:
+              - name: benevoclic-api
+                rules:
+                  - alert: ServerDown
+                    expr: up{job="benevoclic-api"} == 0
+                    for: 1m
+                    labels:
+                      severity: critical
+                      service: benevoclic-api
+                      alert_type: server_down
+                    annotations:
+                      summary: "🚨 SERVEUR TOMBÉ - BenevoClic"
+                      description: "Le serveur BenevoClic est complètement inaccessible depuis {{ $labels.instance }}"
+                      template: "discord.server.down"
+
+                  - alert: ServerUp
+                    expr: up{job="benevoclic-api"} == 1
+                    for: 30s
+                    labels:
+                      severity: info
+                      service: benevoclic-api
+                      alert_type: server_up
+                    annotations:
+                      summary: "✅ SERVEUR RÉTABLI - BenevoClic"
+                      description: "Le serveur BenevoClic est de nouveau opérationnel sur {{ $labels.instance }}"
+                      template: "discord.server.up"
+
+                  - alert: ServerInactive
+                    expr: rate(http_requests_total{job="benevoclic-api"}[10m]) == 0
+                    for: 10m
+                    labels:
+                      severity: warning
+                      service: benevoclic-api
+                      alert_type: server_inactive
+                    annotations:
+                      summary: "⚠️ SERVEUR INACTIF - BenevoClic"
+                      description: "Le serveur BenevoClic est inactif depuis plus de 10 minutes sur {{ $labels.instance }}"
+                      template: "discord.server.inactive"
+                      last_activity: "{{ $value }}"
+
+                  - alert: APIHighErrorRate
+                    expr: rate(http_requests_total{job="benevoclic-api", status=~"5.."}[5m]) > 0.1
+                    for: 2m
+                    labels:
+                      severity: warning
+                      service: benevoclic-api
+                    annotations:
+                      summary: "Taux d'erreur élevé"
+                      description: "Le taux d'erreur 5xx est élevé sur {{ $labels.instance }}"
+
+                  - alert: APINoRequests
+                    expr: rate(http_requests_total{job="benevoclic-api"}[5m]) == 0
+                    for: 5m
+                    labels:
+                      severity: warning
+                      service: benevoclic-api
+                    annotations:
+                      summary: "Aucune requête API"
+                      description: "Aucune requête reçue sur {{ $labels.instance }} depuis 5 minutes"
+
+              - name: system-resources
+                rules:
+                  - alert: HighCPUUsage
+                    expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+                    for: 5m
+                    labels:
+                      severity: warning
+                      service: system
+                    annotations:
+                      summary: "Utilisation CPU élevée"
+                      description: "L'utilisation CPU est élevée sur {{ $labels.instance }}"
+
+                  - alert: HighMemoryUsage
+                    expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+                    for: 5m
+                    labels:
+                      severity: warning
+                      service: system
+                    annotations:
+                      summary: "Utilisation mémoire élevée"
+                      description: "L'utilisation mémoire est élevée sur {{ $labels.instance }}"
+
+                  - alert: SystemDown
+                    expr: up{job="node-exporter"} == 0
+                    for: 2m
+                    labels:
+                      severity: critical
+                      service: system
+                      alert_type: server_down
+                    annotations:
+                      summary: "🚨 SYSTÈME TOMBÉ - BenevoClic"
+                      description: "Le système de monitoring est inaccessible sur {{ $labels.instance }}"
+                      template: "discord.server.down"
+
+                  - alert: SystemUp
+                    expr: up{job="node-exporter"} == 1
+                    for: 30s
+                    labels:
+                      severity: info
+                      service: system
+                      alert_type: server_up
+                    annotations:
+                      summary: "✅ SYSTÈME RÉTABLI - BenevoClic"
+                      description: "Le système de monitoring est de nouveau opérationnel sur {{ $labels.instance }}"
+                      template: "discord.server.up"
+            EOL
+            
+            # Prometheus docker-compose
+            cat > docker-compose.prometheus.yml << 'EOL'
+            services:
+              prometheus:
+                image: prom/prometheus:latest
+                container_name: prometheus
+                restart: always
+                ports: ["9090:9090"]
+                volumes:
+                  - ./prometheus.yml:/etc/prometheus/prometheus.yml
+                  - ./alert_rules.yml:/etc/prometheus/alert_rules.yml
+                  - prometheus_data:/prometheus
+                command:
+                  - '--config.file=/etc/prometheus/prometheus.yml'
+                  - '--storage.tsdb.path=/prometheus'
+                  - '--web.console.libraries=/etc/prometheus/console_libraries'
+                  - '--web.console.templates=/etc/prometheus/consoles'
+                  - '--storage.tsdb.retention.time=200h'
+                  - '--web.enable-lifecycle'
+                networks: [benevoclic-network]
+
+            volumes:
+              prometheus_data:
+
+            networks:
+              benevoclic-network:
+                external: true
+            EOL
+            
+            # Déployer Prometheus
+            echo "🛑 Arrêt de Prometheus..."
+            docker-compose -f docker-compose.prometheus.yml down || true
+            
+            echo "📊 Démarrage de Prometheus..."
+            docker-compose -f docker-compose.prometheus.yml up -d
+            
+            echo "⏳ Attente du démarrage..."
+            sleep 10
+            
+            echo "✅ Déploiement Prometheus terminé !"
+            echo "📊 Prometheus: http://151.80.152.63:9090"

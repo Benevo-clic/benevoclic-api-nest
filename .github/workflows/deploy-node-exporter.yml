@@ -1,0 +1,62 @@
+name: Deploy Node Exporter to OVH VPS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-node-exporter.yml'
+
+jobs:
+  deploy-node-exporter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Node Exporter to Production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.OVH_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            echo "📈 Déploiement Node Exporter"
+            
+            cd ~/benevoclic
+            
+            # Node Exporter docker-compose
+            cat > docker-compose.node-exporter.yml << 'EOL'
+            services:
+              node-exporter:
+                image: prom/node-exporter:latest
+                container_name: node-exporter
+                restart: always
+                ports: ["9100:9100"]
+                volumes:
+                  - /proc:/host/proc:ro
+                  - /sys:/host/sys:ro
+                  - /:/rootfs:ro
+                command:
+                  - '--path.procfs=/host/proc'
+                  - '--path.rootfs=/rootfs'
+                  - '--path.sysfs=/host/sys'
+                  - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+                networks: [benevoclic-network]
+
+            networks:
+              benevoclic-network:
+                external: true
+            EOL
+            
+            # Déployer Node Exporter
+            echo "🛑 Arrêt de Node Exporter..."
+            docker-compose -f docker-compose.node-exporter.yml down || true
+            
+            echo "📈 Démarrage de Node Exporter..."
+            docker-compose -f docker-compose.node-exporter.yml up -d
+            
+            echo "⏳ Attente du démarrage..."
+            sleep 5
+            
+            echo "✅ Déploiement Node Exporter terminé !"
+            echo "📈 Node Exporter: http://151.80.152.63:9100"
