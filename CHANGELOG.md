@@ -6,6 +6,16 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
+## [0.0.4] - 2025-08-04
+
+### 🚀 Ajouté
+- Release 0.0.4
+
+### 🔧 Modifié
+- Mise à jour de la version
+
+---
+
 ## [0.0.3] - 2025-08-04
 
 ### 🚀 Ajouté
