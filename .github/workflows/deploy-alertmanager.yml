@@ -67,9 +67,9 @@ jobs:
                   - webhook_url: 'https://discord.com/api/webhooks/1401898793477214259/tJtF0qpbWZh38taEXVfEu23qdbY53sb_Td3UROUItw-AFzoAeFZAEW5lRp-zTNiYBXLt'
                     title: '🚨 SERVEUR TOMBÉ - BenevoClic'
                     message: |
-                      🚨 **SERVEUR TOMBÉ - BenevoClic**
+                      🔴 **SERVEUR TOMBÉ - BenevoClic**
 
-                      **⚠️ URGENCE: Le serveur est inaccessible !**
+                      **🚨 URGENCE: Le serveur est inaccessible !**
 
                       **Résumé:** {{ .CommonAnnotations.summary }}
                       **Description:** {{ .CommonAnnotations.description }}
@@ -94,7 +94,7 @@ jobs:
                       • 🔍 [API Health](http://151.80.152.63:3000/health)
 
                       ---
-                      *🚨 ALERTE CRITIQUE - Serveur Down*
+                      *🔴 ALERTE CRITIQUE - Serveur Down*
                     send_resolved: true
 
               - name: 'discord-server-up'
@@ -102,7 +102,7 @@ jobs:
                   - webhook_url: 'https://discord.com/api/webhooks/1401898793477214259/tJtF0qpbWZh38taEXVfEu23qdbY53sb_Td3UROUItw-AFzoAeFZAEW5lRp-zTNiYBXLt'
                     title: '✅ SERVEUR RÉTABLI - BenevoClic'
                     message: |
-                      ✅ **SERVEUR RÉTABLI - BenevoClic**
+                      🟢 **SERVEUR RÉTABLI - BenevoClic**
 
                       **🎉 BONNE NOUVELLE: Le serveur est de nouveau opérationnel !**
 
@@ -119,10 +119,10 @@ jobs:
                       {{ end }}
 
                       **Services rétablis:**
-                      • ✅ API BenevoClic
-                      • ✅ Monitoring Prometheus
-                      • ✅ Alertes Discord
-                      • ✅ Dashboards Grafana
+                      • 🟢 API BenevoClic
+                      • 🟢 Monitoring Prometheus
+                      • 🟢 Alertes Discord
+                      • 🟢 Dashboards Grafana
 
                       **Liens utiles:**
                       • 📊 [Prometheus](http://151.80.152.63:9090)
@@ -130,7 +130,7 @@ jobs:
                       • 🔍 [API Health](http://151.80.152.63:3000/health)
 
                       ---
-                      *✅ RÉCUPÉRATION - Serveur Opérationnel*
+                      *🟢 RÉCUPÉRATION - Serveur Opérationnel*
                     send_resolved: true
 
               - name: 'discord-server-inactive'
