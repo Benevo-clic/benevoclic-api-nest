@@ -36,8 +36,6 @@ jobs:
             
             # Configuration de l'API
             cat > ~/benevoclic/docker-compose.yml << EOL
-            version: '3.8'
-            
             services:
               api:
                 image: ${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:latest
@@ -68,6 +66,10 @@ jobs:
                   start_period: 40s
                 networks:
                   - benevoclic-network
+
+            networks:
+              benevoclic-network:
+                driver: bridge
             EOL
 
             # Configuration Prometheus
@@ -118,8 +120,6 @@ jobs:
 
             # Configuration monitoring
             cat > ~/benevoclic/docker-compose.monitoring.yml << EOL
-            version: '3.8'
-
             services:
               prometheus:
                 image: prom/prometheus:latest
@@ -216,22 +216,28 @@ jobs:
             cd ~/benevoclic
             
             # Arrêter et nettoyer proprement
-            echo "🛑 Arrêt des services existants..."
+            echo "�� Arrêt des services existants..."
             docker compose down || true
             docker compose -f docker-compose.monitoring.yml down || true
-            docker image rm ${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:latest || true
+
+            # Forcer la suppression de l'image si elle est utilisée
+            echo "🗑️ Nettoyage des images..."
+            docker image rm ${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:latest --force || true
 
             # Pull et redémarrage de l'API
             echo "📥 Téléchargement de l'image API..."
             docker compose pull
 
-            echo "🚀 Démarrage de l'API..."
+            echo "�� Démarrage de l'API..."
             docker compose up -d
 
             # Démarrer le monitoring
             echo "📊 Démarrage du monitoring..."
             docker compose -f docker-compose.monitoring.yml up -d
 
+            # Vérifier que les conteneurs démarrent correctement
+            echo "⏳ Attente du démarrage des services..."
+            sleep 15
 
             echo "📝 Logs des services :"
             echo "=== Logs API ==="
