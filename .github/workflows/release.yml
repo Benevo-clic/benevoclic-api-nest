@@ -20,6 +20,11 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+  actions: read
+  id-token: write
+
 jobs:
   # Job pour créer une nouvelle release
   create-release:
@@ -37,11 +42,17 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Configure Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
       - name: Bump version
         id: bump
         run: |
-          # Installer semantic-release
-          npm install -g semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/npm
+          # Lire la version actuelle
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
           
           # Configuration pour le bump de version
           if [ "${{ github.event.inputs.release_type }}" = "major" ]; then
@@ -51,10 +62,6 @@ jobs:
           else
             echo "RELEASE_TYPE=patch" >> $GITHUB_ENV
           fi
-          
-          # Lire la version actuelle
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
           
           # Calculer la nouvelle version
           IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
@@ -75,13 +82,14 @@ jobs:
           
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Version calculée: $NEW_VERSION"
 
       - name: Update package.json version
         run: |
           npm version ${{ steps.bump.outputs.new_version }} --no-git-tag-version
           echo "Version mise à jour vers ${{ steps.bump.outputs.new_version }}"
 
-      - name: Update CHANGELOG.md
+      - name: Generate CHANGELOG entry
         run: |
           # Créer une entrée temporaire pour la nouvelle version
           NEW_VERSION="${{ steps.bump.outputs.new_version }}"
@@ -102,18 +110,26 @@ jobs:
           EOF
           
           # Ajouter au début du CHANGELOG.md (après la section Unreleased)
-          sed -i "/^## \[Unreleased\]/a\\" temp_changelog.md
-          sed -i "/^## \[Unreleased\]/r temp_changelog.md" CHANGELOG.md
+          if grep -q "## \[Unreleased\]" CHANGELOG.md; then
+            sed -i "/^## \[Unreleased\]/a\\" temp_changelog.md
+            sed -i "/^## \[Unreleased\]/r temp_changelog.md" CHANGELOG.md
+          else
+            # Si pas de section Unreleased, ajouter à la fin
+            echo "" >> CHANGELOG.md
+            cat temp_changelog.md >> CHANGELOG.md
+          fi
           rm temp_changelog.md
+
+      - name: Commit and push changes
+        run: |
+          git add package.json CHANGELOG.md
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
+          git push origin main
 
       - name: Create Git tag
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add package.json CHANGELOG.md
-          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
           git tag -a "v${{ steps.bump.outputs.new_version }}" -m "Release v${{ steps.bump.outputs.new_version }}"
-          git push origin main --tags
+          git push origin "v${{ steps.bump.outputs.new_version }}"
 
       - name: Create Release
         uses: actions/create-release@v1
@@ -223,11 +239,16 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
           
           # Générer les release notes depuis le CHANGELOG.md
-          RELEASE_NOTES=$(awk "/^## \\[$VERSION\\]/ {p=1; next} /^## \\[/ {p=0} p" CHANGELOG.md | sed '/^$/d')
-          
-          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
-          echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          if [ -f "CHANGELOG.md" ]; then
+            RELEASE_NOTES=$(awk "/^## \\[$VERSION\\]/ {p=1; next} /^## \\[/ {p=0} p" CHANGELOG.md | sed '/^$/d')
+            echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+            echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+            echo "Release $VERSION" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
 
       - name: Update Release
         uses: actions/github-script@v7
