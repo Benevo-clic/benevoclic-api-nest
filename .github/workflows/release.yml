@@ -1,12 +1,8 @@
 name: Create Release
 
 on:
-  workflow_run:
-    workflows: ["Deploy to DockerHub"]
-    types:
-      - completed
-    branches:
-      - main
+  push:
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       release_type:
@@ -24,8 +20,93 @@ on:
         type: string
 
 jobs:
+  analyze-commits:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check-commits.outputs.should_release }}
+      release_type: ${{ steps.check-commits.outputs.release_type }}
+      new_version: ${{ steps.bump-version.outputs.new_version }}
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Check for conventional commits
+      id: check-commits
+      run: |
+        # Obtenir la dernière version taggée ou HEAD^ si pas de tag
+        LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo HEAD^)
+        
+        # Récupérer tous les commits depuis la dernière version
+        ALL_COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"%s")
+        
+        # Vérifier s'il y a des commits conventionnels
+        FEATURES=$(echo "$ALL_COMMITS" | grep -E "^feat:" || echo "")
+        FIXES=$(echo "$ALL_COMMITS" | grep -E "^fix:" || echo "")
+        BREAKING=$(echo "$ALL_COMMITS" | grep -E "BREAKING CHANGE" || echo "")
+        
+        # Déterminer le type de release
+        if [ -n "$BREAKING" ]; then
+          RELEASE_TYPE="major"
+        elif [ -n "$FEATURES" ]; then
+          RELEASE_TYPE="minor"
+        elif [ -n "$FIXES" ]; then
+          RELEASE_TYPE="patch"
+        else
+          RELEASE_TYPE="none"
+        fi
+        
+        # Déterminer si on doit créer une release
+        if [ "$RELEASE_TYPE" != "none" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          SHOULD_RELEASE="true"
+        else
+          SHOULD_RELEASE="false"
+        fi
+        
+        echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
+        echo "release_type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+        
+        echo "Commits analysés depuis $LAST_TAG:"
+        echo "Features: $(echo "$FEATURES" | wc -l)"
+        echo "Fixes: $(echo "$FIXES" | wc -l)"
+        echo "Breaking changes: $(echo "$BREAKING" | wc -l)"
+        echo "Release type: $RELEASE_TYPE"
+        echo "Should release: $SHOULD_RELEASE"
+
+    - name: Bump version
+      id: bump-version
+      if: steps.check-commits.outputs.should_release == 'true'
+      run: |
+        CURRENT_VERSION=$(node -p "require('./package.json').version")
+        
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ -n "${{ github.event.inputs.custom_version }}" ]; then
+            NEW_VERSION="${{ github.event.inputs.custom_version }}"
+          else
+            RELEASE_TYPE="${{ github.event.inputs.release_type }}"
+            NEW_VERSION=$(node -e "
+              const semver = require('semver');
+              const current = '$CURRENT_VERSION';
+              const type = '$RELEASE_TYPE';
+              console.log(semver.inc(current, type));
+            ")
+          fi
+        else
+          RELEASE_TYPE="${{ steps.check-commits.outputs.release_type }}"
+          NEW_VERSION=$(node -e "
+            const semver = require('semver');
+            const current = '$CURRENT_VERSION';
+            const type = '$RELEASE_TYPE';
+            console.log(semver.inc(current, type));
+          ")
+        fi
+        
+        echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "Bumping version from $CURRENT_VERSION to $NEW_VERSION"
+
   create-release:
-    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'workflow_dispatch'
+    needs: analyze-commits
+    if: needs.analyze-commits.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -34,79 +115,218 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Get version from package.json
-      id: package-version
+    - name: Update package.json version
       run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.custom_version }}" ]; then
-          echo "version=${{ github.event.inputs.custom_version }}" >> $GITHUB_OUTPUT
-        else
-          echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
-        fi
+        NEW_VERSION="${{ needs.analyze-commits.outputs.new_version }}"
+        npm version $NEW_VERSION --no-git-tag-version
+        echo "Version updated to $NEW_VERSION"
 
-    - name: Get commit messages
+    - name: Get commit messages by type
       id: get-commits
       run: |
-        COMMITS=$(git log $(git describe --tags --abbrev=0 2>/dev/null || echo HEAD^)..HEAD --pretty=format:"- %s")
-        echo "commits<<ENDOFCOMMITS" >> $GITHUB_OUTPUT
-        echo "$COMMITS" >> $GITHUB_OUTPUT
-        echo "ENDOFCOMMITS" >> $GITHUB_OUTPUT
+        # Obtenir la dernière version taggée ou HEAD^ si pas de tag
+        LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo HEAD^)
+        
+        # Récupérer tous les commits depuis la dernière version
+        ALL_COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"%s")
+        
+        # Catégoriser les commits par type
+        FEATURES=$(echo "$ALL_COMMITS" | grep -E "^feat:" || echo "")
+        FIXES=$(echo "$ALL_COMMITS" | grep -E "^fix:" || echo "")
+        DOCS=$(echo "$ALL_COMMITS" | grep -E "^docs:" || echo "")
+        CHORES=$(echo "$ALL_COMMITS" | grep -E "^chore:" || echo "")
+        REFACTORS=$(echo "$ALL_COMMITS" | grep -E "^refactor:" || echo "")
+        TESTS=$(echo "$ALL_COMMITS" | grep -E "^test:" || echo "")
+        STYLES=$(echo "$ALL_COMMITS" | grep -E "^style:" || echo "")
+        PERFS=$(echo "$ALL_COMMITS" | grep -E "^perf:" || echo "")
+        
+        # Formater les commits pour le changelog
+        format_commits() {
+          echo "$1" | while IFS= read -r commit; do
+            if [ -n "$commit" ]; then
+              # Extraire le message sans le préfixe
+              message=$(echo "$commit" | sed 's/^[^:]*: //')
+              echo "- $message"
+            fi
+          done
+        }
+        
+        # Stocker les commits formatés
+        echo "features<<EOF" >> $GITHUB_OUTPUT
+        format_commits "$FEATURES" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        echo "fixes<<EOF" >> $GITHUB_OUTPUT
+        format_commits "$FIXES" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        echo "docs<<EOF" >> $GITHUB_OUTPUT
+        format_commits "$DOCS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        echo "chores<<EOF" >> $GITHUB_OUTPUT
+        format_commits "$CHORES" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        echo "refactors<<EOF" >> $GITHUB_OUTPUT
+        format_commits "$REFACTORS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        echo "tests<<EOF" >> $GITHUB_OUTPUT
+        format_commits "$TESTS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        echo "styles<<EOF" >> $GITHUB_OUTPUT
+        format_commits "$STYLES" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        echo "perfs<<EOF" >> $GITHUB_OUTPUT
+        format_commits "$PERFS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
 
     - name: Update CHANGELOG.md
       id: update-changelog
       run: |
-        VERSION="${{ steps.package-version.outputs.version }}"
+        VERSION="${{ needs.analyze-commits.outputs.new_version }}"
         CURRENT_DATE=$(date +%Y-%m-%d)
         
         # Créer une entrée pour la nouvelle version
         cat > temp_changelog.md << EOF
         ## [$VERSION] - $CURRENT_DATE
         
+        EOF
+        
+        # Ajouter les fonctionnalités si elles existent
+        if [ -n "${{ steps.get-commits.outputs.features }}" ]; then
+          cat >> temp_changelog.md << EOF
         ### 🚀 Ajouté
-        - Release $VERSION
+        ${{ steps.get-commits.outputs.features }}
         
-        ### 🔧 Modifié
-        - Mise à jour de la version
+        EOF
+        fi
         
-        ### 📝 Changements
-        ${{ steps.get-commits.outputs.commits }}
+        # Ajouter les corrections si elles existent
+        if [ -n "${{ steps.get-commits.outputs.fixes }}" ]; then
+          cat >> temp_changelog.md << EOF
+        ### 🐛 Corrigé
+        ${{ steps.get-commits.outputs.fixes }}
         
+        EOF
+        fi
+        
+        # Ajouter la documentation si elle existe
+        if [ -n "${{ steps.get-commits.outputs.docs }}" ]; then
+          cat >> temp_changelog.md << EOF
+        ### 📚 Documentation
+        ${{ steps.get-commits.outputs.docs }}
+        
+        EOF
+        fi
+        
+        # Ajouter les refactorisations si elles existent
+        if [ -n "${{ steps.get-commits.outputs.refactors }}" ]; then
+          cat >> temp_changelog.md << EOF
+        ### ♻️ Refactorisation
+        ${{ steps.get-commits.outputs.refactors }}
+        
+        EOF
+        fi
+        
+        # Ajouter les tests si ils existent
+        if [ -n "${{ steps.get-commits.outputs.tests }}" ]; then
+          cat >> temp_changelog.md << EOF
+        ### 🧪 Tests
+        ${{ steps.get-commits.outputs.tests }}
+        
+        EOF
+        fi
+        
+        # Ajouter les styles si ils existent
+        if [ -n "${{ steps.get-commits.outputs.styles }}" ]; then
+          cat >> temp_changelog.md << EOF
+        ### 💄 Style
+        ${{ steps.get-commits.outputs.styles }}
+        
+        EOF
+        fi
+        
+        # Ajouter les performances si elles existent
+        if [ -n "${{ steps.get-commits.outputs.perfs }}" ]; then
+          cat >> temp_changelog.md << EOF
+        ### ⚡ Performance
+        ${{ steps.get-commits.outputs.perfs }}
+        
+        EOF
+        fi
+        
+        # Ajouter les tâches de maintenance si elles existent
+        if [ -n "${{ steps.get-commits.outputs.chores }}" ]; then
+          cat >> temp_changelog.md << EOF
+        ### 🔧 Maintenance
+        ${{ steps.get-commits.outputs.chores }}
+        
+        EOF
+        fi
+        
+        # Ajouter la ligne de séparation
+        cat >> temp_changelog.md << EOF
         ---
         
         EOF
         
         # Ajouter au début du CHANGELOG.md (après la section Unreleased)
         if grep -q "## \[Unreleased\]" CHANGELOG.md; then
-          sed -i "/^## \[Unreleased\]/a\\" temp_changelog.md
+          # Insérer après la ligne Unreleased
           sed -i "/^## \[Unreleased\]/r temp_changelog.md" CHANGELOG.md
         else
-          # Si pas de section Unreleased, ajouter à la fin
-          echo "" >> CHANGELOG.md
-          cat temp_changelog.md >> CHANGELOG.md
+          # Si pas de section Unreleased, ajouter au début
+          cat temp_changelog.md CHANGELOG.md > temp_combined.md
+          mv temp_combined.md CHANGELOG.md
         fi
         rm temp_changelog.md
         
-        echo "CHANGELOG mis à jour pour la version $VERSION"
+        echo "CHANGELOG mis à jour pour la version $VERSION avec catégorisation des commits"
 
-    - name: Commit CHANGELOG changes
+    - name: Commit and push changes
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add CHANGELOG.md
-        git commit -m "docs: update CHANGELOG for version ${{ steps.package-version.outputs.version }}"
+        git add package.json CHANGELOG.md
+        git commit -m "chore: bump version to ${{ needs.analyze-commits.outputs.new_version }} and update CHANGELOG"
         git push origin main
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v${{ steps.package-version.outputs.version }}
-        name: Release v${{ steps.package-version.outputs.version }}
+        tag_name: v${{ needs.analyze-commits.outputs.new_version }}
+        name: Release v${{ needs.analyze-commits.outputs.new_version }}
         body: |
           ## What's Changed
-          ${{ steps.get-commits.outputs.commits }}
+          
+          ${{ steps.get-commits.outputs.features != '' && '### 🚀 Nouvelles Fonctionnalités' || '' }}
+          ${{ steps.get-commits.outputs.features }}
+          
+          ${{ steps.get-commits.outputs.fixes != '' && '### 🐛 Corrections' || '' }}
+          ${{ steps.get-commits.outputs.fixes }}
+          
+          ${{ steps.get-commits.outputs.docs != '' && '### 📚 Documentation' || '' }}
+          ${{ steps.get-commits.outputs.docs }}
+          
+          ${{ steps.get-commits.outputs.refactors != '' && '### ♻️ Refactorisations' || '' }}
+          ${{ steps.get-commits.outputs.refactors }}
+          
+          ${{ steps.get-commits.outputs.tests != '' && '### 🧪 Tests' || '' }}
+          ${{ steps.get-commits.outputs.tests }}
+          
+          ${{ steps.get-commits.outputs.perfs != '' && '### ⚡ Performances' || '' }}
+          ${{ steps.get-commits.outputs.perfs }}
+          
+          ${{ steps.get-commits.outputs.chores != '' && '### 🔧 Maintenance' || '' }}
+          ${{ steps.get-commits.outputs.chores }}
           
           ## Docker Images
           - Latest: `${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:latest`
-          - Version: `${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:${{ steps.package-version.outputs.version }}`
+          - Version: `${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:${{ needs.analyze-commits.outputs.new_version }}`
           - Commit: `${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:${{ github.sha }}`
           
           ## 📋 CHANGELOG
@@ -115,7 +335,77 @@ jobs:
           
           ## 🚀 Déclenchement
           
-          ${{ github.event_name == 'workflow_dispatch' && 'Release déclenchée manuellement' || 'Release déclenchée automatiquement après déploiement DockerHub' }}
+          ${{ github.event_name == 'workflow_dispatch' && 'Release déclenchée manuellement' || 'Release déclenchée automatiquement basée sur les commits conventionnels' }}
         draft: false
         prerelease: false
         token: ${{ secrets.GITHUB_TOKEN }}
+
+  # Job pour déployer automatiquement (optionnel - seulement pour workflow manuel)
+  deploy-release:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    needs: create-release
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION="${{ needs.analyze-commits.outputs.new_version }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Déploiement de la version $VERSION"
+
+      - name: Deploy to Production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.OVH_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            echo "🚀 Déploiement de la version ${{ steps.version.outputs.version }}"
+            
+            # Aller dans le répertoire
+            cd ~/benevoclic || exit 1
+            echo "📁 Répertoire: $(pwd)"
+            
+            # Vérifier Git
+            git status || echo "⚠️ Problème avec Git"
+            
+            # Mettre à jour le code
+            echo "📥 Mise à jour du code..."
+            git pull origin main || exit 1
+            
+            # Installer les dépendances
+            echo "📦 Installation des dépendances..."
+            npm install || exit 1
+            
+            # Build de l'application
+            echo "🔨 Build de l'application..."
+            npm run build || exit 1
+            
+            # Redémarrer les services
+            echo "🔄 Redémarrage des services..."
+            pm2 restart benevoclic-api || exit 1
+            
+            # Vérifier le déploiement
+            echo "🔍 Vérification du déploiement..."
+            sleep 10
+            curl -f http://${{ secrets.VPS_HOST }}:3000/health || exit 1
+            
+            echo "✅ Déploiement de la version ${{ steps.version.outputs.version }} terminé !"
+
+      - name: Notify Discord
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            curl -X POST -H "Content-Type: application/json" \
+              -d "{\"content\":\"✅ **Release v${{ steps.version.outputs.version }} déployée avec succès !**\\n\\n📦 Version: v${{ steps.version.outputs.version }}\\n🔗 [Voir les changements](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }})\\n📊 [Monitoring](http://${{ secrets.VPS_HOST }}:9090)\"}" \
+              ${{ secrets.WEBHOOK_URL }}
+          else
+            curl -X POST -H "Content-Type: application/json" \
+              -d "{\"content\":\"❌ **Échec du déploiement de la release v${{ steps.version.outputs.version }}**\\n\\n🔍 Vérifiez les logs du workflow pour plus de détails.\"}" \
+              ${{ secrets.WEBHOOK_URL }}
+          fi

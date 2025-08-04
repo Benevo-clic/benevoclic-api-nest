@@ -5,7 +5,21 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
-## [Unreleased]
+## [0.0.6] - 2025-08-05
+
+### 🚀 Ajouté
+- streamline release process with unified create-release job and improved deployment steps (#84)
+- refactor release workflow to streamline versioning and changelog updates
+- refactor release workflow to streamline versioning and changelog updates (#82)
+
+### 🐛 Corrigé
+- correct release workflow syntax errors
+
+### 📚 Documentation
+- update CHANGELOG for version 0.0.5
+
+---
+
 ## [0.0.5] - 2025-08-04
 
 ### 🚀 Ajouté

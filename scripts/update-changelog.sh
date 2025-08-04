@@ -1,113 +1,171 @@
 #!/bin/bash
 
-# Script pour mettre à jour le CHANGELOG.md automatiquement
+# Script pour mettre à jour automatiquement le CHANGELOG.md
 # Usage: ./scripts/update-changelog.sh [version] [date]
 
-set -e
-
-# Couleurs pour l'affichage
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Fonction d'affichage
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Vérifier les arguments
-if [ $# -eq 0 ]; then
-    print_error "Usage: $0 <version> [date]"
-    print_error "Exemple: $0 1.1.0 2024-01-15"
-    exit 1
-fi
-
-VERSION=$1
+VERSION=${1:-$(node -p "require('./package.json').version")}
 DATE=${2:-$(date +%Y-%m-%d)}
 
-print_status "Mise à jour du CHANGELOG.md pour la version $VERSION ($DATE)"
+echo "Mise à jour du CHANGELOG.md pour la version $VERSION ($DATE)"
 
-# Vérifier que le fichier CHANGELOG.md existe
-if [ ! -f "CHANGELOG.md" ]; then
-    print_error "Le fichier CHANGELOG.md n'existe pas"
-    exit 1
-fi
+# Obtenir la dernière version taggée ou HEAD^ si pas de tag
+LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo HEAD^)
 
-# Créer un fichier temporaire pour la nouvelle entrée
-TEMP_FILE=$(mktemp)
+echo "Analyse des commits depuis $LAST_TAG..."
 
-cat > "$TEMP_FILE" << EOF
+# Récupérer tous les commits depuis la dernière version
+ALL_COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"%s")
+
+# Catégoriser les commits par type
+FEATURES=$(echo "$ALL_COMMITS" | grep -E "^feat:" || echo "")
+FIXES=$(echo "$ALL_COMMITS" | grep -E "^fix:" || echo "")
+DOCS=$(echo "$ALL_COMMITS" | grep -E "^docs:" || echo "")
+CHORES=$(echo "$ALL_COMMITS" | grep -E "^chore:" || echo "")
+REFACTORS=$(echo "$ALL_COMMITS" | grep -E "^refactor:" || echo "")
+TESTS=$(echo "$ALL_COMMITS" | grep -E "^test:" || echo "")
+STYLES=$(echo "$ALL_COMMITS" | grep -E "^style:" || echo "")
+PERFS=$(echo "$ALL_COMMITS" | grep -E "^perf:" || echo "")
+
+# Fonction pour formater les commits
+format_commits() {
+    echo "$1" | while IFS= read -r commit; do
+        if [ -n "$commit" ]; then
+            # Extraire le message sans le préfixe
+            message=$(echo "$commit" | sed 's/^[^:]*: //')
+            echo "- $message"
+        fi
+    done
+}
+
+echo "Création de l'entrée changelog..."
+
+# Créer l'entrée changelog
+cat > temp_changelog.md << EOF
 ## [$VERSION] - $DATE
 
+EOF
+
+# Ajouter les fonctionnalités si elles existent
+if [ -n "$FEATURES" ]; then
+    cat >> temp_changelog.md << EOF
 ### 🚀 Ajouté
-- Release $VERSION
+$(format_commits "$FEATURES")
 
-### 🔧 Modifié
-- Mise à jour de la version
+EOF
+fi
 
+# Ajouter les corrections si elles existent
+if [ -n "$FIXES" ]; then
+    cat >> temp_changelog.md << EOF
+### 🐛 Corrigé
+$(format_commits "$FIXES")
+
+EOF
+fi
+
+# Ajouter la documentation si elle existe
+if [ -n "$DOCS" ]; then
+    cat >> temp_changelog.md << EOF
+### 📚 Documentation
+$(format_commits "$DOCS")
+
+EOF
+fi
+
+# Ajouter les refactorisations si elles existent
+if [ -n "$REFACTORS" ]; then
+    cat >> temp_changelog.md << EOF
+### ♻️ Refactorisation
+$(format_commits "$REFACTORS")
+
+EOF
+fi
+
+# Ajouter les tests si ils existent
+if [ -n "$TESTS" ]; then
+    cat >> temp_changelog.md << EOF
+### 🧪 Tests
+$(format_commits "$TESTS")
+
+EOF
+fi
+
+# Ajouter les styles si ils existent
+if [ -n "$STYLES" ]; then
+    cat >> temp_changelog.md << EOF
+### 💄 Style
+$(format_commits "$STYLES")
+
+EOF
+fi
+
+# Ajouter les performances si elles existent
+if [ -n "$PERFS" ]; then
+    cat >> temp_changelog.md << EOF
+### ⚡ Performance
+$(format_commits "$PERFS")
+
+EOF
+fi
+
+# Ajouter les tâches de maintenance si elles existent
+if [ -n "$CHORES" ]; then
+    cat >> temp_changelog.md << EOF
+### 🔧 Maintenance
+$(format_commits "$CHORES")
+
+EOF
+fi
+
+# Ajouter la ligne de séparation
+cat >> temp_changelog.md << EOF
 ---
 
 EOF
 
-# Insérer la nouvelle entrée après la section [Unreleased]
+echo "Intégration dans CHANGELOG.md..."
+
+# Vérifier si CHANGELOG.md existe
+if [ ! -f "CHANGELOG.md" ]; then
+    echo "Création du fichier CHANGELOG.md..."
+    cat > CHANGELOG.md << EOF
+# 📋 Changelog - Benevoclic API
+
+Toutes les modifications notables de ce projet seront documentées dans ce fichier.
+
+Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
+et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
+
+## [Unreleased]
+
+### 🚀 Ajouté
+- Fonctionnalités en cours de développement
+
+---
+
+EOF
+fi
+
+# Insérer l'entrée dans CHANGELOG.md
 if grep -q "## \[Unreleased\]" CHANGELOG.md; then
-    # Trouver la ligne après [Unreleased] et insérer le contenu
-    awk '/^## \[Unreleased\]/ {print; system("cat '"$TEMP_FILE"'"); next} {print}' CHANGELOG.md > CHANGELOG.md.tmp
+    # Insérer après la section [Unreleased]
+    awk '/^## \[Unreleased\]/ {print; system("cat temp_changelog.md"); next} {print}' CHANGELOG.md > CHANGELOG.md.tmp
     mv CHANGELOG.md.tmp CHANGELOG.md
-    print_success "Nouvelle entrée ajoutée au CHANGELOG.md"
+    echo "✅ Entrée ajoutée après la section [Unreleased]"
 else
-    print_warning "Section [Unreleased] non trouvée, ajout à la fin du fichier"
-    echo "" >> CHANGELOG.md
-    cat "$TEMP_FILE" >> CHANGELOG.md
+    # Ajouter au début du fichier
+    cat temp_changelog.md CHANGELOG.md > CHANGELOG.md.tmp
+    mv CHANGELOG.md.tmp CHANGELOG.md
+    echo "✅ Entrée ajoutée au début du fichier"
 fi
 
-# Nettoyer le fichier temporaire
-rm "$TEMP_FILE"
+# Nettoyer
+rm temp_changelog.md
 
-# Mettre à jour la version dans package.json
-if [ -f "package.json" ]; then
-    print_status "Mise à jour de la version dans package.json"
-    npm version "$VERSION" --no-git-tag-version
-    print_success "Version mise à jour dans package.json"
-fi
-
-# Créer un commit pour les changements
-if git status --porcelain | grep -q .; then
-    print_status "Création du commit pour les changements"
-    git add CHANGELOG.md package.json
-    git commit -m "docs(changelog): ajouter entrée pour la version $VERSION"
-    print_success "Commit créé"
-else
-    print_warning "Aucun changement détecté"
-fi
-
-print_success "Mise à jour du CHANGELOG.md terminée pour la version $VERSION"
-
-# Afficher les statistiques
-print_status "Statistiques de la version $VERSION:"
-echo "  - Date: $DATE"
-echo "  - Version: $VERSION"
-echo "  - Fichiers modifiés: CHANGELOG.md, package.json"
-
-# Suggestions pour la suite
+echo "✅ CHANGELOG.md mis à jour avec succès !"
 echo ""
-print_status "Prochaines étapes suggérées:"
-echo "  1. Vérifier le contenu du CHANGELOG.md"
-echo "  2. Ajouter les détails des changements"
-echo "  3. Créer un tag Git: git tag -a v$VERSION -m 'Release v$VERSION'"
-echo "  4. Pousser les changements: git push origin main --tags"
-echo "  5. Créer une release GitHub" 
+echo "Prochaines étapes :"
+echo "1. Vérifier le contenu : cat CHANGELOG.md"
+echo "2. Commiter les changements : git add CHANGELOG.md"
+echo "3. Créer un commit : git commit -m 'docs: update CHANGELOG for version $VERSION'"
+echo "4. Pousser : git push origin main" 
