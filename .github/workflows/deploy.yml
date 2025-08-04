@@ -31,7 +31,6 @@ jobs:
           FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
           FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
-          # Discord est configuré directement dans alertmanager.yml
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
@@ -40,7 +39,7 @@ jobs:
           envs: API_BASE_URL,API_SIRENE_URL,API_KEY,API_SIRENE_KEY,STORAGE_BUCKET,MESSAGING_SENDER_ID,APP_ID,MEASUREMENT_ID,PORT,NODE_ENV,API_TIMEOUT,API_RETRY_COUNT,GOOGLE_CALLBACK_URL,FIREBASE_API_KEY,FIREBASE_AUTH_DOMAIN,FIREBASE_PROJECT_ID,FIREBASE_STORAGE_BUCKET,FIREBASE_MESSAGING_SENDER_ID,FIREBASE_APP_ID,FIREBASE_MEASUREMENT_ID
           script: |
             set -e
-
+            
             # Créer les répertoires nécessaires
             mkdir -p ~/benevoclic
             mkdir -p ~/benevoclic/grafana/dashboards
@@ -946,7 +945,7 @@ jobs:
             EOL
 
             cd ~/benevoclic
-
+            
             # Nettoyer et corriger les réseaux
             echo "🔧 Nettoyage des réseaux..."
             docker stop benevoclic-api prometheus grafana node-exporter alertmanager 2>/dev/null || true
