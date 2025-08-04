@@ -1,152 +1,153 @@
 groups:
-  - name: benevoclic-api
+  - name: benevoclic-api-alerts
     rules:
-      # API Down
+      # ===== ALERTES CRASH SERVEUR =====
       - alert: APIDown
         expr: up{job="benevoclic-api"} == 0
-        for: 1m
+        for: 30s
         labels:
           severity: critical
+          service: benevoclic-api
         annotations:
-          summary: "API BenevoClic is down"
-          description: "The BenevoClic API has been down for more than 1 minute."
+          summary: "API BenevoClic est down"
+          description: "L'API BenevoClic n'est plus accessible depuis {{ $labels.instance }}"
+          value: "{{ $value }}"
 
-      # High Response Time
-      - alert: HighResponseTime
-        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High response time detected"
-          description: "95th percentile of response time is above 2 seconds for 5 minutes."
-
-      # High Error Rate
-      - alert: HighErrorRate
-        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.1
+      - alert: APIHighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
         for: 2m
         labels:
-          severity: critical
-        annotations:
-          summary: "High error rate detected"
-          description: "Error rate is above 10% for 2 minutes."
-
-      # High Memory Usage
-      - alert: HighMemoryUsage
-        expr: process_resident_memory_bytes > 1e9
-        for: 10m
-        labels:
           severity: warning
+          service: benevoclic-api
         annotations:
-          summary: "High memory usage"
-          description: "Memory usage is above 1GB for 10 minutes."
+          summary: "Taux d'erreur élevé sur l'API"
+          description: "Plus de 10% d'erreurs 5xx sur l'API BenevoClic"
+          value: "{{ $value }}"
 
-      # High CPU Usage
+      # ===== ALERTES RESSOURCES SYSTÈME =====
       - alert: HighCPUUsage
-        expr: rate(process_cpu_seconds_total[5m]) > 0.8
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
         for: 5m
         labels:
           severity: warning
+          service: system
         annotations:
-          summary: "High CPU usage"
-          description: "CPU usage is above 80% for 5 minutes."
+          summary: "Utilisation CPU élevée"
+          description: "CPU usage > 80% sur {{ $labels.instance }}"
+          value: "{{ $value }}%"
 
-      # Database Connection Issues
-      - alert: DatabaseConnectionIssues
-        expr: rate(database_operation_duration_seconds_count[5m]) == 0
-        for: 2m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Database connection issues"
-          description: "No database operations detected for 2 minutes."
-
-      # High Database Response Time
-      - alert: HighDatabaseResponseTime
-        expr: histogram_quantile(0.95, rate(database_operation_duration_seconds_bucket[5m])) > 1
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
         for: 5m
         labels:
           severity: warning
+          service: system
         annotations:
-          summary: "High database response time"
-          description: "95th percentile of database operations is above 1 second for 5 minutes."
+          summary: "Utilisation mémoire élevée"
+          description: "Mémoire utilisée > 85% sur {{ $labels.instance }}"
+          value: "{{ $value }}%"
 
-      # Authentication Failures
-      - alert: HighAuthFailures
-        expr: rate(login_attempts_total{success="false"}[5m]) > 0.1
-        for: 2m
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 85
+        for: 5m
         labels:
           severity: warning
+          service: system
         annotations:
-          summary: "High authentication failure rate"
-          description: "Authentication failure rate is above 10% for 2 minutes."
+          summary: "Espace disque faible"
+          description: "Espace disque utilisé > 85% sur {{ $labels.instance }}"
+          value: "{{ $value }}%"
 
-      # API Endpoint Errors
-      - alert: APIEndpointErrors
-        expr: rate(api_errors_total[5m]) > 0.05
+      # ===== ALERTES MÉTRIQUES API =====
+      - alert: APIHighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
         for: 3m
         labels:
           severity: warning
+          service: benevoclic-api
         annotations:
-          summary: "API endpoint errors detected"
-          description: "API error rate is above 5% for 3 minutes."
+          summary: "Temps de réponse API élevé"
+          description: "95e percentile du temps de réponse > 2s sur l'API"
+          value: "{{ $value }}s"
 
-      # Low Request Rate
-      - alert: LowRequestRate
-        expr: rate(http_requests_total[5m]) < 0.1
-        for: 10m
+      - alert: APINoRequests
+        expr: rate(http_requests_total[10m]) == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: benevoclic-api
+        annotations:
+          summary: "Aucune requête API"
+          description: "Aucune requête reçue sur l'API depuis 10 minutes"
+          value: "{{ $value }}"
+
+      - alert: APIHighRequestRate
+        expr: rate(http_requests_total[5m]) > 100
+        for: 2m
         labels:
           severity: info
+          service: benevoclic-api
         annotations:
-          summary: "Low request rate"
-          description: "Request rate is below 0.1 requests per second for 10 minutes."
+          summary: "Taux de requêtes élevé"
+          description: "Plus de 100 requêtes/seconde sur l'API"
+          value: "{{ $value }} req/s"
 
-      # Health Check Failures
-      - alert: HealthCheckFailures
-        expr: rate(http_requests_total{path="/health", status!="200"}[5m]) > 0
-        for: 1m
+      # ===== ALERTES MÉMOIRE PROCESSUS =====
+      - alert: ProcessHighMemoryUsage
+        expr: process_resident_memory_bytes / 1024 / 1024 > 500
+        for: 5m
         labels:
-          severity: critical
+          severity: warning
+          service: benevoclic-api
         annotations:
-          summary: "Health check failures"
-          description: "Health check endpoint is returning errors."
+          summary: "Utilisation mémoire processus élevée"
+          description: "Le processus API utilise plus de 500MB de RAM"
+          value: "{{ $value }}MB"
 
-      # Metrics Endpoint Issues
-      - alert: MetricsEndpointIssues
-        expr: rate(http_requests_total{path="/metrics", status!="200"}[5m]) > 0
+      # ===== ALERTES CONNECTIONS =====
+      - alert: HighActiveConnections
+        expr: nodejs_active_handles > 1000
+        for: 3m
+        labels:
+          severity: warning
+          service: benevoclic-api
+        annotations:
+          summary: "Nombre de connexions actives élevé"
+          description: "Plus de 1000 connexions actives sur l'API"
+          value: "{{ $value }}"
+
+      # ===== ALERTES EVENT LOOP =====
+      - alert: EventLoopLag
+        expr: nodejs_eventloop_lag_seconds > 1
         for: 2m
         labels:
           severity: warning
+          service: benevoclic-api
         annotations:
-          summary: "Metrics endpoint issues"
-          description: "Metrics endpoint is returning errors."
+          summary: "Lag de l'event loop"
+          description: "Event loop lag > 1s sur l'API"
+          value: "{{ $value }}s"
 
-      # Container Restarts
-      - alert: ContainerRestarts
-        expr: changes(process_start_time_seconds[5m]) > 0
-        for: 1m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Container restarts detected"
-          description: "The API container has restarted in the last 5 minutes."
-
-      # Disk Space Issues
-      - alert: DiskSpaceLow
-        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1
-        for: 5m
+      # ===== ALERTES CRASH DÉTECTÉ =====
+      - alert: ProcessRestart
+        expr: changes(process_start_time_seconds[10m]) > 0
+        for: 0s
         labels:
           severity: critical
+          service: benevoclic-api
         annotations:
-          summary: "Low disk space"
-          description: "Disk space is below 10% for 5 minutes."
+          summary: "Processus API redémarré"
+          description: "Le processus API a été redémarré sur {{ $labels.instance }}"
+          value: "{{ $value }} redémarrages"
 
-      # Network Issues
-      - alert: NetworkIssues
-        expr: rate(node_network_transmit_errors_total[5m]) > 0
+      # ===== ALERTES RÉSEAU =====
+      - alert: NetworkErrors
+        expr: rate(nodejs_net_connections_total[5m]) > 0 and rate(nodejs_net_connections_total[5m]) < 0.1
         for: 5m
         labels:
           severity: warning
+          service: benevoclic-api
         annotations:
-          summary: "Network transmission errors"
-          description: "Network transmission errors detected for 5 minutes." 
+          summary: "Erreurs réseau détectées"
+          description: "Problèmes de connexions réseau sur l'API"
+          value: "{{ $value }}" 
