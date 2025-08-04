@@ -91,6 +91,7 @@ jobs:
                       **Liens utiles:**
                       • 📊 [Prometheus](http://151.80.152.63:9090)
                       • 📈 [Grafana](http://151.80.152.63:3001)
+                      • 🚨 [Alertmanager](http://151.80.152.63:9093/#/alerts)
                       • 🔍 [API Health](http://151.80.152.63:3000/health)
 
                       ---
@@ -127,6 +128,7 @@ jobs:
                       **Liens utiles:**
                       • 📊 [Prometheus](http://151.80.152.63:9090)
                       • 📈 [Grafana](http://151.80.152.63:3001)
+                      • 🚨 [Alertmanager](http://151.80.152.63:9093/#/alerts)
                       • 🔍 [API Health](http://151.80.152.63:3000/health)
 
                       ---
@@ -169,6 +171,7 @@ jobs:
                       **Liens utiles:**
                       • 📊 [Prometheus](http://151.80.152.63:9090)
                       • 📈 [Grafana](http://151.80.152.63:3001)
+                      • 🚨 [Alertmanager](http://151.80.152.63:9093/#/alerts)
                       • 🔍 [API Health](http://151.80.152.63:3000/health)
 
                       ---
@@ -197,6 +200,7 @@ jobs:
                       **Liens utiles:**
                       • 📊 [Prometheus](http://151.80.152.63:9090)
                       • 📈 [Grafana](http://151.80.152.63:3001)
+                      • 🚨 [Alertmanager](http://151.80.152.63:9093/#/alerts)
                       • 🔍 [API Health](http://151.80.152.63:3000/health)
 
                       ---
@@ -225,6 +229,7 @@ jobs:
                       **Liens utiles:**
                       • 📊 [Prometheus](http://151.80.152.63:9090)
                       • 📈 [Grafana](http://151.80.152.63:3001)
+                      • 🚨 [Alertmanager](http://151.80.152.63:9093/#/alerts)
                       • 🔍 [API Health](http://151.80.152.63:3000/health)
 
                       ---
@@ -253,6 +258,7 @@ jobs:
                       **Liens utiles:**
                       • 📊 [Prometheus](http://151.80.152.63:9090)
                       • 📈 [Grafana](http://151.80.152.63:3001)
+                      • 🚨 [Alertmanager](http://151.80.152.63:9093/#/alerts)
                       • 🔍 [API Health](http://151.80.152.63:3000/health)
 
                       ---
