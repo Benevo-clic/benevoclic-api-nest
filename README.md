@@ -1,73 +1,258 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# 🚀 Benevoclic API - Documentation de Déploiement
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## 📋 Vue d'ensemble
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Ce repository contient l'API Benevoclic avec une architecture de déploiement modulaire utilisant GitHub Actions, Docker, PM2, et un stack de monitoring complet.
 
-## Description
+## 🏗️ Architecture
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Installation
-
-```bash
-$ npm install
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   GitHub Repo   │    │   GitHub Actions│    │   OVH VPS      │
+│                 │    │                 │    │                 │
+│ ┌─────────────┐ │    │ ┌─────────────┐ │    │ ┌─────────────┐ │
+│ │ Source Code │ │───▶│ │ Workflows   │ │───▶│ │ Docker      │ │
+│ │             │ │    │ │             │ │    │ │ Containers  │ │
+│ └─────────────┘ │    │ └─────────────┘ │    │ └─────────────┘ │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │                       │
+                                ▼                       ▼
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │   Discord       │    │   Monitoring    │
+                       │   Webhooks      │    │   Stack         │
+                       │                 │    │                 │
+                       │ ┌─────────────┐ │    │ ┌─────────────┐ │
+                       │ │ Alerts      │ │    │ │ Prometheus  │ │
+                       │ │ Notifications│ │    │ │ Grafana     │ │
+                       │ └─────────────┘ │    │ │ Alertmanager│ │
+                       └─────────────────┘    │ └─────────────┘ │
+                                              └─────────────────┘
 ```
 
-## Running the app
+## 🎯 Services Déployés
 
+| Service | Port | URL | Fonction |
+|---------|------|-----|----------|
+| **API Benevoclic** | 3000 | `http://IP_VPS:3000` | API principale |
+| **Prometheus** | 9090 | `http://IP_VPS:9090` | Collecte métriques |
+| **Alertmanager** | 9093 | `http://IP_VPS:9093` | Gestion alertes |
+| **Grafana** | 3001 | `http://IP_VPS:3001` | Visualisation |
+| **Node Exporter** | 9100 | `http://IP_VPS:9100` | Métriques système |
+
+## 📖 Guides Principaux
+
+### **🏗️ Architecture et Configuration**
+- **[DEPLOYMENT_ARCHITECTURE.md](docs/DEPLOYMENT_ARCHITECTURE.md)** - Architecture détaillée du déploiement
+- **[DEPLOYMENT_CONFIG.md](docs/DEPLOYMENT_CONFIG.md)** - Configuration centralisée
+- **[WORKFLOWS_REFERENCE.md](docs/WORKFLOWS_REFERENCE.md)** - Guide des workflows GitHub Actions
+
+### **🛠️ Maintenance et Production**
+- **[PM2_PRODUCTION_GUIDE.md](docs/PM2_PRODUCTION_GUIDE.md)** - Guide complet PM2
+- **[PRODUCTION_COMMANDS.md](docs/PRODUCTION_COMMANDS.md)** - Commandes de production
+- **[PRODUCTION_MAINTENANCE.md](docs/PRODUCTION_MAINTENANCE.md)** - Maintenance production
+
+### **📋 Versioning et Traçabilité**
+- **[CHANGELOG.md](CHANGELOG.md)** - Journal des versions
+- **[VERSIONING_GUIDE.md](VERSIONING_GUIDE.md)** - Guide de traçabilité des évolutions
+- **[SCRIPTS_GUIDE.md](SCRIPTS_GUIDE.md)** - Guide des scripts de versioning
+
+### **📚 Guides Spécifiques**
+- **[DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** - Guide de déploiement détaillé
+- **[DEPLOYMENT_README.md](docs/DEPLOYMENT_README.md)** - Guide de déploiement rapide
+
+## 🚀 Déploiement Rapide
+
+### **Via GitHub Actions (Recommandé)**
+1. Allez sur votre repository GitHub
+2. Onglet **Actions** → **Deploy to OVH VPS**
+3. Cliquez **Run workflow**
+4. Le déploiement se fait automatiquement
+
+### **Vérification Post-Déploiement**
 ```bash
-# development
-$ npm run start
+# Se connecter au serveur
+ssh debian@IP_VPS
 
-# watch mode
-$ npm run start:dev
+# Vérifier les services
+pm2 status
+docker ps
 
-# production mode
-$ npm run start:prod
+# Vérifier la santé
+curl http://IP_VPS:3000/health
+curl http://IP_VPS:9090/-/healthy
+curl http://IP_VPS:9093/-/healthy
 ```
 
-## Test
+## 🔧 Commandes Essentielles
 
+### **PM2 (Gestion des Processus)**
 ```bash
-# unit tests
-$ npm run test
+# Voir le statut
+pm2 status
 
-# e2e tests
-$ npm run test:e2e
+# Redémarrer l'API
+pm2 restart benevoclic-api
 
-# test coverage
-$ npm run test:cov
+# Voir les logs
+pm2 logs benevoclic-api --lines 20
+
+# Monitoring en temps réel
+pm2 monit
 ```
 
-## Support
+### **Docker (Conteneurs)**
+```bash
+# Voir les conteneurs
+docker ps
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+# Redémarrer les services
+docker-compose restart
 
-## Stay in touch
+# Voir les logs
+docker logs benevoclic-api --tail 20
+```
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### **Monitoring**
+```bash
+# Vérifier les métriques
+curl http://IP_VPS:9090/api/v1/targets
 
-## License
+# Vérifier les alertes
+curl http://IP_VPS:9093/api/v1/alerts
 
-Nest is [MIT licensed](LICENSE).
+# Accéder à Grafana
+# URL: http://IP_VPS:3001
+# Login: admin / admin123
+```
+
+## 🚨 Alertes Configurées
+
+### **Alertes API**
+- **ServerDown** - Serveur arrêté
+- **ServerUp** - Serveur redémarré
+- **ServerInactive** - Inactivité détectée
+
+### **Alertes Système**
+- **SystemDown** - Système arrêté
+- **SystemUp** - Système redémarré
+
+### **Notifications Discord**
+Toutes les alertes sont envoyées sur Discord avec :
+- 🔴 **Rouge** pour les problèmes
+- 🟢 **Vert** pour les résolutions
+- 📊 Liens vers Alertmanager UI
+
+## 📊 Monitoring Stack
+
+### **Prometheus**
+- Collecte des métriques
+- Règles d'alerte
+- Stockage des données
+
+### **Alertmanager**
+- Gestion des alertes
+- Notifications Discord
+- Déduplication
+
+### **Grafana**
+- Dashboards de monitoring
+- Visualisation des métriques
+- Alertes visuelles
+
+### **Node Exporter**
+- Métriques système
+- CPU, mémoire, disque
+- Métriques réseau
+
+## 🔄 Workflows GitHub Actions
+
+| Workflow | Déclenchement | Services | Utilisation |
+|----------|---------------|----------|-------------|
+| `deploy.yml` | Push main + Manual | Tous | Déploiement complet |
+| `deploy-api.yml` | API files + Manual | API | Mise à jour API |
+| `deploy-prometheus.yml` | Alert rules + Manual | Prometheus + Alertmanager | Monitoring |
+| `deploy-alertmanager.yml` | Manual | Alertmanager | Alertes |
+| `deploy-grafana.yml` | Grafana files + Manual | Grafana | Dashboards |
+| `deploy-node-exporter.yml` | Manual | Node Exporter | Métriques système |
+
+## 🛡️ Sécurité
+
+### **Secrets GitHub Requis**
+- `VPS_HOST` - IP du serveur
+- `VPS_USERNAME` - Utilisateur SSH
+- `OVH_SSH_KEY` - Clé SSH privée
+- `DOCKERHUB_USERNAME` - Docker Hub
+- `MONGODB_URL` - Base de données
+- `FIREBASE_*` - Configuration Firebase
+- `AWS_*` - Configuration AWS S3
+
+## 📈 Métriques Disponibles
+
+### **API Metrics**
+- Requêtes HTTP par seconde
+- Temps de réponse moyen
+- Taux d'erreurs
+- Utilisation mémoire/CPU
+
+### **System Metrics**
+- Utilisation CPU
+- Utilisation mémoire
+- Utilisation disque
+- Métriques réseau
+
+## 🚨 Dépannage
+
+### **Problèmes Courants**
+1. **API ne démarre pas** → Vérifier `pm2 logs benevoclic-api`
+2. **Alertes ne fonctionnent pas** → Vérifier `docker logs alertmanager`
+3. **Prometheus pas de données** → Vérifier les targets
+4. **Discord notifications** → Vérifier le webhook
+
+### **Commandes de Dépannage**
+```bash
+# Vérifier PM2
+pm2 status
+pm2 logs benevoclic-api
+
+# Vérifier Docker
+docker ps
+docker logs benevoclic-api
+
+# Vérifier les services
+curl http://IP_VPS:3000/health
+curl http://IP_VPS:9090/-/healthy
+```
+
+## 📞 Support
+
+En cas de problème :
+1. Vérifier les logs des services
+2. Consulter les métriques Prometheus
+3. Vérifier les alertes actives
+4. Consulter la documentation détaillée
+
+---
+
+## 🎯 Avantages de cette Architecture
+
+### **✅ Modularité**
+- Déploiements indépendants par service
+- Workflows GitHub Actions séparés
+- Configuration centralisée
+
+### **✅ Monitoring Complet**
+- Métriques en temps réel
+- Alertes automatiques
+- Notifications Discord
+
+### **✅ Maintenance Facile**
+- Documentation complète
+- Commandes PM2 et Docker
+- Scripts de maintenance
+
+### **✅ Scalabilité**
+- Architecture modulaire
+- Monitoring extensible
+- Déploiements zero-downtime
+
+**🚀 Votre infrastructure est prête pour la production !**
