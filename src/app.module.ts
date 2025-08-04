@@ -12,6 +12,7 @@ import { AnnouncementModule } from './api/announcement/announcement.module';
 import { OrphanCleanupController } from './api/cleanup/controllers/orphan-cleanup.controller';
 import { VolunteerModule } from './api/volunteer/volunteer.module';
 import { HealthModule } from './api/health/health.module';
+import { PrometheusModule } from './api/prometheus/prometheus.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { HealthModule } from './api/health/health.module';
     forwardRef(() => AnnouncementModule),
     forwardRef(() => VolunteerModule),
     HealthModule,
+    PrometheusModule,
   ],
   providers: [
     {

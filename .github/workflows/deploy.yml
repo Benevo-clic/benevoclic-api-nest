@@ -29,7 +29,12 @@ jobs:
           script: |
             set -e  # Arrêter en cas d'erreur
             
+            # Créer les dossiers nécessaires
             mkdir -p ~/benevoclic
+            mkdir -p ~/benevoclic/grafana/dashboards
+            mkdir -p ~/benevoclic/grafana/datasources
+            
+            # Configuration de l'API
             cat > ~/benevoclic/docker-compose.yml << EOL
             version: '3.8'
             
@@ -61,18 +66,182 @@ jobs:
                   timeout: 10s
                   retries: 3
                   start_period: 40s
+                networks:
+                  - benevoclic-network
+            EOL
+
+            # Configuration Prometheus
+            cat > ~/benevoclic/prometheus.yml << EOL
+            global:
+              scrape_interval: 15s
+              evaluation_interval: 15s
+
+            rule_files:
+              - "alert_rules.yml"
+
+            scrape_configs:
+              - job_name: 'prometheus'
+                static_configs:
+                  - targets: ['localhost:9090']
+
+              - job_name: 'benevoclic-api'
+                static_configs:
+                  - targets: ['benevoclic-api:3000']
+                metrics_path: '/metrics'
+                scrape_interval: 10s
+                scrape_timeout: 5s
+                
+                relabel_configs:
+                  - source_labels: [__address__]
+                    target_label: instance
+                    regex: '(.+)'
+                    replacement: '\${1}'
+                  - source_labels: [__address__]
+                    target_label: service
+                    regex: '(.+)'
+                    replacement: 'benevoclic-api'
+
+              - job_name: 'node-exporter'
+                static_configs:
+                  - targets: ['node-exporter:9100']
+                scrape_interval: 15s
+
+            alerting:
+              alertmanagers:
+                - static_configs:
+                    - targets:
+                      # - alertmanager:9093
+
+            rule_files:
+              - "alert_rules.yml"
+            EOL
+
+            # Configuration monitoring
+            cat > ~/benevoclic/docker-compose.monitoring.yml << EOL
+            version: '3.8'
+
+            services:
+              prometheus:
+                image: prom/prometheus:latest
+                container_name: prometheus
+                restart: always
+                ports:
+                  - "9090:9090"
+                volumes:
+                  - ./prometheus.yml:/etc/prometheus/prometheus.yml
+                  - prometheus_data:/prometheus
+                command:
+                  - '--config.file=/etc/prometheus/prometheus.yml'
+                  - '--storage.tsdb.path=/prometheus'
+                  - '--web.console.libraries=/etc/prometheus/console_libraries'
+                  - '--web.console.templates=/etc/prometheus/consoles'
+                  - '--storage.tsdb.retention.time=200h'
+                  - '--web.enable-lifecycle'
+                networks:
+                  - benevoclic-network
+
+              grafana:
+                image: grafana/grafana:latest
+                container_name: grafana
+                restart: always
+                ports:
+                  - "3001:3000"
+                environment:
+                  - GF_SECURITY_ADMIN_USER=admin
+                  - GF_SECURITY_ADMIN_PASSWORD=admin123
+                  - GF_USERS_ALLOW_SIGN_UP=false
+                volumes:
+                  - grafana_data:/var/lib/grafana
+                  - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+                  - ./grafana/datasources:/etc/grafana/provisioning/datasources
+                networks:
+                  - benevoclic-network
+
+              node-exporter:
+                image: prom/node-exporter:latest
+                container_name: node-exporter
+                restart: always
+                ports:
+                  - "9100:9100"
+                volumes:
+                  - /proc:/host/proc:ro
+                  - /sys:/host/sys:ro
+                  - /:/rootfs:ro
+                command:
+                  - '--path.procfs=/host/proc'
+                  - '--path.rootfs=/rootfs'
+                  - '--path.sysfs=/host/sys'
+                  - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)(\$\$|/)'
+                networks:
+                  - benevoclic-network
+
+            volumes:
+              prometheus_data:
+              grafana_data:
+
+            networks:
+              benevoclic-network:
+                driver: bridge
+            EOL
+
+            # Configuration Grafana datasources
+            cat > ~/benevoclic/grafana/datasources/prometheus.yml << EOL
+            apiVersion: 1
+
+            datasources:
+              - name: Prometheus
+                type: prometheus
+                access: proxy
+                url: http://prometheus:9090
+                isDefault: true
+                editable: true
+            EOL
+
+            # Configuration Grafana dashboards
+            cat > ~/benevoclic/grafana/dashboards/dashboards.yml << EOL
+            apiVersion: 1
+
+            providers:
+              - name: 'default'
+                orgId: 1
+                folder: ''
+                type: file
+                disableDeletion: false
+                updateIntervalSeconds: 10
+                allowUiUpdates: true
+                options:
+                  path: /etc/grafana/provisioning/dashboards
             EOL
 
             cd ~/benevoclic
             
             # Arrêter et nettoyer proprement
+            echo "🛑 Arrêt des services existants..."
             docker compose down || true
+            docker compose -f docker-compose.monitoring.yml down || true
             docker image rm ${{ secrets.DOCKERHUB_USERNAME }}/benevoclic-api:latest || true
 
-            # Pull et redémarrage
+            # Pull et redémarrage de l'API
+            echo "📥 Téléchargement de l'image API..."
             docker compose pull
+
+            echo "🚀 Démarrage de l'API..."
             docker compose up -d
-            
-            # Vérifier que le conteneur démarre correctement
-            sleep 10
+
+            # Démarrer le monitoring
+            echo "📊 Démarrage du monitoring..."
+            docker compose -f docker-compose.monitoring.yml up -d
+
+
+            echo "📝 Logs des services :"
+            echo "=== Logs API ==="
             docker logs benevoclic-api
+            echo ""
+            echo "=== Logs Prometheus ==="
+            docker logs prometheus
+            echo ""
+            echo "=== Logs Grafana ==="
+            docker logs grafana
+            echo ""
+            echo "=== Statut des conteneurs ==="
+            docker ps
