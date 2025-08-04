@@ -14,6 +14,20 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 ### 🔧 Modifié
 - Mise à jour de la version
 
+### 📝 Changements
+- feat: refactor release workflow to streamline versioning and changelog updates
+- feat: refactor release workflow to streamline versioning and changelog updates (#82)
+
+---
+
+## [0.0.5] - 2025-08-04
+
+### 🚀 Ajouté
+- Release 0.0.5
+
+### 🔧 Modifié
+- Mise à jour de la version
+
 ---
 
 ## [0.0.4] - 2025-08-04
