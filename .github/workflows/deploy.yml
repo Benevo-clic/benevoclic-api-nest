@@ -212,9 +212,17 @@ jobs:
 
             cd ~/benevoclic
             
-            # Créer le réseau s'il n'existe pas
-            echo "🌐 Création du réseau..."
-            docker network create benevoclic-network 2>/dev/null || true
+            # Nettoyer et corriger les réseaux
+            echo "🔧 Nettoyage des réseaux..."
+            docker stop benevoclic-api prometheus grafana node-exporter 2>/dev/null || true
+            docker rm benevoclic-api prometheus grafana node-exporter 2>/dev/null || true
+            docker network rm benevoclic_benevoclic-network benevoclic-network 2>/dev/null || true
+            
+            # Créer le réseau unifié
+            echo "🌐 Création du réseau unifié..."
+            docker network create benevoclic-network
+            
+
             
             # Arrêter et nettoyer proprement
             echo "�� Arrêt des services existants..."
@@ -252,3 +260,16 @@ jobs:
             echo ""
             echo "=== Statut des conteneurs ==="
             docker ps
+            
+            echo "=== Vérification des réseaux ==="
+            echo "Réseau de l'API:"
+            docker inspect benevoclic-api --format '{{.NetworkSettings.Networks}}' 2>/dev/null || echo "API non trouvée"
+            echo "Réseau de Prometheus:"
+            docker inspect prometheus --format '{{.NetworkSettings.Networks}}' 2>/dev/null || echo "Prometheus non trouvé"
+            
+            echo "=== Test de connectivité ==="
+            echo "Test depuis Prometheus vers l'API:"
+            docker exec prometheus wget -qO- http://benevoclic-api:3000/metrics 2>/dev/null | head -3 || echo "Connexion échouée"
+            
+            echo "=== Targets Prometheus ==="
+            curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | {job: .labels.job, health: .health}' 2>/dev/null || curl -s http://localhost:9090/api/v1/targets
