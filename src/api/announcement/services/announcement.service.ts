@@ -24,10 +24,13 @@ import { AwsS3Service } from '../../../common/aws/aws-s3.service';
 import { FilterAnnouncementDto } from '../dto/filter-announcement.dto';
 import { FilterAssociationAnnouncementDto } from '../dto/filter-association-announcement.dto';
 import { InfoVolunteerDto } from '../../association/dto/info-volunteer.dto';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class AnnouncementService {
   private readonly logger = new Logger(AnnouncementService.name);
+
+  private readonly nowParis = DateTime.now().setZone('Europe/Paris');
   constructor(
     private readonly announcementRepository: AnnouncementRepository,
     private readonly userService: UserService,
@@ -393,6 +396,7 @@ export class AnnouncementService {
         id: volunteer.id,
         name: volunteer.name,
         isPresent: false,
+        dateAdded: this.nowParis.toISODate(),
       });
       announcement.nbVolunteers++;
       await this.announcementRepository.updateVolunteer(id, announcement);
@@ -526,10 +530,12 @@ export class AnnouncementService {
       if (await this.isCompletedParticipant(announcement)) {
         throw new BadRequestException('Announcement is already completed');
       }
+
       announcement.participants.push({
         id: participant.id,
         name: participant.name,
         isPresent: false,
+        dateAdded: this.nowParis.toISODate(),
       });
       announcement.nbParticipants++;
       await this.announcementRepository.updateVolunteer(id, announcement);

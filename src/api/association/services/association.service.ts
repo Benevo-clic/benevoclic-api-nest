@@ -15,11 +15,13 @@ import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.ser
 import { VolunteerAssociationFollowing } from '../type/association.type';
 import { FindAssociationDto } from '../dto/find-association.dto';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class AssociationService {
   private readonly logger = new Logger(AssociationService.name);
   firebaseInstance: FirebaseAdminService = FirebaseAdminService.getInstance();
+  private readonly nowParis = DateTime.now().setZone('Europe/Paris');
 
   constructor(
     private readonly associationRepository: AssociationRepository,
@@ -170,6 +172,7 @@ export class AssociationService {
       association.volunteers.push({
         volunteerId: volunteerInfo.volunteerId,
         volunteerName: volunteerInfo.volunteerName,
+        dateAdded: this.nowParis.toISODate(),
       });
       await this.associationRepository.update(associationId, association);
       return volunteerInfo;
