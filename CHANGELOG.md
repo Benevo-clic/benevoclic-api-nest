@@ -30,148 +30,198 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
-## [0.0.6] - 2025-08-05
+## [Unreleased]
 
 ### 🚀 Ajouté
-- streamline release process with unified create-release job and improved deployment steps (#84)
+- Fonctionnalités en cours de développement
+
+---
+
+## [0.2.0] - 2025-08-05
+
+### 🚀 Ajouté
+
+---
+
+## [0.1.0] - 2025-08-04
+
+### 🚀 Ajouté
+- ajout de la fonctionnalité de recherche avancée
+- ajout de la fonctionnalité de test
 - refactor release workflow to streamline versioning and changelog updates
-- refactor release workflow to streamline versioning and changelog updates (#82)
+- streamline release process with unified create-release job and improved deployment steps
 
 ### 🐛 Corrigé
 - correct release workflow syntax errors
 
-### 📚 Documentation
-- update CHANGELOG for version 0.0.5
-
 ---
 
 ## [0.0.5] - 2025-08-04
 
 ### 🚀 Ajouté
-- Release 0.0.5
+- ajout de la fonctionnalité de recherche avancée
+- ajout de la fonctionnalité de test
+- enhance release workflow with automatic version bumping and deployment checks
+- refactor release workflow to streamline versioning and changelog updates
+- streamline release process with unified create-release job and improved deployment steps
 
-### 🔧 Modifié
-- Mise à jour de la version
-
-### 📝 Changements
-- fix: correct release workflow syntax errors
-- feat: streamline release process with unified create-release job and improved deployment steps (#84)
-- docs: update CHANGELOG for version 0.0.5
-- feat: refactor release workflow to streamline versioning and changelog updates
-- feat: refactor release workflow to streamline versioning and changelog updates (#82)
-
----
-
-## [0.0.5] - 2025-08-04
-
-### 🚀 Ajouté
-- Release 0.0.5
-
-### 🔧 Modifié
-- Mise à jour de la version
-
-### 📝 Changements
-- feat: refactor release workflow to streamline versioning and changelog updates
-- feat: refactor release workflow to streamline versioning and changelog updates (#82)
-
----
-
-## [0.0.5] - 2025-08-04
-
-### 🚀 Ajouté
-- Release 0.0.5
-
-### 🔧 Modifié
-- Mise à jour de la version
+### 🐛 Corrigé
+- correct release workflow syntax errors
 
 ---
 
 ## [0.0.4] - 2025-08-04
 
 ### 🚀 Ajouté
-- Release 0.0.4
+- ajout de la fonctionnalité de recherche avancée
+- ajout de la fonctionnalité de test
+- enhance release workflow with automatic version bumping and deployment checks
+- refactor release workflow to streamline versioning and changelog updates
+- streamline release process with unified create-release job and improved deployment steps
+- update release workflow to use secret IP for health checks and monitoring links
 
-### 🔧 Modifié
-- Mise à jour de la version
+### 🐛 Corrigé
+- correct release workflow syntax errors
 
 ---
 
 ## [0.0.3] - 2025-08-04
 
 ### 🚀 Ajouté
-- Release 0.0.3
+- ajout de la fonctionnalité de recherche avancée
+- ajout de la fonctionnalité de test
+- enhance release workflow with automatic version bumping and deployment checks
+- enhance release workflow with corrected job triggers and dependencies
+- refactor release workflow to streamline versioning and changelog updates
+- streamline release process with unified create-release job and improved deployment steps
+- update release workflow to use secret IP for health checks and monitoring links
 
-### 🔧 Modifié
-- Mise à jour de la version
+### 🐛 Corrigé
+- correct release workflow syntax errors
 
 ---
 
 ## [0.0.2] - 2025-08-04
 
 ### 🚀 Ajouté
-- Release 0.0.2
-
-### 🔧 Modifié
-- Mise à jour de la version
-
----
-
-
-### 🚀 Ajouté
-- Système de monitoring complet avec Prometheus, Grafana, Alertmanager
-- Workflows GitHub Actions modulaires pour déploiement par service
-- Documentation complète avec guides PM2 et maintenance production
-- Alertes Discord automatisées avec notifications colorées
-- Architecture de déploiement modulaire et scalable
-
-### 🔧 Modifié
-- Refactorisation de l'architecture de déploiement
-- Amélioration du système d'alertes avec templates Discord
-- Optimisation des workflows GitHub Actions
+- add Alertmanager configuration and update alert rules for API monitoring
+- add Alertmanager links to deployment configuration for improved monitoring access
+- add auth google
+- add endpoints to retrieve the number of associations and volunteers
+- add endpoint to retrieve favorite announcements by volunteer ID with error handling
+- add find by email
+- add health check endpoint and integrate PM2 for process management
+- add logging and error handling for fetching associations by volunteer
+- add logging for announcement filtering criteria
+- add logging for fetching announcement by ID
+- add mongo collection
+- add monitoring scripts and update alerting configurations for BenevoClic
+- add Prometheus monitoring integration with custom metrics and Grafana dashboards
+- add public access to refreshAuth endpoint
+- add release workflow testing script and enhance release.yml configuration
+- add rules
+- add test volunteer
+- add traffic generation scripts and update Prometheus monitoring integration
+- add variable is completed
+- ajout de la fonctionnalité de recherche avancée
+- ajout de la fonctionnalité de test
+- announcement
+- announcement controller test
+- auth email verified
+- change refreshAuth endpoint to use body for refreshToken
+- change type create announcement
+- cicd
+- config ovh
+- correct spelling of Benevoclic in dashboard titles and deployment scripts
+- cors
+- create announcement
+- empty tableau
+- endPoint
+- enhance logging for fetching associations and update volunteer list endpoint
+- enhance logging for Firebase authentication process and improve error handling
+- enhance monitoring setup with Alertmanager integration and Discord notifications
+- enhance monitoring setup with new alert rules and Discord notifications for server status
+- enhance release workflow with automatic version bumping and deployment checks
+- enhance release workflow with corrected job triggers and dependencies
+- env
+- feat:association controller test
+- filter
+- filter volunteer announcement
+- get current user without email or id
+- get more info user
+- get user
+- handle user registration for existing emails
+- id
+- import volunteer
+- improve error handling in signInWithEmailAndPassword method for Firebase authentication
+- login asso and volunteer
+- modified body of user
+- modify register
+- mongo config
+- refactor release workflow to streamline versioning and changelog updates
+- remove participant
+- rename volunteer properties for consistency in association management
+- return favorites of volunteer
+- set global prefix for API routes
+- simplify Alertmanager configuration and update filesystem mount points exclusion in Docker Compose
+- streamline release process with unified create-release job and improved deployment steps
+- test association done
+- test user
+- update API endpoints for announcements and associations with more descriptive paths
+- update connection
+- update deployment configuration for MongoDB and AWS integration
+- update Discord alert messages with new status icons for server notifications
+- update Docker Compose configuration and enhance deployment script
+- update Grafana deployment with secret management and add new metrics dashboards
+- update network configuration in Docker setup and add network fix script
+- update production environment variables for JWT and AWS S3
+- update refresh token
+- update release workflow to use secret IP for health checks and monitoring links
+- update remove user
 
 ### 🐛 Corrigé
-- Correction des erreurs de templates Alertmanager
-- Résolution des problèmes de configuration Prometheus
-- Correction des URLs hardcodées (remplacement par IP_VPS)
+- add photo number
+- body update connected
+- change global API prefix from 'api' to 'swagger'
+- correct release workflow syntax errors
+- cover
+- date last change
+- deploy cide
+- docker
+- endpoint name
+- error connexion
+- filed volunteer
+- not create user if user already exists
+- pipe
+- refresh token
+- register volunteer association
+- release
+- remove unused services from announcement module
+- remove user
+- rollback user auth
+- test association
+- update firebase private key handling to replace escaped newlines
+- update refreshAuth endpoint to accept body for refreshToken
+- user
+- user register email verified
+- value
+- verify if email existe
+- workflow
 
-### 🔒 Sécurité
-- Sécurisation des webhooks Discord via secrets GitHub
-- Amélioration de la gestion des variables d'environnement
+### ♻️ Refactorisation
+- favorites announcement create
+
+### 🔧 Maintenance
+- type location
 
 ---
 
-## [1.0.0] - 2024-01-XX
+## [0.0.1] - 2025-01-31
 
 ### 🚀 Ajouté
-- **API Benevoclic** - API principale avec NestJS
-- **Système de monitoring** - Prometheus, Grafana, Alertmanager
-- **Déploiement automatisé** - GitHub Actions workflows
-- **Alertes Discord** - Notifications en temps réel
-- **Documentation complète** - Guides de déploiement et maintenance
-
-### 📊 Monitoring
-- **Prometheus** - Collecte et stockage des métriques
-- **Grafana** - Visualisation des dashboards
-- **Alertmanager** - Gestion des alertes et notifications
-- **Node Exporter** - Métriques système
-
-### 🔄 Workflows GitHub Actions
-- `deploy-api.yml` - Déploiement de l'API
-- `deploy-prometheus.yml` - Déploiement du monitoring
-- `deploy-alertmanager.yml` - Déploiement des alertes
-- `deploy-grafana.yml` - Déploiement des dashboards
-- `deploy-node-exporter.yml` - Déploiement des métriques système
-
-### 📚 Documentation
-- **README.md** - Vue d'ensemble du projet
-- **DEPLOYMENT_ARCHITECTURE.md** - Architecture détaillée
-- **WORKFLOWS_REFERENCE.md** - Guide des workflows
-- **DEPLOYMENT_CONFIG.md** - Configuration centralisée
-- **PM2_PRODUCTION_GUIDE.md** - Guide PM2 complet
-- **PRODUCTION_COMMANDS.md** - Commandes de production
-- **PRODUCTION_MAINTENANCE.md** - Maintenance production
 
 ---
+
 
 ## Format du Changelog
 
@@ -261,13 +311,4 @@ Ce projet suit le [Semantic Versioning](https://semver.org/lang/fr/) :
 
 ---
 
-## 📊 Statistiques des Releases
-
-| Version | Date | Fonctionnalités | Corrections | Breaking Changes |
-|---------|------|-----------------|-------------|------------------|
-| 1.0.0 | 2024-01-XX | 15 | 8 | 0 |
-| Unreleased | - | 12 | 5 | 0 |
-
----
-
-*Dernière mise à jour : 2024-01-XX* 
+*Dernière mise à jour : $(date +%Y-%m-%d)*
