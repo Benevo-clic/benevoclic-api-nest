@@ -7,6 +7,7 @@ import { UpdateAssociationDto } from '../dto/update-association.dto';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
 import { BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
+import { DateTime } from 'luxon';
 
 jest.mock('../../../common/firebase/firebaseAdmin.service', () => {
   const mockFirebaseAdmin = {
@@ -357,9 +358,15 @@ describe('AssociationService', () => {
     });
 
     it('should allow a volunteer to be added to two different associations (service)', async () => {
+      const nowParis = DateTime.now().setZone('Europe/Paris');
+
       const associationId1 = 'assoc1';
       const associationId2 = 'assoc2';
-      const volunteer = { volunteerId: 'multiAssocVolunteer', volunteerName: 'Jane Doe' };
+      const volunteer = {
+        volunteerId: 'multiAssocVolunteer',
+        volunteerName: 'Jane Doe',
+        dateAdded: nowParis.toISODate(),
+      };
 
       const assoc1 = {
         ...mockAssociation,
@@ -393,6 +400,7 @@ describe('AssociationService', () => {
       expect(assoc1.volunteers).toContainEqual(
         expect.objectContaining({ volunteerId: volunteer.volunteerId }),
       );
+      console.log(assoc1.volunteers);
       expect(assoc2.volunteers).toContainEqual(
         expect.objectContaining({ volunteerId: volunteer.volunteerId }),
       );
