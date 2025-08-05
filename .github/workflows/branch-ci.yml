@@ -8,6 +8,7 @@ on:
       - 'feat/**'
       - 'release/**'
       - 'develop'
+      - 'main'
     paths-ignore:
       - '**.md'
       - 'docs/**'
@@ -18,6 +19,7 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -28,6 +30,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Log trigger source
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "🚀 Branch CI déclenché manuellement"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "🚀 Branch CI déclenché par Pull Request #${{ github.event.number }}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            echo "🚀 Branch CI déclenché par push sur ${{ github.ref_name }}"
+          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
