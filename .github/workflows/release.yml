@@ -18,10 +18,15 @@ on:
         description: 'Version personnalisée (optionnel)'
         required: false
         type: string
+  workflow_run:
+    workflows: ["Branch CI", "Deploy to DockerHub"]
+    types: [completed]
+    branches: [main]
 
 jobs:
   analyze-commits:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     outputs:
       should_release: ${{ steps.check-commits.outputs.should_release }}
       release_type: ${{ steps.check-commits.outputs.release_type }}
@@ -30,6 +35,16 @@ jobs:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
+
+    - name: Log trigger source
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "🚀 Release déclenchée manuellement"
+        elif [ "${{ github.event_name }}" = "workflow_run" ]; then
+          echo "🚀 Release déclenchée après succès de ${{ github.event.workflow_run.name }}"
+        else
+          echo "🚀 Release déclenchée par push sur main"
+        fi
 
     - name: Check for conventional commits
       id: check-commits

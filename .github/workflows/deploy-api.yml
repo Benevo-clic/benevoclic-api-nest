@@ -2,17 +2,15 @@ name: Deploy API to OVH VPS
 
 on:
   workflow_dispatch:
-  push:
+  workflow_run:
+    workflows: ["Deploy to DockerHub"]
+    types: [completed]
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'package.json'
-      - 'Dockerfile'
-      - '.github/workflows/deploy-api.yml'
 
 jobs:
   deploy-api:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Deploy API to Production
         uses: appleboy/ssh-action@v1.0.3
@@ -36,6 +34,7 @@ jobs:
           script: |
             set -e
             echo "🚀 Déploiement API Benevoclic"
+            echo "📦 Déclenché après le succès du déploiement DockerHub"
             
             cd ~/benevoclic
             
@@ -79,7 +78,7 @@ jobs:
             echo "📥 Téléchargement de l'image API..."
             docker-compose -f docker-compose.api.yml pull
             
-            echo "�� Démarrage de l'API..."
+            echo "🚀 Démarrage de l'API..."
             docker-compose -f docker-compose.api.yml up -d
             
             echo "⏳ Attente du démarrage..."
