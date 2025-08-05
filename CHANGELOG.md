@@ -6,6 +6,18 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
+## [0.3.0] - 2025-08-05
+
+### 🚀 Ajouté
+- add date tracking for volunteers and participants in announcements (#87)
+
+### 📚 Documentation
+- update README for production readiness (#85)
+- régénérer le CHANGELOG avec liens vers les commits GitHub
+- régénérer le CHANGELOG basé sur l'historique de commits
+
+---
+
 
 ### 🚀 Ajouté
 - Fonctionnalités en cours de développement
