@@ -1,12 +1,11 @@
-// src/api/support/dto/create-report.dto.ts
-import { IsNotEmpty, IsOptional, IsString, IsEnum, IsEmail } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  ReportType,
   AnnouncementReportCategory,
+  OtherReportCategory,
+  ReportType,
   TechnicalReportCategory,
   UserFeedbackReportCategory,
-  OtherReportCategory,
 } from '../interfaces/support.interface';
 
 export class CreateReportDto {
@@ -49,7 +48,7 @@ export class CreateReportDto {
 
   @ApiPropertyOptional({ description: "Email de l'utilisateur" })
   @IsOptional()
-  @IsEmail()
+  @IsString()
   userEmail?: string;
 
   @ApiPropertyOptional({ description: 'Informations du navigateur' })
