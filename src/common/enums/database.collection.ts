@@ -5,4 +5,5 @@ export enum DatabaseCollection {
   USERS = 'users',
   FAVORITES = 'favorites',
   ANNOUNCEMENT = 'announcements',
+  SUPPORT = 'support',
 }
