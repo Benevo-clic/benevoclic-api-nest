@@ -5,6 +5,7 @@ import { AssociationModule } from './association/association.module';
 import { VolunteerModule } from './volunteer/volunteer.module';
 import { FavoritesAnnouncementModule } from './favorites-announcement/favorites-announcement.module';
 import { PrometheusModule } from './prometheus/prometheus.module';
+import { SupportModule } from './support/support.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { PrometheusModule } from './prometheus/prometheus.module';
     VolunteerModule,
     FavoritesAnnouncementModule,
     PrometheusModule,
+    SupportModule,
   ],
 })
 export class ApiModule {}
