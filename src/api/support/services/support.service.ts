@@ -27,11 +27,6 @@ export class SupportService {
 
   async createReport(createReportDto: CreateReportDto, userId?: string): Promise<Report> {
     try {
-      this.logger.log(
-        `Création d'un signalement: ${createReportDto.type} - ${createReportDto.category}`,
-      );
-
-      // Validation spécifique selon le type
       if (createReportDto.type === ReportType.ANNOUNCEMENT && !createReportDto.announcementId) {
         throw new BadRequestException("L'ID de l'annonce est requis pour un signalement d'annonce");
       }
@@ -59,10 +54,7 @@ export class SupportService {
       if (userId) {
         (reportData as any).userId = userId;
       }
-      const report = await this.supportRepository.create(reportData);
-
-      this.logger.log(`Signalement créé avec succès: ${report.id}`);
-      return report;
+      return await this.supportRepository.create(reportData);
     } catch (error) {
       // Si c'est déjà une exception métier, la relancer
       if (error instanceof BadRequestException || error instanceof NotFoundException) {
@@ -77,7 +69,6 @@ export class SupportService {
     try {
       return await this.supportRepository.findAll();
     } catch (error) {
-      // Si c'est déjà une exception métier, la relancer
       if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
       }
@@ -106,7 +97,6 @@ export class SupportService {
     try {
       return await this.supportRepository.findByUserId(userId);
     } catch (error) {
-      // Si c'est déjà une exception métier, la relancer
       if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
       }
@@ -124,7 +114,6 @@ export class SupportService {
     try {
       return await this.supportRepository.findByAnnouncementId(announcementId);
     } catch (error) {
-      // Si c'est déjà une exception métier, la relancer
       if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
       }

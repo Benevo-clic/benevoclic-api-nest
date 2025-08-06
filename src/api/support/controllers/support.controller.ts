@@ -93,6 +93,7 @@ export class SupportController {
 
   @Get('reports/my')
   @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Récupérer mes signalements' })
   @ApiResponse({
@@ -115,6 +116,7 @@ export class SupportController {
 
   @Get('reports/:id')
   @UseGuards(AuthGuard)
+  @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Récupérer un signalement par ID' })
   @ApiParam({ name: 'id', description: 'ID du signalement' })
