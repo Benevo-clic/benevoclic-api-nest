@@ -4,12 +4,18 @@ import {
   ReportPriority,
   AnnouncementReportCategory,
   TechnicalReportCategory,
+  UserFeedbackReportCategory,
+  OtherReportCategory,
 } from '../interfaces/support.interface';
 
 export class Report {
   id?: string;
   type: ReportType;
-  category: AnnouncementReportCategory | TechnicalReportCategory;
+  category:
+    | AnnouncementReportCategory
+    | TechnicalReportCategory
+    | UserFeedbackReportCategory
+    | OtherReportCategory;
   description: string;
   userId?: string;
   userEmail?: string;

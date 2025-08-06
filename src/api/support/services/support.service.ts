@@ -17,13 +17,19 @@ import {
   ReportStatus,
   ReportType,
   TechnicalReportCategory,
+  UserFeedbackReportCategory,
+  OtherReportCategory,
 } from '../interfaces/support.interface';
+import { DiscordWebhookService } from '../../../common/services/discord/discord-webhook.service';
 
 @Injectable()
 export class SupportService {
   private readonly logger = new Logger(SupportService.name);
 
-  constructor(private readonly supportRepository: SupportRepository) {}
+  constructor(
+    private readonly supportRepository: SupportRepository,
+    private readonly discordWebhookService: DiscordWebhookService,
+  ) {}
 
   async createReport(createReportDto: CreateReportDto, userId?: string): Promise<Report> {
     try {
@@ -31,7 +37,6 @@ export class SupportService {
         throw new BadRequestException("L'ID de l'annonce est requis pour un signalement d'annonce");
       }
 
-      // Validation de la cohérence entre type et catégorie
       if (
         createReportDto.type === ReportType.ANNOUNCEMENT &&
         !Object.values(AnnouncementReportCategory).includes(
@@ -50,11 +55,34 @@ export class SupportService {
         throw new BadRequestException('Catégorie invalide pour un signalement technique');
       }
 
+      if (
+        createReportDto.type === ReportType.USER_FEEDBACK &&
+        !Object.values(UserFeedbackReportCategory).includes(
+          createReportDto.category as UserFeedbackReportCategory,
+        )
+      ) {
+        throw new BadRequestException('Catégorie invalide pour un feedback utilisateur');
+      }
+
+      if (
+        createReportDto.type === ReportType.OTHER &&
+        !Object.values(OtherReportCategory).includes(
+          createReportDto.category as OtherReportCategory,
+        )
+      ) {
+        throw new BadRequestException('Catégorie invalide pour un signalement autre');
+      }
+
       const reportData = { ...createReportDto };
       if (userId) {
         (reportData as any).userId = userId;
       }
-      return await this.supportRepository.create(reportData);
+      const report = await this.supportRepository.create(reportData);
+
+      // Envoyer une notification Discord pour le nouveau ticket
+      await this.discordWebhookService.sendSupportTicketNotification(report);
+
+      return report;
     } catch (error) {
       // Si c'est déjà une exception métier, la relancer
       if (error instanceof BadRequestException || error instanceof NotFoundException) {
@@ -147,10 +175,23 @@ export class SupportService {
 
   async updateStatus(id: string, status: ReportStatus): Promise<Report> {
     try {
+      // Récupérer l'ancien statut avant la mise à jour
+      const oldReport = await this.supportRepository.findById(id);
+      if (!oldReport) {
+        throw new NotFoundException(`Signalement avec l'ID ${id} non trouvé`);
+      }
+
       const report = await this.supportRepository.update(id, { status });
       if (!report) {
         throw new NotFoundException(`Signalement avec l'ID ${id} non trouvé`);
       }
+
+      // Envoyer une notification Discord pour la mise à jour de statut
+      await this.discordWebhookService.sendStatusUpdateNotification(
+        report,
+        oldReport.status,
+        status,
+      );
 
       this.logger.log(`Statut du signalement ${id} mis à jour: ${status}`);
       return report;

@@ -5,6 +5,8 @@ import {
   ReportType,
   AnnouncementReportCategory,
   TechnicalReportCategory,
+  UserFeedbackReportCategory,
+  OtherReportCategory,
 } from '../interfaces/support.interface';
 
 export class CreateReportDto {
@@ -15,11 +17,25 @@ export class CreateReportDto {
 
   @ApiProperty({
     description: 'Catégorie du signalement',
-    enum: [...Object.values(AnnouncementReportCategory), ...Object.values(TechnicalReportCategory)],
+    enum: [
+      ...Object.values(AnnouncementReportCategory),
+      ...Object.values(TechnicalReportCategory),
+      ...Object.values(UserFeedbackReportCategory),
+      ...Object.values(OtherReportCategory),
+    ],
   })
   @IsNotEmpty()
-  @IsEnum([...Object.values(AnnouncementReportCategory), ...Object.values(TechnicalReportCategory)])
-  category: AnnouncementReportCategory | TechnicalReportCategory;
+  @IsEnum([
+    ...Object.values(AnnouncementReportCategory),
+    ...Object.values(TechnicalReportCategory),
+    ...Object.values(UserFeedbackReportCategory),
+    ...Object.values(OtherReportCategory),
+  ])
+  category:
+    | AnnouncementReportCategory
+    | TechnicalReportCategory
+    | UserFeedbackReportCategory
+    | OtherReportCategory;
 
   @ApiProperty({ description: 'Description détaillée du problème' })
   @IsNotEmpty()
