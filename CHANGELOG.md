@@ -6,6 +6,13 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
+## [0.5.1] - 2025-08-06
+
+### 🐛 Corrigé
+- change userEmail validation from IsEmail to IsString (#90)
+
+---
+
 ## [0.5.0] - 2025-08-06
 
 ### 🚀 Ajouté
