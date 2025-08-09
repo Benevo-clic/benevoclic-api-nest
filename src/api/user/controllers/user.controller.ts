@@ -1,17 +1,17 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Request,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
   UsePipes,
   ValidationPipe,
-  UseGuards,
-  Request,
-  UseInterceptors,
-  UploadedFile,
 } from '@nestjs/common';
 import { UserService } from '../../../common/services/user/user.service';
 import { UpdateUserDto } from '../dto/update-user.dto';
@@ -150,7 +150,7 @@ export class UserController {
 
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  @Roles(UserRole.ASSOCIATION, UserRole.VOLUNTEER)
+  @Roles(UserRole.ASSOCIATION, UserRole.VOLUNTEER, UserRole.ADMIN)
   @Post('logout')
   logout(@Request() req) {
     return this.userService.logout(req.user.uid);

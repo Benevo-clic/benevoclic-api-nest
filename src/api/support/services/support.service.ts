@@ -13,12 +13,12 @@ import { FilterReportDto } from '../dto/filter-report.dto';
 import { Report } from '../entities/report.entity';
 import {
   AnnouncementReportCategory,
+  OtherReportCategory,
   ReportPriority,
   ReportStatus,
   ReportType,
   TechnicalReportCategory,
   UserFeedbackReportCategory,
-  OtherReportCategory,
 } from '../interfaces/support.interface';
 import { DiscordWebhookService } from '../../../common/services/discord/discord-webhook.service';
 
@@ -186,9 +186,11 @@ export class SupportService {
         throw new NotFoundException(`Signalement avec l'ID ${id} non trouvé`);
       }
 
-      // Envoyer une notification Discord pour la mise à jour de statut
       await this.discordWebhookService.sendStatusUpdateNotification(
-        report,
+        {
+          ...report,
+          id,
+        },
         oldReport.status,
         status,
       );

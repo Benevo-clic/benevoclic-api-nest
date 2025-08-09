@@ -1,9 +1,9 @@
 import {
-  Injectable,
-  Logger,
   BadRequestException,
-  NotFoundException,
+  Injectable,
   InternalServerErrorException,
+  Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { UpdateUserDto } from '../../../api/user/dto/update-user.dto';
 import { RegisterUserDto } from '../../../api/user/dto/register-user.dto';
@@ -194,6 +194,8 @@ export class UserService {
       if (!userRecord) {
         throw new NotFoundException('User not found');
       }
+
+      // Vérifier si l'utilisateur existe déjà dans la base de données
       const existingUser = await this.userRepository.findByEmail(userRecord.email);
       if (existingUser) {
         this.logger.warn(`User already exists: ${userRecord.email}`);
@@ -201,6 +203,16 @@ export class UserService {
           uid: userRecord.uid,
         };
       }
+
+      // Vérifier si l'utilisateur a déjà un rôle défini dans Firebase
+      const customClaims = userRecord.customClaims;
+      if (customClaims && customClaims.role) {
+        this.logger.warn(`User already has role defined: ${userRecord.email}`);
+        return {
+          uid: userRecord.uid,
+        };
+      }
+
       await this.setUserRole(userRecord.uid, registerUser.role);
       await this.userRepository.create({
         _id: userRecord.uid,
