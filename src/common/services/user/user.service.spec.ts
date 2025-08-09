@@ -10,7 +10,6 @@ import { AwsS3Service } from '../../aws/aws-s3.service';
 
 jest.mock('axios');
 
-// Mock FirebaseAdminService
 jest.mock('../../firebase/firebaseAdmin.service', () => ({
   FirebaseAdminService: {
     getInstance: jest.fn().mockReturnValue({
@@ -228,7 +227,6 @@ describe('UserService', () => {
 
   describe('remove', () => {
     it('should remove a user', async () => {
-      // Mock un utilisateur existant pour éviter l'erreur NotFoundException
       jest.spyOn(repository, 'findByUid').mockResolvedValue({
         userId: 'mockUid',
         email: 'test@example.com',

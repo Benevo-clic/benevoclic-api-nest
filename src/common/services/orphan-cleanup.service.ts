@@ -28,10 +28,8 @@ export class OrphanCleanupService {
 
       for (const favorite of allFavorites) {
         try {
-          // Vérifier si l'annonce existe encore
           await this.announcementService.findById(favorite.announcementId);
         } catch (error) {
-          // L'annonce n'existe plus, supprimer le favori
           await this.favoritesAnnouncementService.removeByVolunteerIdAndAnnouncementId(
             favorite.volunteerId,
             favorite.announcementId,
@@ -90,30 +88,19 @@ export class OrphanCleanupService {
     return result;
   }
 
-  /**
-   * Nettoie toutes les traces d'un bénévole (favoris et participations aux annonces)
-   */
   async cleanupVolunteer(volunteerId: string) {
-    // Supprimer tous les favoris du bénévole
     await this.favoritesAnnouncementService.removeByVolunteerId(volunteerId);
-    // Supprimer le bénévole de toutes les annonces (volunteers et volunteersWaiting)
     await this.announcementService.removeVolunteerEverywhere(volunteerId);
   }
 
-  /**
-   * Supprime toutes les références à des bénévoles supprimés dans les favoris et les annonces
-   */
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async cleanupOrphanVolunteers() {
-    // 1. Récupérer tous les volunteers existants
     const allVolunteers = await this.volunteerRepository.findAll();
     const existingVolunteerIds = new Set(allVolunteers.map(v => v.volunteerId));
 
-    // 2. Récupérer tous les volunteerId référencés dans les favoris
     const allFavorites = await this.favoritesAnnouncementService.findAll();
     const favoriteVolunteerIds = new Set(allFavorites.map(fav => fav.volunteerId));
 
-    // 3. Récupérer tous les volunteerId référencés dans les annonces (volunteers et volunteersWaiting)
     const allAnnouncements = await this.announcementService.findAll();
     const announcementVolunteerIds = new Set();
     for (const ann of allAnnouncements) {
@@ -125,14 +112,12 @@ export class OrphanCleanupService {
       }
     }
 
-    // 4. Déterminer les volunteers orphelins
     const orphanVolunteerIds = new Set(
       [...favoriteVolunteerIds, ...announcementVolunteerIds].filter(
         id => !existingVolunteerIds.has(id as string),
       ),
     );
 
-    // 5. Supprimer toutes les références à ces volunteers orphelins
     let favoritesDeleted = 0;
     let announcementsUpdated = 0;
     for (const orphanId of orphanVolunteerIds) {

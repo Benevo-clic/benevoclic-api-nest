@@ -182,25 +182,22 @@ export class DiscordWebhookService {
       headers: {
         'Content-Type': 'application/json',
       },
-      timeout: 10000, // 10 secondes de timeout
+      timeout: 10000,
     });
   }
 
-  /**
-   * Retourne la couleur Discord selon le type de signalement
-   */
   private getColorForReportType(type: string): number {
     switch (type) {
       case 'ANNOUNCEMENT':
-        return 0xff6b6b; // Rouge pour les signalements d'annonces
+        return 0xff6b6b;
       case 'TECHNICAL':
-        return 0x4ecdc4; // Cyan pour les problèmes techniques
+        return 0x4ecdc4;
       case 'USER_FEEDBACK':
-        return 0x9b59b6; // Violet pour les feedbacks utilisateur
+        return 0x9b59b6;
       case 'OTHER':
-        return 0xf39c12; // Orange pour les autres types
+        return 0xf39c12;
       default:
-        return 0x95a5a6; // Gris par défaut
+        return 0x95a5a6;
     }
   }
 

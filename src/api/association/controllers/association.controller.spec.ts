@@ -7,10 +7,9 @@ import { MongoClient, ObjectId } from 'mongodb';
 import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import * as mockData from '../../../../test/testFiles/association.data.json';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
-import { BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
 
-// Mock FirebaseAdminService
 jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
   FirebaseAdminService: {
     getInstance: jest.fn().mockReturnValue({
@@ -40,7 +39,7 @@ describe('AssociationController (Integration)', () => {
           provide: AnnouncementService,
           useValue: {
             deleteByAssociationId: jest.fn().mockResolvedValue(undefined),
-            updateAnnouncementAssociationName: jest.fn().mockResolvedValue(undefined), // Ajouter cette ligne
+            updateAnnouncementAssociationName: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],
@@ -49,7 +48,6 @@ describe('AssociationController (Integration)', () => {
     controller = module.get<AssociationController>(AssociationController);
     mongoClient = module.get<MongoClient>(MONGODB_CONNECTION);
 
-    // Convertir les string IDs en ObjectId
     const associations = mockData.associations.map(assoc => ({
       ...assoc,
       _id: new ObjectId(),
@@ -61,7 +59,6 @@ describe('AssociationController (Integration)', () => {
   });
 
   afterAll(async () => {
-    // Nettoyer la base de données après les tests
     const db = mongoClient.db();
     await db.collection(DatabaseCollection.ASSOCIATION).deleteMany({});
     await module.close();
@@ -122,7 +119,6 @@ describe('AssociationController (Integration)', () => {
       expect(created).toBeDefined();
       expect(created).toMatchObject(expectedResult);
 
-      // Vérifier que l'association est bien dans la base
       const found = await controller.findOne(created.associationId);
       expect(found).toBeDefined();
       expect(found).toMatchObject(expectedResult);
@@ -148,7 +144,6 @@ describe('AssociationController (Integration)', () => {
     it('should update an existing association', async () => {
       const updateDto = {
         bio: 'Nouvelle description',
-        // Ne pas ajouter associationName pour éviter de modifier les données de test
       };
 
       const updated = await controller.update(mockData.associations[0].associationId, updateDto);
@@ -165,10 +160,8 @@ describe('AssociationController (Integration)', () => {
         volunteerName: 'John Doe',
       };
 
-      // D'abord, ajouter le bénévole à la liste d'attente
       await controller.addAssociationVolunteersWaiting(associationId, volunteer);
 
-      // Vérifier qu'il est bien dans la liste d'attente
       let association = await controller.findOne(associationId);
       expect(association.volunteersWaiting).toContainEqual(
         expect.objectContaining({
@@ -177,18 +170,15 @@ describe('AssociationController (Integration)', () => {
         }),
       );
 
-      // Vérifier qu'il n'est pas encore dans la liste des bénévoles actifs
       expect(association.volunteers).not.toContainEqual(
         expect.objectContaining({ volunteerId: volunteer.volunteerId }),
       );
 
-      // Maintenant, l'ajouter comme bénévole actif (ce qui le transfère de la liste d'attente)
       const updated = await controller.addAssociationVolunteers(associationId, volunteer);
 
       expect(updated).toBeDefined();
       expect(updated).toMatchObject(volunteer);
 
-      // Vérifier qu'il a bien été transféré : supprimé de la liste d'attente et ajouté aux bénévoles actifs
       association = await controller.findOne(associationId);
       expect(association.volunteersWaiting).not.toContainEqual(
         expect.objectContaining({ volunteerId: volunteer.volunteerId }),
@@ -235,7 +225,6 @@ describe('AssociationController (Integration)', () => {
 
         await controller.removeAssociationVolunteersWaiting(associationId, volunteerId);
 
-        // Vérifier que le bénévole a bien été supprimé
         const association = await controller.findOne(associationId);
         expect(association.volunteersWaiting).not.toContainEqual(
           expect.objectContaining({ id: volunteerId }),
@@ -251,7 +240,6 @@ describe('AssociationController (Integration)', () => {
         const updated = await controller.removeAssociationVolunteers(associationId, volunteerId);
         expect(updated).toBe(volunteerId);
 
-        // Vérifier que le bénévole a bien été supprimé
         const association = await controller.findOne(associationId);
         expect(association.volunteers).not.toContainEqual(
           expect.objectContaining({ id: volunteerId }),
@@ -295,16 +283,13 @@ describe('AssociationController (Integration)', () => {
     });
 
     it('should allow a volunteer to be added to two different associations', async () => {
-      // On prend deux associations différentes
       const associationId1 = mockData.associations[1].associationId;
       const associationId2 = mockData.associations[2].associationId;
       const volunteer = { volunteerId: 'multiAssocVolunteer', volunteerName: 'Jane Doe' };
 
-      // Ajouter le bénévole à la waiting list des deux associations
       await controller.addAssociationVolunteersWaiting(associationId1, volunteer);
       await controller.addAssociationVolunteersWaiting(associationId2, volunteer);
 
-      // Vérifier qu'il est bien dans la waiting list des deux
       let assoc1 = await controller.findOne(associationId1);
       let assoc2 = await controller.findOne(associationId2);
       expect(assoc1.volunteersWaiting).toContainEqual(
@@ -314,11 +299,9 @@ describe('AssociationController (Integration)', () => {
         expect.objectContaining({ volunteerId: volunteer.volunteerId }),
       );
 
-      // Promouvoir le bénévole dans les deux associations
       await controller.addAssociationVolunteers(associationId1, volunteer);
       await controller.addAssociationVolunteers(associationId2, volunteer);
 
-      // Vérifier qu'il est bien bénévole actif dans les deux, et plus dans la waiting list
       assoc1 = await controller.findOne(associationId1);
       assoc2 = await controller.findOne(associationId2);
       expect(assoc1.volunteers).toContainEqual(
@@ -347,7 +330,6 @@ describe('AssociationController (Integration)', () => {
   describe('getAssociationsVolunteerList', () => {
     it('should add the volunteer to the active list for the association', async () => {
       const associationId = mockData.associations[1].associationId;
-      // Utilise un id unique pour ce test
       const volunteer = { volunteerId: 'volTest_' + Date.now(), volunteerName: 'Test User' };
       await controller.addAssociationVolunteersWaiting(associationId, volunteer);
       await controller.addAssociationVolunteers(associationId, volunteer);

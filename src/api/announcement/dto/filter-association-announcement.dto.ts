@@ -1,14 +1,13 @@
-// src/annonces/dto/filter-annonce.dto.ts
 import {
-  IsOptional,
-  IsString,
+  ArrayNotEmpty,
+  IsArray,
   IsDateString,
   IsEnum,
   IsNumber,
-  IsArray,
-  ArrayNotEmpty,
-  ValidateIf,
+  IsOptional,
+  IsString,
   Matches,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 

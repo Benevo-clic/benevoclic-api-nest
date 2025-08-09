@@ -1,4 +1,3 @@
-// src/api/support/controllers/support.controller.ts
 import {
   BadRequestException,
   Body,
@@ -198,7 +197,6 @@ export class SupportController {
     @Body('status') status: ReportStatus,
   ): Promise<Report> {
     try {
-      // Validation du statut
       if (!Object.values(ReportStatus).includes(status)) {
         throw new BadRequestException('Statut invalide');
       }
@@ -228,7 +226,6 @@ export class SupportController {
     @Body('priority') priority: ReportPriority,
   ): Promise<Report> {
     try {
-      // Validation de la priorité
       if (!Object.values(ReportPriority).includes(priority)) {
         throw new BadRequestException('Priorité invalide');
       }

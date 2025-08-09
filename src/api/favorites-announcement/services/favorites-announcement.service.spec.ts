@@ -5,7 +5,6 @@ import { FavoritesAnnouncement } from '../entities/favorites-announcement.entity
 import { AnnouncementService } from '../../announcement/services/announcement.service';
 import { BadRequestException, Logger } from '@nestjs/common';
 
-// Mock logger to avoid polluting test output
 jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
 
 describe('FavoritesAnnouncementService', () => {
@@ -63,16 +62,13 @@ describe('FavoritesAnnouncementService', () => {
     };
 
     it('should create a new favorite announcement when it does not exist', async () => {
-      // Arrange
       mockFavoritesAnnouncementRepository.findByVolunteerIdAndAnnouncementId.mockResolvedValue(
         null,
       );
       mockFavoritesAnnouncementRepository.create.mockResolvedValue(mockFavoritesAnnouncement);
 
-      // Act
       const result = await service.create(mockFavoritesAnnouncement);
 
-      // Assert
       expect(repository.findByVolunteerIdAndAnnouncementId).toHaveBeenCalledWith(
         mockFavoritesAnnouncement.volunteerId,
         mockFavoritesAnnouncement.announcementId,
@@ -82,12 +78,10 @@ describe('FavoritesAnnouncementService', () => {
     });
 
     it('should throw an error when favorite announcement already exists', async () => {
-      // Arrange
       mockFavoritesAnnouncementRepository.findByVolunteerIdAndAnnouncementId.mockResolvedValue(
         mockFavoritesAnnouncement,
       );
 
-      // Act & Assert
       await expect(service.create(mockFavoritesAnnouncement)).rejects.toThrow(BadRequestException);
       expect(repository.findByVolunteerIdAndAnnouncementId).toHaveBeenCalledWith(
         mockFavoritesAnnouncement.volunteerId,
@@ -99,17 +93,14 @@ describe('FavoritesAnnouncementService', () => {
 
   describe('findAll', () => {
     it('should return all favorite announcements', async () => {
-      // Arrange
       const mockFavorites = [
         { volunteerId: 'volunteer-1', announcementId: 'announcement-1' },
         { volunteerId: 'volunteer-2', announcementId: 'announcement-2' },
       ];
       mockFavoritesAnnouncementRepository.findAll.mockResolvedValue(mockFavorites);
 
-      // Act
       const result = await service.findAll();
 
-      // Assert
       expect(repository.findAll).toHaveBeenCalled();
       expect(result).toEqual(mockFavorites);
     });
@@ -117,7 +108,6 @@ describe('FavoritesAnnouncementService', () => {
 
   describe('removeByVolunteerIdAndAnnouncementId', () => {
     it('should remove favorite announcement by volunteer ID and announcement ID', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const announcementId = 'announcement-456';
       const mockResult = { deletedCount: 1 };
@@ -125,13 +115,11 @@ describe('FavoritesAnnouncementService', () => {
         mockResult,
       );
 
-      // Act
       const result = await service.removeByVolunteerIdAndAnnouncementId(
         volunteerId,
         announcementId,
       );
 
-      // Assert
       expect(repository.removeByVolunteerIdAndAnnouncementId).toHaveBeenCalledWith(
         volunteerId,
         announcementId,
@@ -142,15 +130,12 @@ describe('FavoritesAnnouncementService', () => {
 
   describe('removeByVolunteerId', () => {
     it('should remove all favorite announcements by volunteer ID', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const mockResult = { deletedCount: 3 };
       mockFavoritesAnnouncementRepository.removeByVolunteerId.mockResolvedValue(mockResult);
 
-      // Act
       const result = await service.removeByVolunteerId(volunteerId);
 
-      // Assert
       expect(repository.removeByVolunteerId).toHaveBeenCalledWith(volunteerId);
       expect(result).toEqual(mockResult);
     });
@@ -158,15 +143,12 @@ describe('FavoritesAnnouncementService', () => {
 
   describe('removeByAnnouncementId', () => {
     it('should remove all favorite announcements by announcement ID', async () => {
-      // Arrange
       const announcementId = 'announcement-456';
       const mockResult = { deletedCount: 2 };
       mockFavoritesAnnouncementRepository.removeByAnnouncementId.mockResolvedValue(mockResult);
 
-      // Act
       const result = await service.removeByAnnouncementId(announcementId);
 
-      // Assert
       expect(repository.removeByAnnouncementId).toHaveBeenCalledWith(announcementId);
       expect(result).toEqual(mockResult);
     });
@@ -174,7 +156,6 @@ describe('FavoritesAnnouncementService', () => {
 
   describe('findAllByVolunteerId', () => {
     it('should return all favorite announcements for a specific volunteer', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const mockFavorites = [
         { volunteerId: 'volunteer-123', announcementId: 'announcement-1' },
@@ -182,10 +163,8 @@ describe('FavoritesAnnouncementService', () => {
       ];
       mockFavoritesAnnouncementRepository.findAllByVolunteerId.mockResolvedValue(mockFavorites);
 
-      // Act
       const result = await service.findAllByVolunteerId(volunteerId);
 
-      // Assert
       expect(repository.findAllByVolunteerId).toHaveBeenCalledWith(volunteerId);
       expect(result).toEqual(mockFavorites);
     });
@@ -193,7 +172,6 @@ describe('FavoritesAnnouncementService', () => {
 
   describe('findAllByAnnouncementId', () => {
     it('should return all favorite announcements for a specific announcement', async () => {
-      // Arrange
       const announcementId = 'announcement-456';
       const mockFavorites = [
         { volunteerId: 'volunteer-1', announcementId: 'announcement-456' },
@@ -201,10 +179,8 @@ describe('FavoritesAnnouncementService', () => {
       ];
       mockFavoritesAnnouncementRepository.findAllByAnnouncementId.mockResolvedValue(mockFavorites);
 
-      // Act
       const result = await service.findAllByAnnouncementId(announcementId);
 
-      // Assert
       expect(repository.findAllByAnnouncementId).toHaveBeenCalledWith(announcementId);
       expect(result).toEqual(mockFavorites);
     });
@@ -212,7 +188,6 @@ describe('FavoritesAnnouncementService', () => {
 
   describe('findByVolunteerIdAndAnnouncementId', () => {
     it('should return a specific favorite announcement', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const announcementId = 'announcement-456';
       const mockFavorite = { volunteerId: 'volunteer-123', announcementId: 'announcement-456' };
@@ -220,10 +195,8 @@ describe('FavoritesAnnouncementService', () => {
         mockFavorite,
       );
 
-      // Act
       const result = await service.findByVolunteerIdAndAnnouncementId(volunteerId, announcementId);
 
-      // Assert
       expect(repository.findByVolunteerIdAndAnnouncementId).toHaveBeenCalledWith(
         volunteerId,
         announcementId,
@@ -232,17 +205,14 @@ describe('FavoritesAnnouncementService', () => {
     });
 
     it('should return null when favorite announcement does not exist', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const announcementId = 'announcement-456';
       mockFavoritesAnnouncementRepository.findByVolunteerIdAndAnnouncementId.mockResolvedValue(
         null,
       );
 
-      // Act
       const result = await service.findByVolunteerIdAndAnnouncementId(volunteerId, announcementId);
 
-      // Assert
       expect(repository.findByVolunteerIdAndAnnouncementId).toHaveBeenCalledWith(
         volunteerId,
         announcementId,
@@ -253,7 +223,6 @@ describe('FavoritesAnnouncementService', () => {
 
   describe('findByVolunteerIdAllFavoritesAnnouncement', () => {
     it('should return all favorite announcements with their associated announcement data for a volunteer', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const mockFavorites = [
         { volunteerId: 'volunteer-123', announcementId: 'announcement-1' },
@@ -277,10 +246,8 @@ describe('FavoritesAnnouncementService', () => {
         .mockResolvedValueOnce(mockAnnouncement1)
         .mockResolvedValueOnce(mockAnnouncement2);
 
-      // Act
       const result = await service.findByVolunteerIdAllFavoritesAnnouncement(volunteerId);
 
-      // Assert
       expect(repository.findAllByVolunteerId).toHaveBeenCalledWith(volunteerId);
       expect(announcementService.findById).toHaveBeenCalledWith('announcement-1');
       expect(announcementService.findById).toHaveBeenCalledWith('announcement-2');
@@ -288,21 +255,17 @@ describe('FavoritesAnnouncementService', () => {
     });
 
     it('should return empty array when volunteer has no favorite announcements', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       mockFavoritesAnnouncementRepository.findAllByVolunteerId.mockResolvedValue([]);
 
-      // Act
       const result = await service.findByVolunteerIdAllFavoritesAnnouncement(volunteerId);
 
-      // Assert
       expect(repository.findAllByVolunteerId).toHaveBeenCalledWith(volunteerId);
       expect(announcementService.findById).not.toHaveBeenCalled();
       expect(result).toEqual([]);
     });
 
     it('should handle case when announcement is not found', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const mockFavorites = [{ volunteerId: 'volunteer-123', announcementId: 'announcement-1' }];
       const mockAnnouncement1 = {
@@ -315,10 +278,8 @@ describe('FavoritesAnnouncementService', () => {
       mockFavoritesAnnouncementRepository.findAllByVolunteerId.mockResolvedValue(mockFavorites);
       mockAnnouncementService.findById.mockResolvedValue(mockAnnouncement1);
 
-      // Act
       const result = await service.findByVolunteerIdAllFavoritesAnnouncement(volunteerId);
 
-      // Assert
       expect(repository.findAllByVolunteerId).toHaveBeenCalledWith(volunteerId);
       expect(announcementService.findById).toHaveBeenCalledWith('announcement-1');
       expect(result).toEqual([mockAnnouncement1]);

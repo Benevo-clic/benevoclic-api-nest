@@ -195,7 +195,6 @@ export class UserService {
         throw new NotFoundException('User not found');
       }
 
-      // Vérifier si l'utilisateur existe déjà dans la base de données
       const existingUser = await this.userRepository.findByEmail(userRecord.email);
       if (existingUser) {
         this.logger.warn(`User already exists: ${userRecord.email}`);
@@ -204,7 +203,6 @@ export class UserService {
         };
       }
 
-      // Vérifier si l'utilisateur a déjà un rôle défini dans Firebase
       const customClaims = userRecord.customClaims;
       if (customClaims && customClaims.role) {
         this.logger.warn(`User already has role defined: ${userRecord.email}`);

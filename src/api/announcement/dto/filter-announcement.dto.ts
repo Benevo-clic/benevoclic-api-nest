@@ -1,34 +1,29 @@
-// src/annonces/dto/filter-annonce.dto.ts
 import {
-  IsOptional,
-  IsString,
+  ArrayNotEmpty,
+  IsArray,
   IsDateString,
   IsEnum,
   IsNumber,
-  IsArray,
-  ArrayNotEmpty,
-  ValidateIf,
+  IsOptional,
+  IsString,
   Matches,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class FilterAnnouncementDto {
-  // Recherche textuelle sur le titre
   @IsOptional()
   @IsString()
   nameEvent?: string;
 
-  // Recherche textuelle sur la description
   @IsOptional()
   @IsString()
   description?: string;
 
-  // Filtre par statut
   @IsOptional()
   @IsEnum(['ACTIVE', 'INACTIVE', 'COMPLETED'])
   status?: string;
 
-  // Intervalle d'heures pour hoursEvent, format HH:mm
   @ValidateIf(o => o.hoursEventFrom !== undefined)
   @Matches(/^\d{2}:\d{2}$/)
   hoursEventFrom?: string;
@@ -37,7 +32,6 @@ export class FilterAnnouncementDto {
   @Matches(/^\d{2}:\d{2}$/)
   hoursEventTo?: string;
 
-  // Intervalle de dateEvent (YYYY-MM-DD)
   @IsOptional()
   @IsDateString()
   dateEventFrom?: string;
@@ -46,7 +40,6 @@ export class FilterAnnouncementDto {
   @IsDateString()
   dateEventTo?: string;
 
-  // Publication relative ou calendrier
   @IsOptional()
   @IsEnum(['1h', '5h', '1d', '1w', '1M'])
   publicationInterval?: '1h' | '5h' | '1d' | '1w' | '1M';
@@ -82,9 +75,8 @@ export class FilterAnnouncementDto {
   @ValidateIf(o => o.latitude !== undefined && o.longitude !== undefined)
   @Type(() => Number)
   @IsNumber()
-  radius?: number; // en mètres
+  radius?: number;
 
-  // Pagination
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
@@ -95,7 +87,6 @@ export class FilterAnnouncementDto {
   @IsNumber()
   limit?: number = 9;
 
-  // Tri
   @IsOptional()
   @IsEnum(['dateEvent_asc', 'dateEvent_desc', 'datePublication_desc'])
   sort?: 'dateEvent_asc' | 'dateEvent_desc' | 'datePublication_desc' | 'ddatePublication_asc' =

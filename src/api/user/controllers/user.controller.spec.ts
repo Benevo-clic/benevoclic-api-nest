@@ -8,15 +8,13 @@ import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
 import { MongoClient, ObjectId } from 'mongodb';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
 import { UserRole } from '../../../common/enums/roles.enum';
-import { InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { Logger } from '@nestjs/common';
+import { InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 import * as mockData from '../../../../test/testFiles/user.data.json';
 import { VolunteerService } from '../../volunteer/services/volunteer.service';
 import { AssociationService } from '../../association/services/association.service';
 import { AwsS3Service } from '../../../common/aws/aws-s3.service';
 
-// Mock Firebase Admin
 jest.mock('firebase-admin', () => ({
   initializeApp: jest.fn(),
   credential: {
@@ -34,14 +32,12 @@ jest.mock('firebase-admin', () => ({
   }),
 }));
 
-// Mock AuthConfig
 jest.mock('../../../config/auth.config', () => ({
   AuthConfig: {
     apiKey: 'mock-api-key',
   },
 }));
 
-// Mock FirebaseAdminService
 jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
   FirebaseAdminService: {
     getInstance: jest.fn().mockReturnValue({
@@ -96,7 +92,6 @@ describe('UserController', () => {
   let userService: UserService;
 
   beforeAll(async () => {
-    // Initialize Firebase Admin
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: 'mock-project',
