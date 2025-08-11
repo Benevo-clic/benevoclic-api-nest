@@ -31,6 +31,7 @@ export class AnnouncementService {
   private readonly logger = new Logger(AnnouncementService.name);
 
   private readonly nowParis = DateTime.now().setZone('Europe/Paris');
+
   constructor(
     private readonly announcementRepository: AnnouncementRepository,
     private readonly userService: UserService,
@@ -107,6 +108,7 @@ export class AnnouncementService {
     );
     return announcements;
   }
+
   async enrichAnnouncements(announcements: any[]) {
     await Promise.all(
       announcements.map(async announcement => {
@@ -162,6 +164,7 @@ export class AnnouncementService {
       if (!announcements || announcements.length === 0) {
         return [];
       }
+      console.log(`Found ${announcements.length} announcements for volunteer: ${volunteerId}`);
       return await this.enrichVolunteerAnnouncements(announcements);
     } catch (error) {
       this.logger.error(

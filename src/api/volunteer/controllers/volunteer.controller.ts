@@ -1,15 +1,15 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
-  Logger,
-  HttpStatus,
+  Get,
   HttpCode,
+  HttpStatus,
+  Logger,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
 } from '@nestjs/common';
 import { VolunteerService } from '../services/volunteer.service';
 import { CreateVolunteerDto } from '../dto/create-volunteer.dto';
@@ -71,10 +71,8 @@ export class VolunteerController {
     }
   }
 
+  @Public()
   @Get(':id')
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
-  @ApiBearerAuth()
   async findOne(@Param('id') id: string) {
     try {
       return await this.volunteerService.findOne(id);

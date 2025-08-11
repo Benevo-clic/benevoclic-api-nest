@@ -1,17 +1,17 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Delete,
   Body,
-  Param,
-  UseGuards,
-  Patch,
-  UseInterceptors,
-  UploadedFile,
+  Controller,
+  Delete,
+  Get,
   Logger,
-  ValidationPipe,
+  Param,
+  Patch,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
   UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { AnnouncementService } from '../services/announcement.service';
 import { Public } from '../../../common/decorators/public.decorator';
@@ -21,10 +21,10 @@ import { UserRole } from '../../../common/enums/roles.enum';
 import {
   ApiBearerAuth,
   ApiBody,
-  ApiTags,
   ApiOperation,
   ApiParam,
   ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
 import { Announcement } from '../entities/announcement.entity';
 import { CreateAnnouncementDto } from '../dto/create-announcement.dto';
@@ -49,6 +49,7 @@ import { FilterAssociationAnnouncementDto } from '../dto/filter-association-anno
 @Controller('announcements')
 export class AnnouncementController {
   private readonly logger = new Logger('AnnouncementController');
+
   constructor(private readonly service: AnnouncementService) {}
 
   @Public()
@@ -163,7 +164,7 @@ export class AnnouncementController {
 
   @Get('association/:associationId')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ASSOCIATION)
+  @Roles(UserRole.ASSOCIATION, UserRole.VOLUNTEER)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Find all announcements by association ID' })
   @ApiParam({
@@ -192,7 +193,7 @@ export class AnnouncementController {
 
   @Get('volunteer/:volunteerId')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.VOLUNTEER, UserRole.ADMIN)
+  @Roles(UserRole.VOLUNTEER, UserRole.ADMIN, UserRole.ASSOCIATION)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Find volunteer in volunteers by volunteer ID' })
   @ApiParam({
