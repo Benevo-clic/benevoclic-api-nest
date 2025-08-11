@@ -1,15 +1,15 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
+  Get,
   HttpCode,
   HttpStatus,
   Logger,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
 } from '@nestjs/common';
 import { AssociationService } from '../services/association.service';
 import { CreateAssociationDto } from '../dto/create-association.dto';
@@ -25,6 +25,7 @@ import { Public } from '../../../common/decorators/public.decorator';
 @Controller('association')
 export class AssociationController {
   private readonly logger = new Logger(AssociationController.name);
+
   constructor(private readonly associationService: AssociationService) {}
 
   @Post('createAssociation')
@@ -94,7 +95,7 @@ export class AssociationController {
 
   @Get('volunteer-list/:volunteerId')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.VOLUNTEER)
+  @Roles(UserRole.ADMIN, UserRole.VOLUNTEER, UserRole.ASSOCIATION)
   @ApiBearerAuth()
   async getAssociationVolunteersList(@Param('volunteerId') volunteerId: string) {
     const associationByVolunteer =
@@ -187,10 +188,8 @@ export class AssociationController {
     return this.associationService.getAssociationByVolunteer(volunteerId);
   }
 
+  @Public()
   @Get('by-id/:associationId')
-  @UseGuards(AuthGuard)
-  @Roles(UserRole.ADMIN, UserRole.ASSOCIATION)
-  @ApiBearerAuth()
   @ApiResponse({ type: Association })
   findOne(@Param('associationId') associationId: string) {
     return this.associationService.findOne(associationId);
