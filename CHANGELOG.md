@@ -6,6 +6,13 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
+## [0.6.0] - 2025-08-11
+
+### 🚀 Ajouté
+- update access control for user and announcement endpoints to allow public access (#92)
+
+---
+
 ## [0.5.1] - 2025-08-06
 
 ### 🐛 Corrigé
