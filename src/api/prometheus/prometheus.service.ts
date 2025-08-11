@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { register, collectDefaultMetrics, Counter, Histogram, Gauge } from 'prom-client';
+import { collectDefaultMetrics, Counter, Gauge, Histogram, register } from 'prom-client';
 
 @Injectable()
 export class PrometheusService implements OnModuleInit {
@@ -14,10 +14,8 @@ export class PrometheusService implements OnModuleInit {
   private databaseOperationDuration: Histogram;
 
   onModuleInit() {
-    // Collecter les métriques par défaut (CPU, mémoire, etc.)
     collectDefaultMetrics();
 
-    // Métriques HTTP personnalisées
     this.httpRequestsTotal = new Counter({
       name: 'http_requests_total',
       help: 'Total number of HTTP requests',
@@ -37,13 +35,11 @@ export class PrometheusService implements OnModuleInit {
       labelNames: ['method', 'path'],
     });
 
-    // Métriques de connexions
     this.activeConnections = new Gauge({
       name: 'active_connections',
       help: 'Number of active connections',
     });
 
-    // Métriques système
     this.memoryUsage = new Gauge({
       name: 'memory_usage_bytes',
       help: 'Memory usage in bytes',
@@ -55,7 +51,6 @@ export class PrometheusService implements OnModuleInit {
       help: 'CPU usage percentage',
     });
 
-    // Métriques métier
     this.loginAttemptsTotal = new Counter({
       name: 'login_attempts_total',
       help: 'Total number of login attempts',
@@ -75,7 +70,6 @@ export class PrometheusService implements OnModuleInit {
       buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5],
     });
 
-    // Mettre à jour les métriques système toutes les 30 secondes
     setInterval(() => {
       this.updateSystemMetrics();
     }, 30000);
@@ -115,7 +109,6 @@ export class PrometheusService implements OnModuleInit {
     return register.metrics();
   }
 
-  // Méthodes utilitaires pour les métriques métier
   recordLoginAttempt(success: boolean, provider: string = 'unknown') {
     this.loginAttemptsTotal.inc({ success: success.toString(), provider });
   }

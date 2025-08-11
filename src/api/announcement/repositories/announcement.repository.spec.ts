@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AnnouncementRepository } from './announcement.repository';
-import { MongoClient, Collection } from 'mongodb';
+import { Collection, MongoClient, ObjectId } from 'mongodb';
 import { Announcement } from '../entities/announcement.entity';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { mockAnnouncements } from './__mocks__/announcement.mock';
@@ -15,9 +15,7 @@ import {
   tagFilterDto,
 } from '../dto/__mocks__/filter-announcement.mock';
 import { FilterAssociationAnnouncementDto } from '../dto/filter-association-announcement.dto';
-import { ObjectId } from 'mongodb';
 
-// Mock DateTime de luxon
 jest.mock('luxon', () => ({
   DateTime: {
     now: jest.fn().mockReturnValue({
@@ -36,7 +34,6 @@ jest.mock('luxon', () => ({
   },
 }));
 
-// Mock ObjectId pour les tests d'erreur
 jest.mock('mongodb', () => ({
   ...jest.requireActual('mongodb'),
   ObjectId: jest.fn().mockImplementation((id: string) => {
@@ -53,7 +50,6 @@ describe('AnnouncementRepository', () => {
   let mockMongoClient: jest.Mocked<MongoClient>;
 
   beforeEach(async () => {
-    // Mock de la collection MongoDB
     mockCollection = {
       find: jest.fn(),
       findOne: jest.fn(),
@@ -65,7 +61,6 @@ describe('AnnouncementRepository', () => {
       aggregate: jest.fn(),
     } as any;
 
-    // Mock du client MongoDB
     mockMongoClient = {
       db: jest.fn().mockReturnValue({
         collection: jest.fn().mockReturnValue(mockCollection),

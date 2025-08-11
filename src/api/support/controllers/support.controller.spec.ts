@@ -1,4 +1,3 @@
-// src/api/support/controllers/support.controller.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { SupportController } from './support.controller';
 import { SupportService } from '../services/support.service';

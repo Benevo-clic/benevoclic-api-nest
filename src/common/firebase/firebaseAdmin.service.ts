@@ -4,9 +4,7 @@ import { UserRole } from '../enums/roles.enum';
 export class FirebaseAdminService {
   static instance: FirebaseAdminService;
 
-  private constructor() {
-    // constructor
-  }
+  private constructor() {}
 
   static getInstance() {
     if (!FirebaseAdminService.instance) {
@@ -50,7 +48,7 @@ export class FirebaseAdminService {
     try {
       return await firebaseAdmin.auth().getUserByEmail(email);
     } catch (error) {
-      return null; // Retourne null si l'utilisateur n'est pas trouvé
+      return null;
     }
   }
 

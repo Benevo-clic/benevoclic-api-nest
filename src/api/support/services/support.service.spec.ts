@@ -167,7 +167,7 @@ describe('SupportService', () => {
     it('should throw BadRequestException for USER_FEEDBACK with invalid category', async () => {
       const createReportDto: CreateReportDto = {
         type: ReportType.USER_FEEDBACK,
-        category: AnnouncementReportCategory.INAPPROPRIATE_CONTENT, // Invalid category
+        category: AnnouncementReportCategory.INAPPROPRIATE_CONTENT,
         description: 'Test description',
       };
 
@@ -177,7 +177,7 @@ describe('SupportService', () => {
     it('should throw BadRequestException for OTHER with invalid category', async () => {
       const createReportDto: CreateReportDto = {
         type: ReportType.OTHER,
-        category: TechnicalReportCategory.CONNECTION_ISSUE, // Invalid category
+        category: TechnicalReportCategory.CONNECTION_ISSUE,
         description: 'Test description',
       };
 

@@ -1,9 +1,9 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
-  ForbiddenException,
 } from '@nestjs/common';
 import * as firebaseAdmin from 'firebase-admin';
 import { Reflector } from '@nestjs/core';
@@ -43,12 +43,10 @@ export class AuthGuard implements CanActivate {
       const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
       request.user = decodedToken;
 
-      // Si aucun rôle n'est requis, on autorise l'accès
       if (!requiredRoles) {
         return true;
       }
 
-      // Vérifie si l'utilisateur a le rôle requis
       const userRole = decodedToken.role as UserRole;
       if (!userRole || !requiredRoles.includes(userRole)) {
         throw new ForbiddenException("Vous n'avez pas les droits nécessaires");

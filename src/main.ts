@@ -18,23 +18,18 @@ async function bootstrap() {
   SwaggerModule.setup('swagger', app, document);
 
   app.enableCors({
-    origin: [
-      'http://localhost:5482',
-      'http://benevoclic.aboubakardiakite.fr',
-      'https://benevoclic.aboubakardiakite.fr',
-    ],
+    origin: ['http://localhost:5482', 'https://www.benevoclic.fr'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  // Initialize Firebase
   initializeFirebase();
 
-  // Configure Prometheus middleware globally
   const prometheusMiddleware = app.get(PrometheusMiddleware);
   app.use(prometheusMiddleware.use.bind(prometheusMiddleware));
 
   await app.listen(3000);
 }
+
 bootstrap();

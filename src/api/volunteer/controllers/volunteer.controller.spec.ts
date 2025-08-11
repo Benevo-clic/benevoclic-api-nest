@@ -1,4 +1,3 @@
-// Mock FirebaseAdminService
 import { VolunteerController } from './volunteer.controller';
 import { MongoClient, ObjectId } from 'mongodb';
 import { Test, TestingModule } from '@nestjs/testing';

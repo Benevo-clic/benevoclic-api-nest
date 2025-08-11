@@ -1,4 +1,3 @@
-// src/api/support/support.module.ts
 import { Module } from '@nestjs/common';
 import { SupportController } from './controllers/support.controller';
 import { SupportService } from './services/support.service';

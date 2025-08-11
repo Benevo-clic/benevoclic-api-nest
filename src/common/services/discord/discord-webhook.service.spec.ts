@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { DiscordWebhookService } from './discord-webhook.service';
 import axios from 'axios';
 
-// Mock axios
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
@@ -49,10 +48,8 @@ describe('DiscordWebhookService', () => {
     };
 
     it('should send notification when webhook URL is configured', async () => {
-      // Set up the mock before creating the service
       mockConfigService.get = jest.fn().mockReturnValue('https://discord.com/api/webhooks/test');
 
-      // Recreate the service with the mocked config
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           DiscordWebhookService,
@@ -87,10 +84,8 @@ describe('DiscordWebhookService', () => {
     });
 
     it('should not send notification when webhook URL is not configured', async () => {
-      // Set up the mock to return null before creating the service
       mockConfigService.get = jest.fn().mockReturnValue(null);
 
-      // Recreate the service with the mocked config
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           DiscordWebhookService,
@@ -109,10 +104,8 @@ describe('DiscordWebhookService', () => {
     });
 
     it('should handle axios errors gracefully', async () => {
-      // Set up the mock before creating the service
       mockConfigService.get = jest.fn().mockReturnValue('https://discord.com/api/webhooks/test');
 
-      // Recreate the service with the mocked config
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           DiscordWebhookService,

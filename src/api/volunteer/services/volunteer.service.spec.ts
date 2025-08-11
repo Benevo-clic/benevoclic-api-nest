@@ -1,10 +1,9 @@
-// Mock FirebaseAdminService
 import { VolunteerService } from './volunteer.service';
 import { VolunteerRepository } from '../repository/volunteer.repository';
 import { Test, TestingModule } from '@nestjs/testing';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
 import { CreateVolunteerDto } from '../dto/create-volunteer.dto';
-import { BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { FavoritesAnnouncementService } from '../../favorites-announcement/services/favorites-announcement.service';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
 import { AssociationService } from '../../association/services/association.service';
@@ -21,7 +20,6 @@ jest.mock('../../../common/firebase/firebaseAdmin.service', () => {
   };
 });
 
-// Mock logger to avoid polluting test output
 jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
 
 describe('VolunteerService', () => {
@@ -101,7 +99,6 @@ describe('VolunteerService', () => {
         bio: 'I am a volunteer',
       };
 
-      // Mock Firebase response
       firebaseAdmin.getUserByEmail.mockResolvedValueOnce({
         uid: 'mockFirebaseUid123',
         email: 'test@example.com',
@@ -128,7 +125,6 @@ describe('VolunteerService', () => {
         bio: 'I am a volunteer',
       };
 
-      // Mock Firebase response
       firebaseAdmin.getUserByEmail.mockResolvedValueOnce({
         uid: 'mockFirebaseUid123',
         email: 'test@example.com',
@@ -200,7 +196,6 @@ describe('VolunteerService', () => {
       mockRepository.findById.mockResolvedValue(mockVolunteer);
       mockRepository.remove.mockResolvedValue({ deletedCount: 0 });
 
-      // Maintenant que le service vérifie le deletedCount, il doit lever une exception
       await expect(volunteerService.remove('123')).rejects.toThrow(NotFoundException);
     });
   });

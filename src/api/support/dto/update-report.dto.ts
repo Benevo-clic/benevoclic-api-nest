@@ -1,8 +1,7 @@
-// src/api/support/dto/update-report.dto.ts
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateReportDto } from './create-report.dto';
-import { ReportStatus, ReportPriority } from '../interfaces/support.interface';
-import { IsOptional, IsEnum, IsString } from 'class-validator';
+import { ReportPriority, ReportStatus } from '../interfaces/support.interface';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateReportDto extends PartialType(CreateReportDto) {

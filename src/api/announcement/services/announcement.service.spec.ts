@@ -8,7 +8,6 @@ import { AwsS3Service } from '../../../common/aws/aws-s3.service';
 import { FilterAssociationAnnouncementDto } from '../dto/filter-association-announcement.dto';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 
-// Mock DateTime de luxon
 jest.mock('luxon', () => ({
   DateTime: {
     now: jest.fn().mockReturnValue({
@@ -114,7 +113,7 @@ describe('AnnouncementService', () => {
       originalname: 'test.jpg',
       fieldname: 'file',
       size: 1024,
-    } as any; // Utiliser 'as any' pour éviter les problèmes de type
+    } as any;
 
     const mockAnnouncement = {
       _id: announcementId,
@@ -123,14 +122,12 @@ describe('AnnouncementService', () => {
     };
 
     it('should update announcement avatar successfully', async () => {
-      // Mock repository methods
       jest
         .spyOn(repository, 'findById')
         .mockResolvedValueOnce(mockAnnouncement as any)
         .mockResolvedValueOnce(mockAnnouncement as any);
       jest.spyOn(repository, 'update').mockResolvedValue(undefined);
 
-      // Mock AWS S3 service
       jest
         .spyOn(awsS3Service, 'uploadFileAnnouncement')
         .mockResolvedValue({ fileKey: 'new-image-key' });

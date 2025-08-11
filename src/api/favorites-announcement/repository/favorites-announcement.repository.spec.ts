@@ -16,7 +16,6 @@ describe('FavoritesAnnouncementRepository', () => {
   };
 
   beforeEach(async () => {
-    // Mock collection methods
     mockCollection = {
       findOne: jest.fn(),
       insertOne: jest.fn(),
@@ -26,7 +25,6 @@ describe('FavoritesAnnouncementRepository', () => {
       toArray: jest.fn(),
     };
 
-    // Mock MongoDB client
     mockMongoClient = {
       db: jest.fn().mockReturnValue({
         collection: jest.fn().mockReturnValue(mockCollection),
@@ -56,19 +54,16 @@ describe('FavoritesAnnouncementRepository', () => {
 
   describe('findByVolunteerIdAndAnnouncementId', () => {
     it('should find a favorite announcement by volunteer ID and announcement ID', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const announcementId = 'announcement-456';
       const expectedResult = { ...mockFavoritesAnnouncement };
       mockCollection.findOne.mockResolvedValue(expectedResult);
 
-      // Act
       const result = await repository.findByVolunteerIdAndAnnouncementId(
         volunteerId,
         announcementId,
       );
 
-      // Assert
       expect(mockMongoClient.db).toHaveBeenCalled();
       expect(mockMongoClient.db().collection).toHaveBeenCalledWith(DatabaseCollection.FAVORITES);
       expect(mockCollection.findOne).toHaveBeenCalledWith(
@@ -82,18 +77,15 @@ describe('FavoritesAnnouncementRepository', () => {
     });
 
     it('should return null when favorite announcement is not found', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const announcementId = 'announcement-456';
       mockCollection.findOne.mockResolvedValue(null);
 
-      // Act
       const result = await repository.findByVolunteerIdAndAnnouncementId(
         volunteerId,
         announcementId,
       );
 
-      // Assert
       expect(mockCollection.findOne).toHaveBeenCalledWith(
         {
           volunteerId: { $eq: volunteerId },
@@ -107,33 +99,27 @@ describe('FavoritesAnnouncementRepository', () => {
 
   describe('create', () => {
     it('should create a new favorite announcement successfully', async () => {
-      // Arrange
       const mockInsertResult = {
         insertedId: 'new-id-123',
         acknowledged: true,
       };
       mockCollection.insertOne.mockResolvedValue(mockInsertResult);
 
-      // Act
       const result = await repository.create(mockFavoritesAnnouncement);
 
-      // Assert
       expect(mockCollection.insertOne).toHaveBeenCalledWith(mockFavoritesAnnouncement);
       expect(result).toEqual(mockFavoritesAnnouncement);
     });
 
     it('should return null when insertion fails', async () => {
-      // Arrange
       const mockInsertResult = {
         insertedId: null,
         acknowledged: false,
       };
       mockCollection.insertOne.mockResolvedValue(mockInsertResult);
 
-      // Act
       const result = await repository.create(mockFavoritesAnnouncement);
 
-      // Assert
       expect(mockCollection.insertOne).toHaveBeenCalledWith(mockFavoritesAnnouncement);
       expect(result).toBeNull();
     });
@@ -141,7 +127,6 @@ describe('FavoritesAnnouncementRepository', () => {
 
   describe('findAll', () => {
     it('should return all favorite announcements', async () => {
-      // Arrange
       const mockFavorites = [
         { volunteerId: 'volunteer-1', announcementId: 'announcement-1' },
         { volunteerId: 'volunteer-2', announcementId: 'announcement-2' },
@@ -151,26 +136,21 @@ describe('FavoritesAnnouncementRepository', () => {
       };
       mockCollection.find.mockReturnValue(mockCursor);
 
-      // Act
       const result = await repository.findAll();
 
-      // Assert
       expect(mockCollection.find).toHaveBeenCalledWith();
       expect(mockCursor.toArray).toHaveBeenCalled();
       expect(result).toEqual(mockFavorites);
     });
 
     it('should return empty array when no favorites exist', async () => {
-      // Arrange
       const mockCursor = {
         toArray: jest.fn().mockResolvedValue([]),
       };
       mockCollection.find.mockReturnValue(mockCursor);
 
-      // Act
       const result = await repository.findAll();
 
-      // Assert
       expect(mockCollection.find).toHaveBeenCalledWith();
       expect(mockCursor.toArray).toHaveBeenCalled();
       expect(result).toEqual([]);
@@ -179,7 +159,6 @@ describe('FavoritesAnnouncementRepository', () => {
 
   describe('removeByVolunteerIdAndAnnouncementId', () => {
     it('should remove a favorite announcement by volunteer ID and announcement ID', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const announcementId = 'announcement-456';
       const mockDeleteResult = {
@@ -188,19 +167,16 @@ describe('FavoritesAnnouncementRepository', () => {
       };
       mockCollection.deleteOne.mockResolvedValue(mockDeleteResult);
 
-      // Act
       const result = await repository.removeByVolunteerIdAndAnnouncementId(
         volunteerId,
         announcementId,
       );
 
-      // Assert
       expect(mockCollection.deleteOne).toHaveBeenCalledWith({ volunteerId, announcementId });
       expect(result).toEqual(mockDeleteResult);
     });
 
     it('should return result with deletedCount 0 when no document is found', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const announcementId = 'announcement-456';
       const mockDeleteResult = {
@@ -209,13 +185,11 @@ describe('FavoritesAnnouncementRepository', () => {
       };
       mockCollection.deleteOne.mockResolvedValue(mockDeleteResult);
 
-      // Act
       const result = await repository.removeByVolunteerIdAndAnnouncementId(
         volunteerId,
         announcementId,
       );
 
-      // Assert
       expect(mockCollection.deleteOne).toHaveBeenCalledWith({ volunteerId, announcementId });
       expect(result).toEqual(mockDeleteResult);
     });
@@ -223,7 +197,6 @@ describe('FavoritesAnnouncementRepository', () => {
 
   describe('removeByVolunteerId', () => {
     it('should remove all favorite announcements for a specific volunteer', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const mockDeleteResult = {
         deletedCount: 3,
@@ -231,16 +204,13 @@ describe('FavoritesAnnouncementRepository', () => {
       };
       mockCollection.deleteMany.mockResolvedValue(mockDeleteResult);
 
-      // Act
       const result = await repository.removeByVolunteerId(volunteerId);
 
-      // Assert
       expect(mockCollection.deleteMany).toHaveBeenCalledWith({ volunteerId });
       expect(result).toEqual(mockDeleteResult);
     });
 
     it('should return result with deletedCount 0 when no documents are found', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const mockDeleteResult = {
         deletedCount: 0,
@@ -248,10 +218,8 @@ describe('FavoritesAnnouncementRepository', () => {
       };
       mockCollection.deleteMany.mockResolvedValue(mockDeleteResult);
 
-      // Act
       const result = await repository.removeByVolunteerId(volunteerId);
 
-      // Assert
       expect(mockCollection.deleteMany).toHaveBeenCalledWith({ volunteerId });
       expect(result).toEqual(mockDeleteResult);
     });
@@ -259,7 +227,6 @@ describe('FavoritesAnnouncementRepository', () => {
 
   describe('removeByAnnouncementId', () => {
     it('should remove all favorite announcements for a specific announcement', async () => {
-      // Arrange
       const announcementId = 'announcement-456';
       const mockDeleteResult = {
         deletedCount: 2,
@@ -267,16 +234,13 @@ describe('FavoritesAnnouncementRepository', () => {
       };
       mockCollection.deleteMany.mockResolvedValue(mockDeleteResult);
 
-      // Act
       const result = await repository.removeByAnnouncementId(announcementId);
 
-      // Assert
       expect(mockCollection.deleteMany).toHaveBeenCalledWith({ announcementId });
       expect(result).toEqual(mockDeleteResult);
     });
 
     it('should return result with deletedCount 0 when no documents are found', async () => {
-      // Arrange
       const announcementId = 'announcement-456';
       const mockDeleteResult = {
         deletedCount: 0,
@@ -284,10 +248,8 @@ describe('FavoritesAnnouncementRepository', () => {
       };
       mockCollection.deleteMany.mockResolvedValue(mockDeleteResult);
 
-      // Act
       const result = await repository.removeByAnnouncementId(announcementId);
 
-      // Assert
       expect(mockCollection.deleteMany).toHaveBeenCalledWith({ announcementId });
       expect(result).toEqual(mockDeleteResult);
     });
@@ -295,7 +257,6 @@ describe('FavoritesAnnouncementRepository', () => {
 
   describe('findAllByVolunteerId', () => {
     it('should return all favorite announcements for a specific volunteer', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const mockFavorites = [
         { volunteerId: 'volunteer-123', announcementId: 'announcement-1' },
@@ -306,27 +267,22 @@ describe('FavoritesAnnouncementRepository', () => {
       };
       mockCollection.find.mockReturnValue(mockCursor);
 
-      // Act
       const result = await repository.findAllByVolunteerId(volunteerId);
 
-      // Assert
       expect(mockCollection.find).toHaveBeenCalledWith({ volunteerId });
       expect(mockCursor.toArray).toHaveBeenCalled();
       expect(result).toEqual(mockFavorites);
     });
 
     it('should return empty array when no favorites exist for volunteer', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const mockCursor = {
         toArray: jest.fn().mockResolvedValue([]),
       };
       mockCollection.find.mockReturnValue(mockCursor);
 
-      // Act
       const result = await repository.findAllByVolunteerId(volunteerId);
 
-      // Assert
       expect(mockCollection.find).toHaveBeenCalledWith({ volunteerId });
       expect(mockCursor.toArray).toHaveBeenCalled();
       expect(result).toEqual([]);
@@ -335,7 +291,6 @@ describe('FavoritesAnnouncementRepository', () => {
 
   describe('findAllByAnnouncementId', () => {
     it('should return all favorite announcements for a specific announcement', async () => {
-      // Arrange
       const announcementId = 'announcement-456';
       const mockFavorites = [
         { volunteerId: 'volunteer-1', announcementId: 'announcement-456' },
@@ -346,27 +301,22 @@ describe('FavoritesAnnouncementRepository', () => {
       };
       mockCollection.find.mockReturnValue(mockCursor);
 
-      // Act
       const result = await repository.findAllByAnnouncementId(announcementId);
 
-      // Assert
       expect(mockCollection.find).toHaveBeenCalledWith({ announcementId });
       expect(mockCursor.toArray).toHaveBeenCalled();
       expect(result).toEqual(mockFavorites);
     });
 
     it('should return empty array when no favorites exist for announcement', async () => {
-      // Arrange
       const announcementId = 'announcement-456';
       const mockCursor = {
         toArray: jest.fn().mockResolvedValue([]),
       };
       mockCollection.find.mockReturnValue(mockCursor);
 
-      // Act
       const result = await repository.findAllByAnnouncementId(announcementId);
 
-      // Assert
       expect(mockCollection.find).toHaveBeenCalledWith({ announcementId });
       expect(mockCursor.toArray).toHaveBeenCalled();
       expect(result).toEqual([]);
@@ -375,10 +325,8 @@ describe('FavoritesAnnouncementRepository', () => {
 
   describe('collection getter', () => {
     it('should return the correct collection', () => {
-      // Act
       const collection = (repository as any).collection;
 
-      // Assert
       expect(mockMongoClient.db).toHaveBeenCalled();
       expect(mockMongoClient.db().collection).toHaveBeenCalledWith(DatabaseCollection.FAVORITES);
       expect(collection).toBe(mockCollection);

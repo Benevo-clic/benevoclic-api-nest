@@ -5,7 +5,7 @@ import { Association } from '../entities/association.entity';
 import { CreateAssociationDto } from '../dto/create-association.dto';
 import { UpdateAssociationDto } from '../dto/update-association.dto';
 import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.service';
-import { BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
 import { DateTime } from 'luxon';
 
@@ -149,7 +149,6 @@ describe('AssociationService', () => {
         country: 'New Country',
       };
 
-      // Mock Firebase response
       firebaseAdmin.getUserByEmail.mockResolvedValueOnce({
         uid: 'mockFirebaseUid123',
         email: 'test@example.com',

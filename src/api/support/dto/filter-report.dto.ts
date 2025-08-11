@@ -1,14 +1,13 @@
-// src/api/support/dto/filter-report.dto.ts
-import { IsOptional, IsString, IsEnum, IsDateString } from 'class-validator';
+import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  ReportType,
-  ReportStatus,
-  ReportPriority,
   AnnouncementReportCategory,
+  OtherReportCategory,
+  ReportPriority,
+  ReportStatus,
+  ReportType,
   TechnicalReportCategory,
   UserFeedbackReportCategory,
-  OtherReportCategory,
 } from '../interfaces/support.interface';
 
 export class FilterReportDto {

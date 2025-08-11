@@ -1,11 +1,11 @@
 import {
-  Injectable,
-  Logger,
   BadRequestException,
-  NotFoundException,
-  InternalServerErrorException,
-  Inject,
   forwardRef,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { CreateVolunteerDto } from '../dto/create-volunteer.dto';
 import { UpdateVolunteerDto } from '../dto/update-volunteer.dto';
@@ -126,7 +126,6 @@ export class VolunteerService {
 
       const result = await this.volunteerRepository.remove(id);
 
-      // Vérifier si la suppression a réussi
       if (result.deletedCount === 0) {
         throw new NotFoundException('Volunteer not deleted');
       }

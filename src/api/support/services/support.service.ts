@@ -1,4 +1,3 @@
-// src/api/support/services/support.service.ts
 import {
   BadRequestException,
   Injectable,
@@ -13,12 +12,12 @@ import { FilterReportDto } from '../dto/filter-report.dto';
 import { Report } from '../entities/report.entity';
 import {
   AnnouncementReportCategory,
+  OtherReportCategory,
   ReportPriority,
   ReportStatus,
   ReportType,
   TechnicalReportCategory,
   UserFeedbackReportCategory,
-  OtherReportCategory,
 } from '../interfaces/support.interface';
 import { DiscordWebhookService } from '../../../common/services/discord/discord-webhook.service';
 
@@ -79,12 +78,10 @@ export class SupportService {
       }
       const report = await this.supportRepository.create(reportData);
 
-      // Envoyer une notification Discord pour le nouveau ticket
       await this.discordWebhookService.sendSupportTicketNotification(report);
 
       return report;
     } catch (error) {
-      // Si c'est déjà une exception métier, la relancer
       if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
       }
@@ -175,7 +172,6 @@ export class SupportService {
 
   async updateStatus(id: string, status: ReportStatus): Promise<Report> {
     try {
-      // Récupérer l'ancien statut avant la mise à jour
       const oldReport = await this.supportRepository.findById(id);
       if (!oldReport) {
         throw new NotFoundException(`Signalement avec l'ID ${id} non trouvé`);
@@ -186,9 +182,11 @@ export class SupportService {
         throw new NotFoundException(`Signalement avec l'ID ${id} non trouvé`);
       }
 
-      // Envoyer une notification Discord pour la mise à jour de statut
       await this.discordWebhookService.sendStatusUpdateNotification(
-        report,
+        {
+          ...report,
+          id,
+        },
         oldReport.status,
         status,
       );

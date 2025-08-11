@@ -1,4 +1,3 @@
-// src/api/support/repositories/support.repository.ts
 import { Inject, Injectable } from '@nestjs/common';
 import { Collection, MongoClient, ObjectId } from 'mongodb';
 import { DatabaseCollection } from '../../../common/enums/database.collection';
@@ -48,7 +47,6 @@ export class SupportRepository {
     try {
       return await this.collection.findOne({ _id: new ObjectId(id) });
     } catch (error) {
-      // Si l'ID n'est pas un ObjectId valide, retourner null
       return null;
     }
   }
@@ -75,7 +73,6 @@ export class SupportRepository {
       );
       return result as Report | null;
     } catch (error) {
-      // Si l'ID n'est pas un ObjectId valide, retourner null
       return null;
     }
   }
@@ -83,10 +80,7 @@ export class SupportRepository {
   async delete(id: string): Promise<void> {
     try {
       await this.collection.deleteOne({ _id: new ObjectId(id) });
-    } catch (error) {
-      // Si l'ID n'est pas un ObjectId valide, ignorer l'erreur
-      // car l'objectif est de supprimer, et si l'ID n'existe pas, c'est déjà supprimé
-    }
+    } catch (error) {}
   }
 
   async filterReports(filterDto: FilterReportDto): Promise<FilterReportResponse> {

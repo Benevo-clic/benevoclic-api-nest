@@ -44,7 +44,6 @@ describe('FavoritesAnnouncementController', () => {
 
   describe('create', () => {
     it('should create a new favorite announcement', async () => {
-      // Arrange
       const createDto: CreateFavoritesAnnouncementDto = {
         volunteerId: 'volunteer-123',
         announcementId: 'announcement-456',
@@ -52,23 +51,19 @@ describe('FavoritesAnnouncementController', () => {
       const expectedResult = { ...createDto, id: 'favorite-789' };
       mockFavoritesAnnouncementService.create.mockResolvedValue(expectedResult);
 
-      // Act
       const result = await controller.create(createDto);
 
-      // Assert
       expect(service.create).toHaveBeenCalledWith(createDto);
       expect(result).toEqual(expectedResult);
     });
 
     it('should handle error during creation', async () => {
-      // Arrange
       const createDto: CreateFavoritesAnnouncementDto = {
         volunteerId: 'volunteer-123',
         announcementId: 'announcement-456',
       };
       mockFavoritesAnnouncementService.create.mockReturnValue(null);
 
-      // Act
       const result = await controller.create(createDto);
 
       expect(service.create).toHaveBeenCalledWith(createDto);
@@ -78,17 +73,14 @@ describe('FavoritesAnnouncementController', () => {
 
   describe('findAll', () => {
     it('should return all favorite announcements', async () => {
-      // Arrange
       const expectedResult = [
         { volunteerId: 'volunteer-1', announcementId: 'announcement-1' },
         { volunteerId: 'volunteer-2', announcementId: 'announcement-2' },
       ];
       mockFavoritesAnnouncementService.findAll.mockResolvedValue(expectedResult);
 
-      // Act
       const result = await controller.findAll();
 
-      // Assert
       expect(service.findAll).toHaveBeenCalled();
       expect(result).toEqual(expectedResult);
     });
@@ -96,7 +88,6 @@ describe('FavoritesAnnouncementController', () => {
 
   describe('findAllByVolunteerId', () => {
     it('should return all favorite announcements for a specific volunteer', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const expectedResult = [
         { volunteerId: 'volunteer-123', announcementId: 'announcement-1' },
@@ -104,10 +95,8 @@ describe('FavoritesAnnouncementController', () => {
       ];
       mockFavoritesAnnouncementService.findAllByVolunteerId.mockResolvedValue(expectedResult);
 
-      // Act
       const result = await controller.findAllByVolunteerId(volunteerId);
 
-      // Assert
       expect(service.findAllByVolunteerId).toHaveBeenCalledWith(volunteerId);
       expect(result).toEqual(expectedResult);
     });
@@ -115,7 +104,6 @@ describe('FavoritesAnnouncementController', () => {
 
   describe('findAllByAnnouncementId', () => {
     it('should return all favorite announcements for a specific announcement', async () => {
-      // Arrange
       const announcementId = 'announcement-456';
       const expectedResult = [
         { volunteerId: 'volunteer-1', announcementId: 'announcement-456' },
@@ -123,10 +111,8 @@ describe('FavoritesAnnouncementController', () => {
       ];
       mockFavoritesAnnouncementService.findAllByAnnouncementId.mockResolvedValue(expectedResult);
 
-      // Act
       const result = await controller.findAllByAnnouncementId(announcementId);
 
-      // Assert
       expect(service.findAllByAnnouncementId).toHaveBeenCalledWith(announcementId);
       expect(result).toEqual(expectedResult);
     });
@@ -134,7 +120,6 @@ describe('FavoritesAnnouncementController', () => {
 
   describe('findByVolunteerIdAndAnnouncementId', () => {
     it('should return a specific favorite announcement', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const announcementId = 'announcement-456';
       const expectedResult = { volunteerId: 'volunteer-123', announcementId: 'announcement-456' };
@@ -142,13 +127,11 @@ describe('FavoritesAnnouncementController', () => {
         expectedResult,
       );
 
-      // Act
       const result = await controller.findByVolunteerIdAndAnnouncementId(
         volunteerId,
         announcementId,
       );
 
-      // Assert
       expect(service.findByVolunteerIdAndAnnouncementId).toHaveBeenCalledWith(
         volunteerId,
         announcementId,
@@ -159,7 +142,6 @@ describe('FavoritesAnnouncementController', () => {
 
   describe('findByVolunteerIdAllFavoritesAnnouncement', () => {
     it('should return all favorite announcements with announcement data for a volunteer', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const expectedResult = [
         {
@@ -177,7 +159,6 @@ describe('FavoritesAnnouncementController', () => {
         expectedResult,
       );
 
-      // Act
       const result = await controller.findByVolunteerIdAllFavoritesAnnouncement(volunteerId);
 
       expect(service.findByVolunteerIdAllFavoritesAnnouncement).toHaveBeenCalledWith(volunteerId);
@@ -187,7 +168,6 @@ describe('FavoritesAnnouncementController', () => {
 
   describe('removeByVolunteerIdAndAnnouncementId', () => {
     it('should remove a specific favorite announcement', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const announcementId = 'announcement-456';
       const expectedResult = { deletedCount: 1 };
@@ -195,13 +175,11 @@ describe('FavoritesAnnouncementController', () => {
         expectedResult,
       );
 
-      // Act
       const result = await controller.removeByVolunteerIdAndAnnouncementId(
         volunteerId,
         announcementId,
       );
 
-      // Assert
       expect(service.removeByVolunteerIdAndAnnouncementId).toHaveBeenCalledWith(
         volunteerId,
         announcementId,
@@ -210,18 +188,15 @@ describe('FavoritesAnnouncementController', () => {
     });
 
     it('should handle error during removal', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const announcementId = 'announcement-456';
       mockFavoritesAnnouncementService.removeByVolunteerIdAndAnnouncementId.mockReturnValue(null);
 
-      // Act
       const result = await controller.removeByVolunteerIdAndAnnouncementId(
         volunteerId,
         announcementId,
       );
 
-      // Assert
       expect(service.removeByVolunteerIdAndAnnouncementId).toHaveBeenCalledWith(
         volunteerId,
         announcementId,
@@ -232,28 +207,22 @@ describe('FavoritesAnnouncementController', () => {
 
   describe('removeAllByVolunteerId', () => {
     it('should remove all favorite announcements for a volunteer', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       const expectedResult = { deletedCount: 3 };
       mockFavoritesAnnouncementService.removeByVolunteerId.mockResolvedValue(expectedResult);
 
-      // Act
       const result = await controller.removeAllByVolunteerId(volunteerId);
 
-      // Assert
       expect(service.removeByVolunteerId).toHaveBeenCalledWith(volunteerId);
       expect(result).toEqual(expectedResult);
     });
 
     it('should handle error during removal', async () => {
-      // Arrange
       const volunteerId = 'volunteer-123';
       mockFavoritesAnnouncementService.removeByVolunteerId.mockReturnValue(null);
 
-      // Act
       const result = await controller.removeAllByVolunteerId(volunteerId);
 
-      // Assert
       expect(service.removeByVolunteerId).toHaveBeenCalledWith(volunteerId);
       expect(result).toBeNull();
     });
@@ -261,26 +230,22 @@ describe('FavoritesAnnouncementController', () => {
 
   describe('removeAllByAnnouncementId', () => {
     it('should remove all favorite announcements for an announcement', async () => {
-      // Arrange
       const announcementId = 'announcement-456';
       const expectedResult = { deletedCount: 2 };
       mockFavoritesAnnouncementService.removeByAnnouncementId.mockResolvedValue(expectedResult);
 
-      // Act
       const result = await controller.removeAllByAnnouncementId(announcementId);
 
-      // Assert
       expect(service.removeByAnnouncementId).toHaveBeenCalledWith(announcementId);
       expect(result).toEqual(expectedResult);
     });
 
     it('should handle error during removal', async () => {
-      // Arrange
       const announcementId = 'announcement-456';
       mockFavoritesAnnouncementService.removeByAnnouncementId.mockReturnValue(null);
-      // Act
+
       const result = await controller.removeAllByAnnouncementId(announcementId);
-      // Assert
+
       expect(service.removeByAnnouncementId).toHaveBeenCalledWith(announcementId);
       expect(result).toBeNull();
     });
