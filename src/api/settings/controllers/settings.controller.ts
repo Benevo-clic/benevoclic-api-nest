@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Logger,
+  Param,
   Put,
   Request,
   UseGuards,
@@ -18,6 +19,7 @@ import { UpdateVolunteerSettingsDto } from '../dto/update-volunteer-settings.dto
 import { UpdateAssociationSettingsDto } from '../dto/update-association-settings.dto';
 import { VolunteerSettings } from '../entities/volunteer-settings.entity';
 import { AssociationSettings } from '../entities/association-settings.entity';
+import { Public } from '../../../common/decorators/public.decorator';
 
 @ApiTags('settings')
 @Controller('settings')
@@ -45,6 +47,28 @@ export class SettingsController {
     return this.service.getOrCreateVolunteerSettings(userId);
   }
 
+  @Public()
+  @Get('volunteer/:volunteerId')
+  @ApiOperation({ summary: 'Récupérer les paramètres publics du volontaire' })
+  @ApiResponse({ status: 200, description: 'OK', type: VolunteerSettings })
+  async getPublicVolunteerSettings(
+    @Param('volunteerId') volunteerId: string,
+  ): Promise<VolunteerSettings> {
+    this.logger.log(`GET public volunteer settings: ${volunteerId}`);
+    return this.service.getVolunteerSettings(volunteerId);
+  }
+
+  @Public()
+  @Get('association/:associationId')
+  @ApiOperation({ summary: "Récupérer les paramètres publics de l'association" })
+  @ApiResponse({ status: 200, description: 'OK', type: AssociationSettings })
+  async getPublicAssociationSettings(
+    @Param('associationId') associationId: string,
+  ): Promise<AssociationSettings> {
+    this.logger.log(`GET public association settings: ${associationId}`);
+    return this.service.getAssociationSettings(associationId);
+  }
+
   @Put('volunteer')
   @Roles(UserRole.VOLUNTEER)
   @ApiOperation({ summary: 'Mettre à jour les paramètres du volontaire' })
@@ -63,7 +87,7 @@ export class SettingsController {
   @ApiOperation({ summary: "Récupérer les paramètres de l'association" })
   @ApiResponse({ status: 200, description: 'OK', type: AssociationSettings })
   async getAssociationSettings(@Request() req: any): Promise<AssociationSettings> {
-    const associationId = req.user.uid; // ou req.user.associationId si dispo
+    const associationId = req.user.uid;
     this.logger.log(`GET association settings: ${associationId}`);
     return this.service.getOrCreateAssociationSettings(associationId);
   }
@@ -76,7 +100,7 @@ export class SettingsController {
     @Request() req: any,
     @Body() dto: UpdateAssociationSettingsDto,
   ): Promise<AssociationSettings> {
-    const associationId = req.user.uid; // ou req.user.associationId si dispo
+    const associationId = req.user.uid;
     this.logger.log(`PUT association settings: ${associationId}`);
     return this.service.updateAssociationSettings(associationId, dto);
   }

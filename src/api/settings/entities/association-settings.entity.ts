@@ -14,6 +14,7 @@ export class AssociationSettings {
   siretVerification!: boolean;
   autoApproveVolunteers!: boolean;
   volunteerLimits!: boolean;
+  participantLimits?: boolean;
   eventApproval!: boolean;
 
   createdAt!: Date;

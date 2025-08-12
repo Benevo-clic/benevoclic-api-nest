@@ -7,6 +7,7 @@ import { UserModule } from '../user/user.module';
 import { FavoritesAnnouncementModule } from '../favorites-announcement/favorites-announcement.module';
 import { VolunteerModule } from '../volunteer/volunteer.module';
 import { AssociationModule } from '../association/association.module';
+import { SettingsModule } from '../settings/settings.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AssociationModule } from '../association/association.module';
     forwardRef(() => VolunteerModule),
     forwardRef(() => FavoritesAnnouncementModule),
     forwardRef(() => AssociationModule),
+    SettingsModule,
   ],
   providers: [AnnouncementRepository, AnnouncementService],
   controllers: [AnnouncementController],

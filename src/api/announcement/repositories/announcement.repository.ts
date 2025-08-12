@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import { Collection, MongoClient, ObjectId, ClientSession } from 'mongodb';
+import { ClientSession, Collection, MongoClient, ObjectId } from 'mongodb';
 
 import { Announcement } from '../entities/announcement.entity';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
@@ -29,6 +29,7 @@ export class AnnouncementRepository implements OnModuleInit {
   private get collection() {
     return this.mongoClient.db().collection<Announcement>(DatabaseCollection.ANNOUNCEMENT);
   }
+
   async findAll(): Promise<any[]> {
     return await this.collection.find().toArray();
   }
@@ -296,6 +297,7 @@ export class AnnouncementRepository implements OnModuleInit {
             ],
           },
           { status: { $ne: AnnouncementStatus.INACTIVE } },
+          { isHidden: { $ne: true } },
         ],
       })
       .toArray();
@@ -322,6 +324,7 @@ export class AnnouncementRepository implements OnModuleInit {
             ],
           },
           { status: { $ne: AnnouncementStatus.INACTIVE } },
+          { isHidden: { $ne: true } },
         ],
       })
       .toArray();
@@ -348,6 +351,7 @@ export class AnnouncementRepository implements OnModuleInit {
             ],
           },
           { status: { $ne: AnnouncementStatus.INACTIVE } },
+          { isHidden: { $ne: true } },
         ],
       })
       .toArray();
@@ -535,9 +539,13 @@ export class AnnouncementRepository implements OnModuleInit {
           spherical: true,
         },
       });
-      pipeline.push({ $match: { status: { $ne: AnnouncementStatus.INACTIVE } } });
+      pipeline.push({
+        $match: { status: { $ne: AnnouncementStatus.INACTIVE }, isHidden: { $ne: true } },
+      });
     } else {
-      pipeline.push({ $match: { status: { $ne: AnnouncementStatus.INACTIVE } } });
+      pipeline.push({
+        $match: { status: { $ne: AnnouncementStatus.INACTIVE }, isHidden: { $ne: true } },
+      });
     }
 
     pipeline.push({
@@ -663,5 +671,16 @@ export class AnnouncementRepository implements OnModuleInit {
         pages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async updateAssociationVisibilityByAssociationId(
+    associationId: string,
+    visibility: boolean,
+  ): Promise<number> {
+    const result = await this.collection.updateMany(
+      { associationId },
+      { $set: { isHidden: visibility } },
+    );
+    return result.modifiedCount;
   }
 }

@@ -11,7 +11,6 @@ export class SettingsService {
 
   constructor(private readonly repo: SettingsRepository) {}
 
-  // -------- Volunteer --------
   async getOrCreateVolunteerSettings(userId: string): Promise<VolunteerSettings> {
     try {
       let settings = await this.repo.findVolunteerSettingsByUserId(userId);
@@ -30,6 +29,32 @@ export class SettingsService {
       return settings;
     } catch (error) {
       this.logger.error(`Erreur getOrCreate volunteer (${userId})`, error?.stack || String(error));
+      throw new InternalServerErrorException('Erreur lors de la récupération des paramètres');
+    }
+  }
+
+  async getVolunteerSettings(userId: string): Promise<VolunteerSettings> {
+    try {
+      const settings = await this.repo.findVolunteerSettingsByUserId(userId);
+      if (!settings) {
+        throw new InternalServerErrorException('Paramètres du volontaire non trouvés');
+      }
+      return settings;
+    } catch (error) {
+      this.logger.error(`Erreur get volunteer (${userId})`, error?.stack || String(error));
+      throw new InternalServerErrorException('Erreur lors de la récupération des paramètres');
+    }
+  }
+
+  async getAssociationSettings(associationId: string): Promise<AssociationSettings> {
+    try {
+      const settings = await this.repo.findAssociationSettingsByAssociationId(associationId);
+      if (!settings) {
+        throw new InternalServerErrorException('Paramètres de l’association non trouvés');
+      }
+      return settings;
+    } catch (error) {
+      this.logger.error(`Erreur get association (${associationId})`, error?.stack || String(error));
       throw new InternalServerErrorException('Erreur lors de la récupération des paramètres');
     }
   }

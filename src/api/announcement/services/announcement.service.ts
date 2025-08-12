@@ -25,6 +25,7 @@ import { FilterAnnouncementDto } from '../dto/filter-announcement.dto';
 import { FilterAssociationAnnouncementDto } from '../dto/filter-association-announcement.dto';
 import { InfoVolunteerDto } from '../../association/dto/info-volunteer.dto';
 import { DateTime } from 'luxon';
+import { SettingsService } from '../../settings/services/settings.service';
 
 @Injectable()
 export class AnnouncementService {
@@ -38,6 +39,7 @@ export class AnnouncementService {
     @Inject(forwardRef(() => FavoritesAnnouncementService))
     private readonly favoritesAnnouncementService: FavoritesAnnouncementService,
     private readonly awsS3Service: AwsS3Service,
+    private readonly settingsService: SettingsService,
   ) {}
 
   async findAll(): Promise<Announcement[]> {
@@ -93,18 +95,12 @@ export class AnnouncementService {
 
   async enrichVolunteerAnnouncements(announcements: any[]) {
     await Promise.all(
-      announcements
-        .filter(
-          announcement =>
-            announcement.status === AnnouncementStatus.ACTIVE ||
-            announcement.status === AnnouncementStatus.COMPLETED,
-        )
-        .map(async announcement => {
-          announcement.associationLogo = await this.userService.getAvatarFileUrl(
-            announcement.associationId,
-          );
-          announcement.announcementImage = await this.getAvatarFileUrl(announcement?._id);
-        }),
+      announcements.map(async announcement => {
+        announcement.associationLogo = await this.userService.getAvatarFileUrl(
+          announcement.associationId,
+        );
+        announcement.announcementImage = await this.getAvatarFileUrl(announcement?._id);
+      }),
     );
     return announcements;
   }
@@ -157,6 +153,24 @@ export class AnnouncementService {
     }
   }
 
+  async getAssociationSettings(associationId: string) {
+    try {
+      const settings = await this.settingsService.getAssociationSettings(associationId);
+      if (!settings) {
+        throw new NotFoundException('Paramètres de l’association non trouvés');
+      }
+      return settings;
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la récupération des paramètres de l'association: ${associationId}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la récupération des paramètres de l'association",
+      );
+    }
+  }
+
   async findVolunteerInAnnouncementByVolunteerId(volunteerId: string): Promise<Announcement[]> {
     try {
       const announcements =
@@ -164,7 +178,6 @@ export class AnnouncementService {
       if (!announcements || announcements.length === 0) {
         return [];
       }
-      console.log(`Found ${announcements.length} announcements for volunteer: ${volunteerId}`);
       return await this.enrichVolunteerAnnouncements(announcements);
     } catch (error) {
       this.logger.error(
@@ -221,6 +234,7 @@ export class AnnouncementService {
 
   async create(announcement: CreateAnnouncementDto): Promise<string> {
     try {
+      const settings = await this.getAssociationSettings(announcement.associationId);
       const avatarFileKey = await this.userService.getAvatarFileUrl(announcement.associationId);
       return await this.announcementRepository.create({
         associationId: announcement.associationId,
@@ -239,10 +253,10 @@ export class AnnouncementService {
         volunteers: [],
         volunteersWaiting: [],
         nbParticipants: 0,
-        maxParticipants: announcement.maxParticipants,
+        maxParticipants: !settings.participantLimits ? -1 : announcement.maxParticipants,
         status: announcement.status,
         nbVolunteers: 0,
-        maxVolunteers: announcement.maxVolunteers,
+        maxVolunteers: !settings.volunteerLimits ? -1 : announcement.maxParticipants,
       });
     } catch (error) {
       this.logger.error("Erreur lors de la création de l'annonce", error.stack);
@@ -326,8 +340,36 @@ export class AnnouncementService {
     }
   }
 
-  async isCompletedVolunteer(announcement: Announcement): Promise<boolean> {
+  async updateAnnouncementAssociationVisibility(
+    associationId: string,
+    isVisible: boolean,
+  ): Promise<void> {
     try {
+      const announcements = await this.announcementRepository.findByAssociationId(associationId);
+      if (!announcements || announcements.length === 0) {
+        this.logger.warn(`Aucune annonce trouvée pour l'association: ${associationId}`);
+        return;
+      }
+      await this.announcementRepository.updateAssociationVisibilityByAssociationId(
+        associationId,
+        isVisible,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la mise à jour de la visibilité de l'association dans les annonces: ${associationId}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        "Erreur lors de la mise à jour de la visibilité de l'association dans les annonces",
+      );
+    }
+  }
+
+  isCompletedVolunteer(announcement: Announcement, isVolunteerLimits: boolean): boolean {
+    try {
+      if (isVolunteerLimits || announcement.maxVolunteers === -1) {
+        return false;
+      }
       return announcement.nbVolunteers >= announcement.maxVolunteers;
     } catch (error) {
       this.logger.error('Erreur lors de la vérification du nombre de bénévoles', error.stack);
@@ -337,8 +379,14 @@ export class AnnouncementService {
     }
   }
 
-  async isCompletedParticipant(announcement: Announcement): Promise<boolean> {
+  async isCompletedParticipant(
+    announcement: Announcement,
+    participantLimit: boolean,
+  ): Promise<boolean> {
     try {
+      if (!participantLimit || announcement.maxParticipants === -1) {
+        return false;
+      }
       return announcement.nbParticipants >= announcement.maxParticipants;
     } catch (error) {
       this.logger.error('Erreur lors de la vérification du nombre de participants', error.stack);
@@ -371,10 +419,14 @@ export class AnnouncementService {
   async registerVolunteer(id: string, volunteer: InfoVolunteerDto) {
     try {
       const announcement = await this.announcementRepository.findById(id);
-      if (await this.isCompletedVolunteer(announcement)) {
+      const settings = await this.getAssociationSettings(announcement.associationId);
+
+      if (this.isCompletedVolunteer(announcement, settings.volunteerLimits)) {
         throw new BadRequestException('Announcement is already completed');
       }
-      await this.removeVolunteerWaiting(id, volunteer.id);
+      if (!settings.autoApproveVolunteers) {
+        await this.removeVolunteerWaiting(id, volunteer.id);
+      }
       await this.addVolunteer(id, {
         id: volunteer.id,
         name: volunteer.name,
@@ -413,11 +465,17 @@ export class AnnouncementService {
   async registerVolunteerWaiting(id: string, volunteer: InfoVolunteer): Promise<InfoVolunteer> {
     try {
       const announcement = await this.announcementRepository.findById(id);
+      const settings = await this.getAssociationSettings(announcement.associationId);
+
       if (
         (await this.isVolunteer(announcement, volunteer.id)) ||
         (await this.isVolunteerWaiting(announcement, volunteer.id))
       ) {
         throw new BadRequestException('Volunteer already registered');
+      }
+      if (settings.autoApproveVolunteers) {
+        await this.addVolunteer(id, volunteer);
+        return volunteer;
       }
       announcement.volunteersWaiting.push(volunteer);
       await this.announcementRepository.updateVolunteer(id, announcement);
@@ -432,12 +490,19 @@ export class AnnouncementService {
   async removeVolunteerWaiting(id: string, volunteerId: string): Promise<string> {
     try {
       const announcement = await this.announcementRepository.findById(id);
+      const settings = await this.getAssociationSettings(announcement.associationId);
+
       if (!announcement) {
         throw new NotFoundException('Announcement not found');
+      }
+      if (settings.autoApproveVolunteers) {
+        await this.removeVolunteer(id, volunteerId);
+        return volunteerId;
       }
       if (!(await this.isVolunteerWaiting(announcement, volunteerId))) {
         throw new BadRequestException('Volunteer not registered');
       }
+
       await this.announcementRepository.removeVolunteerWaiting(id, volunteerId);
       return volunteerId;
     } catch (error) {
@@ -530,7 +595,9 @@ export class AnnouncementService {
   async registerParticipant(id: string, participant: InfoVolunteerDto) {
     try {
       const announcement = await this.announcementRepository.findById(id);
-      if (await this.isCompletedParticipant(announcement)) {
+      const settings = await this.getAssociationSettings(announcement.associationId);
+
+      if (await this.isCompletedParticipant(announcement, settings.participantLimits)) {
         throw new BadRequestException('Announcement is already completed');
       }
 
