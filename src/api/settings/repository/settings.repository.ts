@@ -111,6 +111,7 @@ export class SettingsRepository implements OnModuleInit {
       siretVerification: settings.siretVerification ?? true,
       autoApproveVolunteers: settings.autoApproveVolunteers ?? false,
       volunteerLimits: settings.volunteerLimits ?? true,
+      participantLimits: settings.participantLimits ?? true,
       eventApproval: settings.eventApproval ?? true,
       createdAt: now,
       updatedAt: now,

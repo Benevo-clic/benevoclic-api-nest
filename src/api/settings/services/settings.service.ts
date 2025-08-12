@@ -89,6 +89,7 @@ export class SettingsService {
           siretVerification: true,
           autoApproveVolunteers: false,
           volunteerLimits: true,
+          participantLimits: true,
           eventApproval: true,
           createdAt: new Date(),
           updatedAt: new Date(),

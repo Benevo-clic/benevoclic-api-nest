@@ -47,6 +47,11 @@ export class UpdateAssociationSettingsDto {
   @IsBoolean()
   volunteerLimits?: boolean;
 
+  @ApiProperty({ description: 'Limites de participants', default: true })
+  @IsOptional()
+  @IsBoolean()
+  participantLimits?: boolean;
+
   @ApiProperty({ description: 'Approbation des événements', default: true })
   @IsOptional()
   @IsBoolean()
