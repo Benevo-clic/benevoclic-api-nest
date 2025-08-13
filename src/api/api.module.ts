@@ -7,6 +7,7 @@ import { FavoritesAnnouncementModule } from './favorites-announcement/favorites-
 import { PrometheusModule } from './prometheus/prometheus.module';
 import { SupportModule } from './support/support.module';
 import { AdminModule } from './admin/admin.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AdminModule } from './admin/admin.module';
     PrometheusModule,
     SupportModule,
     AdminModule,
+    SettingsModule,
   ],
 })
 export class ApiModule {}

@@ -2,9 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AnnouncementService } from './announcement.service';
 import { AnnouncementRepository } from '../repositories/announcement.repository';
 import { UserService } from '../../../common/services/user/user.service';
-import { Logger } from '@nestjs/common';
 import { FavoritesAnnouncementService } from '../../favorites-announcement/services/favorites-announcement.service';
 import { AwsS3Service } from '../../../common/aws/aws-s3.service';
+import { SettingsService } from '../../settings/services/settings.service';
+import { Logger } from '@nestjs/common';
 import { FilterAssociationAnnouncementDto } from '../dto/filter-association-announcement.dto';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 
@@ -90,6 +91,13 @@ describe('AnnouncementService', () => {
             uploadFileAnnouncement: jest.fn(),
             deleteFile: jest.fn(),
             getFileUrl: jest.fn(),
+          },
+        },
+        {
+          provide: SettingsService,
+          useValue: {
+            getAssociationSettings: jest.fn(),
+            getVolunteerSettings: jest.fn(),
           },
         },
       ],
@@ -217,6 +225,7 @@ describe('AnnouncementService', () => {
         {} as any,
         favoritesAnnouncementService as any,
         awsS3Service as any,
+        {} as any, // settingsService
       );
       await expect(serviceTest.delete(id)).resolves.toBeUndefined();
       expect(favoritesAnnouncementService.removeByAnnouncementId).toHaveBeenCalledWith(id);
@@ -228,16 +237,21 @@ describe('AnnouncementService', () => {
       const favoritesAnnouncementService = {
         removeByAnnouncementId: jest.fn().mockRejectedValue(new Error('fail')),
       };
+      const announcementRepository = {
+        findById: jest.fn().mockResolvedValue(null),
+        delete: jest.fn().mockResolvedValue(undefined),
+      };
       const awsS3Service = {
         uploadFileAnnouncement: jest.fn(),
         deleteFile: jest.fn(),
         getFileUrl: jest.fn(),
       };
       const serviceTest = new AnnouncementService(
-        {} as any,
+        announcementRepository as any,
         {} as any,
         favoritesAnnouncementService as any,
         awsS3Service as any,
+        {} as any, // settingsService
       );
       await expect(serviceTest.delete(id)).rejects.toThrow(
         "Erreur lors de la suppression de l'annonce",
@@ -270,6 +284,7 @@ describe('AnnouncementService', () => {
         {} as any,
         favoritesAnnouncementService as any,
         awsS3Service as any,
+        {} as any, // settingsService
       );
 
       await expect(serviceTest.deleteByAssociationId(associationId)).resolves.toBeUndefined();
@@ -300,6 +315,7 @@ describe('AnnouncementService', () => {
         {} as any,
         favoritesAnnouncementService as any,
         awsS3Service as any,
+        {} as any, // settingsService
       );
 
       await expect(serviceTest.deleteByAssociationId(associationId)).resolves.toBeUndefined();
@@ -310,7 +326,11 @@ describe('AnnouncementService', () => {
     it('should throw InternalServerErrorException if an error occurs', async () => {
       const associationId = 'assoc-id';
       const favoritesAnnouncementService = {
-        removeByAssociationId: jest.fn().mockRejectedValue(new Error('fail')),
+        removeByAssociationId: jest.fn().mockResolvedValue(undefined),
+      };
+      const announcementRepository = {
+        findByAssociationId: jest.fn().mockRejectedValue(new Error('Database error')),
+        deleteByAssociationId: jest.fn().mockResolvedValue(undefined),
       };
       const awsS3Service = {
         uploadFileAnnouncement: jest.fn(),
@@ -318,10 +338,11 @@ describe('AnnouncementService', () => {
         getFileUrl: jest.fn(),
       };
       const serviceTest = new AnnouncementService(
-        {} as any,
+        announcementRepository as any,
         {} as any,
         favoritesAnnouncementService as any,
         awsS3Service as any,
+        {} as any, // settingsService
       );
       await expect(serviceTest.deleteByAssociationId(associationId)).rejects.toThrow(
         "Erreur lors de la suppression des annonces de l'association",
@@ -541,7 +562,7 @@ describe('AnnouncementService', () => {
         maxVolunteers: 2,
       } as any;
 
-      const result = await service.isCompletedVolunteer(announcement);
+      const result = service.isCompletedVolunteer(announcement, true);
       expect(result).toBe(true);
     });
 
@@ -551,7 +572,7 @@ describe('AnnouncementService', () => {
         maxVolunteers: 2,
       } as any;
 
-      const result = await service.isCompletedVolunteer(announcement);
+      const result = service.isCompletedVolunteer(announcement, true);
       expect(result).toBe(false);
     });
   });
@@ -563,7 +584,7 @@ describe('AnnouncementService', () => {
         maxParticipants: 2,
       } as any;
 
-      const result = await service.isCompletedParticipant(announcement);
+      const result = await service.isCompletedParticipant(announcement, true);
       expect(result).toBe(true);
     });
 
@@ -573,7 +594,7 @@ describe('AnnouncementService', () => {
         maxParticipants: 2,
       } as any;
 
-      const result = await service.isCompletedParticipant(announcement);
+      const result = await service.isCompletedParticipant(announcement, true);
       expect(result).toBe(false);
     });
   });

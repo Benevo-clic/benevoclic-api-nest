@@ -37,6 +37,7 @@ import { fileSchema } from '../../../common/utils/file-utils';
 import { FilterAnnouncementDto } from '../dto/filter-announcement.dto';
 import { FilterAnnouncementResponse } from '../repositories/announcement.repository';
 import { FilterAssociationAnnouncementDto } from '../dto/filter-association-announcement.dto';
+import { UpdateVisibilityAnnouncementAssociationDTO } from '../dto/update-visibility-annoncement-association.dto';
 
 @UsePipes(
   new ValidationPipe({
@@ -375,6 +376,27 @@ export class AnnouncementController {
       return await this.service.registerVolunteer(announcementId, volunteer);
     } catch (error) {
       this.logger.error(`Erreur lors de l'inscription du bénévole: ${announcementId}`, error.stack);
+      throw error;
+    }
+  }
+
+  @Patch('updateAnnouncementVisibility/:associationId/:eventVisibility')
+  @UseGuards(AuthGuard)
+  @Roles(UserRole.ASSOCIATION)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update an announcement visibility' })
+  @ApiBody({
+    type: UpdateVisibilityAnnouncementAssociationDTO,
+    description: 'Informations de l’annonce à mettre à jour',
+  })
+  async updateAnnouncementVisibility(
+    @Param('associationId') associationId: string,
+    @Param('eventVisibility') eventVisibility: boolean,
+  ): Promise<void> {
+    try {
+      await this.service.updateAnnouncementAssociationVisibility(associationId, eventVisibility);
+    } catch (error) {
+      this.logger.error(`Erreur lors de la mise à jour de la visibilité de l'annonce`, error.stack);
       throw error;
     }
   }

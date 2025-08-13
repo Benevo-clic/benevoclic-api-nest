@@ -20,6 +20,7 @@ export class Announcement {
   nbParticipants?: number;
   maxParticipants: number;
   status: AnnouncementStatus;
+  isHidden?: boolean;
   nbVolunteers?: number;
   maxVolunteers: number;
   volunteers?: InfoVolunteer[];
