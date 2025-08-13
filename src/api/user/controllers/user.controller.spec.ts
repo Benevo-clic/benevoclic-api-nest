@@ -14,6 +14,7 @@ import * as mockData from '../../../../test/testFiles/user.data.json';
 import { VolunteerService } from '../../volunteer/services/volunteer.service';
 import { AssociationService } from '../../association/services/association.service';
 import { AwsS3Service } from '../../../common/aws/aws-s3.service';
+import { SettingsService } from '../../settings/services/settings.service';
 
 jest.mock('firebase-admin', () => ({
   initializeApp: jest.fn(),
@@ -146,6 +147,18 @@ describe('UserController', () => {
             getFileUrl: jest.fn(),
           },
         },
+        {
+          provide: SettingsService,
+          useValue: {
+            findAll: jest.fn(),
+            findById: jest.fn(),
+            create: jest.fn(),
+            update: jest.fn(),
+            remove: jest.fn(),
+            findByKey: jest.fn(),
+            updateByKey: jest.fn(),
+          },
+        },
       ],
       exports: [UserService],
     }).compile();
@@ -170,7 +183,9 @@ describe('UserController', () => {
       const db = mongoClient.db();
       await db.collection(DatabaseCollection.USERS).deleteMany({});
     }
-    await testingModule.close();
+    if (testingModule) {
+      await testingModule.close();
+    }
   });
 
   describe('findAll', () => {
@@ -251,12 +266,10 @@ describe('UserController', () => {
   describe('delete', () => {
     it('should delete a user', async () => {
       const userId = mockData.users[0].userId;
-      jest
-        .spyOn(userService, 'remove')
-        .mockResolvedValue({ message: 'Utilisateur supprimé avec succès' });
+      jest.spyOn(userService, 'remove').mockResolvedValue({ uid: userId });
 
       const result = await userController.remove(userId);
-      expect(result).toEqual({ message: 'Utilisateur supprimé avec succès' });
+      expect(result).toEqual({ uid: userId });
     });
 
     it('should throw error if user not found', async () => {

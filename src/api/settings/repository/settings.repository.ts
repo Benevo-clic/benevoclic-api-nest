@@ -94,6 +94,14 @@ export class SettingsRepository implements OnModuleInit {
     return doc;
   }
 
+  async deleteVolunteerSettings(userId: string) {
+    const res = await this.volunteerSettingsCollection.deleteOne({ userId });
+    if (res.deletedCount === 0) {
+      throw new NotFoundException('Volunteer settings not found');
+    }
+    return res;
+  }
+
   async findAssociationSettingsByAssociationId(associationId: string) {
     return this.associationSettingsCollection.findOne({ associationId });
   }
@@ -150,5 +158,13 @@ export class SettingsRepository implements OnModuleInit {
     const doc = await this.associationSettingsCollection.findOne({ associationId });
     if (!doc) throw new Error('Upsert association settings failed');
     return doc;
+  }
+
+  async deleteAssociationSettings(associationId: string) {
+    const res = await this.associationSettingsCollection.deleteOne({ associationId });
+    if (res.deletedCount === 0) {
+      throw new NotFoundException('Association settings not found');
+    }
+    return res;
   }
 }

@@ -51,6 +51,7 @@ describe('AssociationController (Integration)', () => {
     const associations = mockData.associations.map(assoc => ({
       ...assoc,
       _id: new ObjectId(),
+      associationId: assoc.associationId, // Préserver l'associationId original
     }));
 
     const db = mongoClient.db();

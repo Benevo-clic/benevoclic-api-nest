@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Logger,
   Param,
@@ -58,6 +59,16 @@ export class SettingsController {
     return this.service.getVolunteerSettings(volunteerId);
   }
 
+  @Delete('volunteer')
+  @Roles(UserRole.VOLUNTEER)
+  @ApiOperation({ summary: 'Supprimer les paramètres du volontaire' })
+  @ApiResponse({ status: 204, description: 'No Content' })
+  async deleteVolunteerSettings(@Request() req: any): Promise<void> {
+    const userId = req.user.uid;
+    this.logger.log(`DELETE volunteer settings: ${userId}`);
+    await this.service.deleteVolunteerSettings(userId);
+  }
+
   @Public()
   @Get('association/:associationId')
   @ApiOperation({ summary: "Récupérer les paramètres publics de l'association" })
@@ -103,5 +114,15 @@ export class SettingsController {
     const associationId = req.user.uid;
     this.logger.log(`PUT association settings: ${associationId}`);
     return this.service.updateAssociationSettings(associationId, dto);
+  }
+
+  @Delete('association')
+  @Roles(UserRole.ASSOCIATION)
+  @ApiOperation({ summary: "Supprimer les paramètres de l'association" })
+  @ApiResponse({ status: 204, description: 'No Content' })
+  async deleteAssociationSettings(@Request() req: any): Promise<void> {
+    const associationId = req.user.uid;
+    this.logger.log(`DELETE association settings: ${associationId}`);
+    await this.service.deleteAssociationSettings(associationId);
   }
 }
