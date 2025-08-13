@@ -380,7 +380,7 @@ export class AnnouncementController {
     }
   }
 
-  @Patch('updateAnnouncementVisibility')
+  @Patch('updateAnnouncementVisibility/:associationId/:eventVisibility')
   @UseGuards(AuthGuard)
   @Roles(UserRole.ASSOCIATION)
   @ApiBearerAuth()
@@ -390,13 +390,11 @@ export class AnnouncementController {
     description: 'Informations de l’annonce à mettre à jour',
   })
   async updateAnnouncementVisibility(
-    @Body() update: UpdateVisibilityAnnouncementAssociationDTO,
+    @Param('associationId') associationId: string,
+    @Param('eventVisibility') eventVisibility: boolean,
   ): Promise<void> {
     try {
-      await this.service.updateAnnouncementAssociationVisibility(
-        update.associationId,
-        update.isVisibleToAssociation,
-      );
+      await this.service.updateAnnouncementAssociationVisibility(associationId, eventVisibility);
     } catch (error) {
       this.logger.error(`Erreur lors de la mise à jour de la visibilité de l'annonce`, error.stack);
       throw error;

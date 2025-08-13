@@ -1,16 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsNotEmpty, IsString } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class UpdateVisibilityAnnouncementAssociationDTO {
-  @ApiProperty()
-  @IsNotEmpty()
+  @ApiProperty({
+    description: 'ID of the association to which the announcement visibility is being updated',
+    example: 'assoc123',
+    required: true,
+  })
   @IsString()
   associationId: string;
-
-  @ApiProperty({
-    description: 'Indicates whether the announcement is visible to the association',
-    example: true,
-  })
-  @IsBoolean()
-  isVisibleToAssociation: boolean;
 }

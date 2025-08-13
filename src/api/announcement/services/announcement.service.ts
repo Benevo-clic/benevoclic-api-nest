@@ -352,7 +352,7 @@ export class AnnouncementService {
       }
       await this.announcementRepository.updateAssociationVisibilityByAssociationId(
         associationId,
-        isVisible,
+        !isVisible,
       );
     } catch (error) {
       this.logger.error(

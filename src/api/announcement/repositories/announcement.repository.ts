@@ -296,8 +296,10 @@ export class AnnouncementRepository implements OnModuleInit {
               },
             ],
           },
-          { status: { $ne: AnnouncementStatus.INACTIVE } },
-          { isHidden: { $ne: true } },
+          {
+            isHidden: { $ne: true },
+            status: { $ne: AnnouncementStatus.INACTIVE },
+          },
         ],
       })
       .toArray();
@@ -323,8 +325,10 @@ export class AnnouncementRepository implements OnModuleInit {
               },
             ],
           },
-          { status: { $ne: AnnouncementStatus.INACTIVE } },
-          { isHidden: { $ne: true } },
+          {
+            isHidden: { $ne: true },
+            status: { $ne: AnnouncementStatus.INACTIVE },
+          },
         ],
       })
       .toArray();
@@ -350,8 +354,10 @@ export class AnnouncementRepository implements OnModuleInit {
               },
             ],
           },
-          { status: { $ne: AnnouncementStatus.INACTIVE } },
-          { isHidden: { $ne: true } },
+          {
+            isHidden: { $ne: true },
+            status: { $ne: AnnouncementStatus.INACTIVE },
+          },
         ],
       })
       .toArray();
@@ -540,11 +546,17 @@ export class AnnouncementRepository implements OnModuleInit {
         },
       });
       pipeline.push({
-        $match: { status: { $ne: AnnouncementStatus.INACTIVE }, isHidden: { $ne: true } },
+        $match: {
+          isHidden: { $ne: true },
+          status: { $ne: AnnouncementStatus.INACTIVE },
+        },
       });
     } else {
       pipeline.push({
-        $match: { status: { $ne: AnnouncementStatus.INACTIVE }, isHidden: { $ne: true } },
+        $match: {
+          isHidden: { $ne: true },
+          status: { $ne: AnnouncementStatus.INACTIVE },
+        },
       });
     }
 
