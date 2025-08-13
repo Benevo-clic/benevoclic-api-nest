@@ -6,6 +6,13 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
+## [0.8.0] - 2025-08-13
+
+### 🚀 Ajouté
+- add delete functionality for volunteer and association settings (#94)
+
+---
+
 ## [0.7.0] - 2025-08-13
 
 ### 🚀 Ajouté
