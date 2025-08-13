@@ -168,11 +168,11 @@ export class UserController {
     return this.userService.getAvatarFileUrl(id);
   }
 
+  @Delete(':id')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN, UserRole.ASSOCIATION, UserRole.VOLUNTEER)
-  @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id') id: string): Promise<{ uid: string }> {
     return this.userService.remove(id);
   }
 }

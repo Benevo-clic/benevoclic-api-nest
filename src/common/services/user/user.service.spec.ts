@@ -7,6 +7,7 @@ import axios from 'axios';
 import { VolunteerService } from '../../../api/volunteer/services/volunteer.service';
 import { AssociationService } from '../../../api/association/services/association.service';
 import { AwsS3Service } from '../../aws/aws-s3.service';
+import { SettingsService } from '../../../api/settings/services/settings.service';
 
 jest.mock('axios');
 
@@ -71,6 +72,20 @@ describe('UserService', () => {
             uploadFile: jest.fn(),
             deleteFile: jest.fn(),
             getFileUrl: jest.fn(),
+          },
+        },
+        {
+          provide: SettingsService,
+          useValue: {
+            findAll: jest.fn(),
+            findById: jest.fn(),
+            create: jest.fn(),
+            update: jest.fn(),
+            remove: jest.fn(),
+            findByKey: jest.fn(),
+            updateByKey: jest.fn(),
+            deleteVolunteerSettings: jest.fn(),
+            deleteAssociationSettings: jest.fn(),
           },
         },
       ],
@@ -227,7 +242,7 @@ describe('UserService', () => {
 
   describe('remove', () => {
     it('should remove a user', async () => {
-      jest.spyOn(repository, 'findByUid').mockResolvedValue({
+      const mockUser = {
         userId: 'mockUid',
         email: 'test@example.com',
         role: UserRole.VOLUNTEER,
@@ -238,10 +253,21 @@ describe('UserService', () => {
         isCompleted: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date(),
-      });
+      };
+
+      jest.spyOn(repository, 'findByUid').mockResolvedValue(mockUser);
       jest.spyOn(repository, 'remove').mockResolvedValue(undefined);
+      jest.spyOn(service['volunteerService'], 'remove').mockResolvedValue(undefined);
+      jest
+        .spyOn(service['settingsService'], 'deleteVolunteerSettings')
+        .mockResolvedValue(undefined);
+      jest.spyOn(service['firebaseInstance'], 'deleteUser').mockResolvedValue(undefined);
+      jest.spyOn(service['awsS3Service'], 'deleteFile').mockResolvedValue(undefined);
+
       const result = await service.remove('mockUid');
-      expect(result).toBeDefined();
+      expect(result).toEqual({
+        uid: 'mockUid',
+      });
     });
   });
 

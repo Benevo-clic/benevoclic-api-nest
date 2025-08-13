@@ -4,7 +4,10 @@ import '@jest/globals';
 
 global.beforeAll(async () => {
   const client = new MongoClient(testMongoConfig.uri);
-  await client.connect();
-  await client.db(testMongoConfig.dbName).dropDatabase();
-  await client.close();
+  try {
+    await client.connect();
+    await client.db(testMongoConfig.dbName).dropDatabase();
+  } finally {
+    await client.close();
+  }
 });

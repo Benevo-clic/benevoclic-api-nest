@@ -28,6 +28,7 @@ import { AssociationService } from '../../../api/association/services/associatio
 import { fileSchema } from '../../utils/file-utils';
 import { z } from 'zod';
 import { AwsS3Service } from '../../aws/aws-s3.service';
+import { SettingsService } from '../../../api/settings/services/settings.service';
 
 @Injectable()
 export class UserService {
@@ -39,6 +40,7 @@ export class UserService {
     private readonly volunteerService: VolunteerService,
     private readonly associationService: AssociationService,
     private readonly awsS3Service: AwsS3Service,
+    private readonly settingsService: SettingsService,
   ) {}
 
   async updateLocation(id: string, location: Location) {
@@ -349,7 +351,7 @@ export class UserService {
     }
   }
 
-  async remove(id: string) {
+  async remove(id: string): Promise<{ uid: string }> {
     try {
       const user = await this.userRepository.findByUid(id);
       if (!user) {
@@ -358,8 +360,10 @@ export class UserService {
       }
       if (user.role === UserRole.ASSOCIATION) {
         await this.associationService.remove(id);
+        await this.settingsService.deleteAssociationSettings(id);
       } else if (user.role === UserRole.VOLUNTEER) {
         await this.volunteerService.remove(id);
+        await this.settingsService.deleteVolunteerSettings(id);
       }
 
       await this.removeInFirebase(id);
@@ -367,7 +371,9 @@ export class UserService {
       if (user.avatarFileKey) {
         await this.awsS3Service.deleteFile(user.avatarFileKey);
       }
-      return { message: 'Utilisateur supprimé avec succès' };
+      return {
+        uid: id,
+      };
     } catch (error) {
       this.logger.error(`Erreur lors de la suppression de l'utilisateur: ${id}`, error.stack);
       if (error instanceof NotFoundException) {

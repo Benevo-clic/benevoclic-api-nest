@@ -73,6 +73,19 @@ export class SettingsService {
     }
   }
 
+  async deleteVolunteerSettings(userId: string): Promise<void> {
+    try {
+      const result = await this.repo.deleteVolunteerSettings(userId);
+      if (result.deletedCount === 0) {
+        throw new InternalServerErrorException('Paramètres du volontaire non trouvés');
+      }
+      this.logger.log(`Settings volunteer supprimés pour ${userId}`);
+    } catch (error) {
+      this.logger.error(`Erreur delete volunteer (${userId})`, error?.stack || String(error));
+      throw new InternalServerErrorException('Erreur lors de la suppression des paramètres');
+    }
+  }
+
   // -------- Association --------
   async getOrCreateAssociationSettings(associationId: string): Promise<AssociationSettings> {
     try {
@@ -120,6 +133,22 @@ export class SettingsService {
         error?.stack || String(error),
       );
       throw new InternalServerErrorException('Erreur lors de la mise à jour des paramètres');
+    }
+  }
+
+  async deleteAssociationSettings(associationId: string): Promise<void> {
+    try {
+      const result = await this.repo.deleteAssociationSettings(associationId);
+      if (result.deletedCount === 0) {
+        throw new InternalServerErrorException('Paramètres de l’association non trouvés');
+      }
+      this.logger.log(`Settings association supprimés pour ${associationId}`);
+    } catch (error) {
+      this.logger.error(
+        `Erreur delete association (${associationId})`,
+        error?.stack || String(error),
+      );
+      throw new InternalServerErrorException('Erreur lors de la suppression des paramètres');
     }
   }
 }

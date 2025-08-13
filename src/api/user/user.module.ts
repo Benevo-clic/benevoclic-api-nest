@@ -7,6 +7,7 @@ import { UserRepository } from './repository/user.repository';
 import { VolunteerModule } from '../volunteer/volunteer.module';
 import { AssociationModule } from '../association/association.module';
 import { AwsS3Service } from '../../common/aws/aws-s3.service';
+import { SettingsModule } from '../settings/settings.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { AwsS3Service } from '../../common/aws/aws-s3.service';
     DatabaseModule,
     forwardRef(() => VolunteerModule),
     forwardRef(() => AssociationModule),
+    forwardRef(() => SettingsModule),
   ],
   controllers: [UserController],
   providers: [UserService, UserRepository, AwsS3Service],
