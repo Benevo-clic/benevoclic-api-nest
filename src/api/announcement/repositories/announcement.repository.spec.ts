@@ -936,6 +936,7 @@ describe('AnnouncementRepository', () => {
           dateEvent: '2024-02-15',
           hoursEvent: '14:00',
           status: 'ACTIVE',
+          isHidden: false,
         },
         {
           _id: 'ann-2',
@@ -943,6 +944,7 @@ describe('AnnouncementRepository', () => {
           dateEvent: '2024-02-16',
           hoursEvent: '15:00',
           status: 'ACTIVE',
+          isHidden: false,
         },
       ];
 
@@ -966,7 +968,10 @@ describe('AnnouncementRepository', () => {
               },
             ],
           },
-          { status: { $ne: 'INACTIVE' } },
+          {
+            status: { $ne: 'INACTIVE' },
+            isHidden: { $ne: true },
+          },
         ],
       });
       expect(result).toEqual(mockAnnouncements);
@@ -995,7 +1000,10 @@ describe('AnnouncementRepository', () => {
               },
             ],
           },
-          { status: { $ne: 'INACTIVE' } },
+          {
+            status: { $ne: 'INACTIVE' },
+            isHidden: { $ne: true },
+          },
         ],
       });
       expect(result).toEqual([]);
@@ -1015,10 +1023,10 @@ describe('AnnouncementRepository', () => {
         },
         {
           _id: 'ann-2',
-          dateEvent: '2024-01-14',
-          hoursEvent: '08:00',
+          dateEvent: '2024-01-12',
+          hoursEvent: '10:00',
           volunteers: [{ id: participantId }],
-          status: 'ACTIVE',
+          status: 'COMPLETED',
         },
       ];
 
@@ -1042,7 +1050,10 @@ describe('AnnouncementRepository', () => {
               },
             ],
           },
-          { status: { $ne: 'INACTIVE' } },
+          {
+            isHidden: { $ne: true },
+            status: { $ne: 'INACTIVE' },
+          },
         ],
       });
       expect(result).toEqual(mockAnnouncements);
@@ -1071,7 +1082,10 @@ describe('AnnouncementRepository', () => {
               },
             ],
           },
-          { status: { $ne: 'INACTIVE' } },
+          {
+            isHidden: { $ne: true },
+            status: { $ne: 'INACTIVE' },
+          },
         ],
       });
       expect(result).toEqual([]);
@@ -1116,7 +1130,10 @@ describe('AnnouncementRepository', () => {
               },
             ],
           },
-          { status: { $ne: 'INACTIVE' } },
+          {
+            isHidden: { $ne: true },
+            status: { $ne: 'INACTIVE' },
+          },
         ],
       });
       expect(result).toEqual(mockAnnouncements);
@@ -1143,7 +1160,10 @@ describe('AnnouncementRepository', () => {
               },
             ],
           },
-          { status: { $ne: 'INACTIVE' } },
+          {
+            isHidden: { $ne: true },
+            status: { $ne: 'INACTIVE' },
+          },
         ],
       });
       expect(result).toEqual([]);

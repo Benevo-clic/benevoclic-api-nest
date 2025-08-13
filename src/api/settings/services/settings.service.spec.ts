@@ -5,12 +5,14 @@ import { UpdateVolunteerSettingsDto } from '../dto/update-volunteer-settings.dto
 import { UpdateAssociationSettingsDto } from '../dto/update-association-settings.dto';
 import { VolunteerSettings } from '../entities/volunteer-settings.entity';
 import { AssociationSettings } from '../entities/association-settings.entity';
+import { ObjectId } from 'mongodb';
 
 describe('SettingsService', () => {
   let service: SettingsService;
   let repository: SettingsRepository;
 
-  const mockVolunteerSettings: VolunteerSettings = {
+  const mockVolunteerSettings: VolunteerSettings & { _id: ObjectId } = {
+    _id: new ObjectId(),
     userId: 'test-user-id',
     profileVisibility: true,
     locationSharing: false,
@@ -20,7 +22,8 @@ describe('SettingsService', () => {
     updatedAt: new Date(),
   };
 
-  const mockAssociationSettings: AssociationSettings = {
+  const mockAssociationSettings: AssociationSettings & { _id: ObjectId } = {
+    _id: new ObjectId(),
     associationId: 'test-association-id',
     profileVisibility: true,
     contactInfoVisibility: false,
@@ -31,6 +34,7 @@ describe('SettingsService', () => {
     siretVerification: true,
     autoApproveVolunteers: false,
     volunteerLimits: true,
+    participantLimits: true,
     eventApproval: true,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -155,6 +159,7 @@ describe('SettingsService', () => {
         siretVerification: true,
         autoApproveVolunteers: false,
         volunteerLimits: true,
+        participantLimits: true,
         eventApproval: true,
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),

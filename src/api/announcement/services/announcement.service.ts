@@ -367,7 +367,7 @@ export class AnnouncementService {
 
   isCompletedVolunteer(announcement: Announcement, isVolunteerLimits: boolean): boolean {
     try {
-      if (isVolunteerLimits || announcement.maxVolunteers === -1) {
+      if (!isVolunteerLimits || announcement.maxVolunteers === -1) {
         return false;
       }
       return announcement.nbVolunteers >= announcement.maxVolunteers;
