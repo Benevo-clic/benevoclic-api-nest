@@ -7,6 +7,7 @@ import { AuthGuard } from './guards/auth.guard';
 import { LoggerService } from './common/services/logger.service';
 import { OrphanCleanupService } from './common/services/orphan-cleanup.service';
 import { ApiModule } from './api/api.module';
+import { AuthModule } from './api/auth/auth.module';
 import { FavoritesAnnouncementModule } from './api/favorites-announcement/favorites-announcement.module';
 import { AnnouncementModule } from './api/announcement/announcement.module';
 import { OrphanCleanupController } from './api/cleanup/controllers/orphan-cleanup.controller';
@@ -23,6 +24,7 @@ import { PrometheusMiddleware } from './common/middleware/prometheus.middleware'
     ScheduleModule.forRoot(),
     DatabaseModule,
     ApiModule,
+    AuthModule,
     forwardRef(() => FavoritesAnnouncementModule),
     forwardRef(() => AnnouncementModule),
     forwardRef(() => VolunteerModule),
