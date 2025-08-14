@@ -399,7 +399,6 @@ describe('AssociationService', () => {
       expect(assoc1.volunteers).toContainEqual(
         expect.objectContaining({ volunteerId: volunteer.volunteerId }),
       );
-      console.log(assoc1.volunteers);
       expect(assoc2.volunteers).toContainEqual(
         expect.objectContaining({ volunteerId: volunteer.volunteerId }),
       );
