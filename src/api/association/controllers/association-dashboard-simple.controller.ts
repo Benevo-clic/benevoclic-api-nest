@@ -1,14 +1,14 @@
 import {
   Controller,
   Get,
-  Query,
-  UseGuards,
-  Logger,
-  Param,
   HttpCode,
   HttpStatus,
+  Logger,
+  Param,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../../../guards/auth.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '../../../common/enums/roles.enum';
@@ -16,7 +16,6 @@ import { AssociationStatsSimpleService } from '../services/association-stats-sim
 import { AssociationStatsFilterDto } from '../dto/association-stats.dto';
 import { AssociationDashboardResponseDto } from '../dto/association-dashboard.dto';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
-import { Public } from 'src/common/decorators/public.decorator';
 
 @ApiTags('association-dashboard')
 @Controller('association-dashboard')

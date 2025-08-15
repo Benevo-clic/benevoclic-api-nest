@@ -52,8 +52,8 @@ export class AssociationStatsSimpleService {
 
       // Calculer les statistiques
       const announcementStats = this.calculateAnnouncementStats(filteredAnnouncements);
-      const participantStats = this.calculateParticipantStats(filteredAnnouncements, startDate);
-      const volunteerStats = this.calculateVolunteerStats(filteredAnnouncements, startDate);
+      const participantStats = this.calculateParticipantStats(filteredAnnouncements);
+      const volunteerStats = this.calculateVolunteerStats(filteredAnnouncements);
       const engagementStats = this.calculateEngagementStats(filteredAnnouncements);
       const timeSeriesData = this.calculateTimeSeriesData(
         filteredAnnouncements,
@@ -118,10 +118,7 @@ export class AssociationStatsSimpleService {
     };
   }
 
-  private calculateParticipantStats(
-    announcements: Announcement[],
-    startDate: DateTime,
-  ): ParticipantStatsDto {
+  private calculateParticipantStats(announcements: Announcement[]): ParticipantStatsDto {
     // Collecter tous les participants uniques
     const allParticipants = new Map<string, { id: string; name: string; participations: number }>();
 
@@ -177,10 +174,7 @@ export class AssociationStatsSimpleService {
     };
   }
 
-  private calculateVolunteerStats(
-    announcements: Announcement[],
-    startDate: DateTime,
-  ): VolunteerStatsDto {
+  private calculateVolunteerStats(announcements: Announcement[]): VolunteerStatsDto {
     // Collecter tous les bénévoles uniques
     const allVolunteers = new Map<string, { id: string; name: string; participations: number }>();
 
