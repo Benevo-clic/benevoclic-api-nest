@@ -6,6 +6,13 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
+## [0.9.0] - 2025-08-15
+
+### 🚀 Ajouté
+- dashboard asso (#97)
+
+---
+
 ## [0.8.1] - 2025-08-14
 
 ### 🐛 Corrigé
