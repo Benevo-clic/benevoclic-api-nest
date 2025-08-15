@@ -48,6 +48,7 @@ export class AuthGuard implements CanActivate {
       }
 
       const userRole = decodedToken.role as UserRole;
+
       if (!userRole || !requiredRoles.includes(userRole)) {
         throw new ForbiddenException("Vous n'avez pas les droits nécessaires");
       }

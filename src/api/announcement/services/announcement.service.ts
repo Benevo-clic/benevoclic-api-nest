@@ -138,9 +138,11 @@ export class AnnouncementService {
   async findByAssociationId(associationId: string): Promise<Announcement[]> {
     try {
       const announcements = await this.announcementRepository.findByAssociationId(associationId);
+
       if (!announcements || announcements.length === 0) {
         return [];
       }
+
       return await this.enrichAnnouncements(announcements);
     } catch (error) {
       this.logger.error(
