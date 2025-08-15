@@ -39,28 +39,7 @@ export class AnnouncementRepository implements OnModuleInit {
   }
 
   async findByAssociationId(associationId: string): Promise<Announcement[]> {
-    console.log(`=== REPOSITORY DEBUG ===`);
-    console.log(`Recherche dans la collection pour associationId: ${associationId}`);
-
-    const result = await this.collection.find({ associationId }).toArray();
-
-    console.log(`Résultat de la requête MongoDB: ${result.length} annonces trouvées`);
-
-    if (result.length > 0) {
-      console.log(`Premier document MongoDB:`, {
-        _id: result[0]._id,
-        associationId: result[0].associationId,
-        nameEvent: result[0].nameEvent,
-        status: result[0].status,
-        participants: result[0].participants?.length || 0,
-        volunteers: result[0].volunteers?.length || 0,
-      });
-    } else {
-      console.log(`AUCUN DOCUMENT TROUVÉ dans MongoDB pour associationId: ${associationId}`);
-    }
-
-    console.log(`=== FIN REPOSITORY DEBUG ===`);
-    return result;
+    return await this.collection.find({ associationId }).toArray();
   }
 
   async filterAssociationAnnouncements(

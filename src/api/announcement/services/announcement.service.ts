@@ -137,33 +137,13 @@ export class AnnouncementService {
 
   async findByAssociationId(associationId: string): Promise<Announcement[]> {
     try {
-      this.logger.log(`=== ANNOUNCEMENT SERVICE DEBUG ===`);
-      this.logger.log(`Recherche d'annonces pour l'association: ${associationId}`);
-
       const announcements = await this.announcementRepository.findByAssociationId(associationId);
 
-      this.logger.log(`Annonces brutes récupérées: ${announcements?.length || 0}`);
-
       if (!announcements || announcements.length === 0) {
-        this.logger.warn(`Aucune annonce trouvée pour l'association: ${associationId}`);
         return [];
       }
 
-      this.logger.log(`Première annonce brute:`, {
-        id: announcements[0].id,
-        nameEvent: announcements[0].nameEvent,
-        status: announcements[0].status,
-        associationId: announcements[0].associationId,
-        participants: announcements[0].participants?.length || 0,
-        volunteers: announcements[0].volunteers?.length || 0,
-      });
-
-      const enrichedAnnouncements = await this.enrichAnnouncements(announcements);
-
-      this.logger.log(`Annonces enrichies: ${enrichedAnnouncements.length}`);
-      this.logger.log(`=== FIN ANNOUNCEMENT SERVICE DEBUG ===`);
-
-      return enrichedAnnouncements;
+      return await this.enrichAnnouncements(announcements);
     } catch (error) {
       this.logger.error(
         `Erreur lors de la récupération des annonces de l'association: ${associationId}`,

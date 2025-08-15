@@ -24,29 +24,20 @@ export class AssociationStatsSimpleService {
     announcements: Announcement[],
   ): Promise<AssociationDashboardResponseDto> {
     try {
-      this.logger.log(`=== STATS SERVICE DEBUG ===`);
-      this.logger.log(`Association ID: ${associationId}`);
-      this.logger.log(`Nombre d'annonces reçues: ${announcements.length}`);
-      this.logger.log(`Filtres:`, JSON.stringify(filter, null, 2));
-
       // Définir la période d'analyse
       const startDate = filter.startDate
         ? DateTime.fromISO(filter.startDate).startOf('day')
-        : this.nowParis.minus({ months: 12 }).startOf('day'); // 12 mois au lieu de 6
+        : this.nowParis.minus({ months: 12 }).startOf('day');
 
       const endDate = filter.endDate
         ? DateTime.fromISO(filter.endDate).endOf('day')
         : this.nowParis.plus({ months: 6 }).endOf('day'); // +6 mois pour inclure 2025
-
-      this.logger.log(`Période d'analyse: ${startDate.toISO()} à ${endDate.toISO()}`);
 
       // Filtrer les annonces par période
       let filteredAnnouncements = announcements.filter(a => {
         const pubDate = DateTime.fromJSDate(new Date(a.datePublication));
         return pubDate >= startDate && pubDate <= endDate;
       });
-
-      this.logger.log(`Annonces après filtrage par période: ${filteredAnnouncements.length}`);
 
       // Appliquer les filtres supplémentaires
       if (filter.eventType) {
@@ -60,29 +51,18 @@ export class AssociationStatsSimpleService {
       }
 
       // Calculer les statistiques
-      this.logger.log(`Calcul des statistiques des annonces...`);
       const announcementStats = this.calculateAnnouncementStats(filteredAnnouncements);
-
-      this.logger.log(`Calcul des statistiques des participants...`);
       const participantStats = this.calculateParticipantStats(filteredAnnouncements, startDate);
-
-      this.logger.log(`Calcul des statistiques des bénévoles...`);
       const volunteerStats = this.calculateVolunteerStats(filteredAnnouncements, startDate);
-
-      this.logger.log(`Calcul des statistiques d'engagement...`);
       const engagementStats = this.calculateEngagementStats(filteredAnnouncements);
-
-      this.logger.log(`Calcul des données de série temporelle...`);
       const timeSeriesData = this.calculateTimeSeriesData(
         filteredAnnouncements,
         startDate,
         endDate,
       );
-
-      this.logger.log(`Calcul des statistiques par type d'événement...`);
       const eventTypeStats = this.calculateEventTypeStats(filteredAnnouncements);
 
-      const result = {
+      return {
         announcementStats,
         participantStats,
         volunteerStats,
@@ -94,16 +74,6 @@ export class AssociationStatsSimpleService {
           endDate: endDate.toISO(),
         },
       };
-
-      this.logger.log(`Résultats finaux:`, {
-        totalAnnouncements: result.announcementStats.totalAnnouncements,
-        totalParticipants: result.participantStats.totalUniqueParticipants,
-        totalVolunteers: result.volunteerStats.totalUniqueVolunteers,
-        engagementRate: result.engagementStats.overallEngagementRate,
-      });
-
-      this.logger.log(`=== FIN STATS SERVICE DEBUG ===`);
-      return result;
     } catch (error) {
       this.logger.error(
         `Erreur lors de la récupération du dashboard pour l'association: ${associationId}`,

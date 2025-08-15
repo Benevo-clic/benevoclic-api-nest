@@ -74,54 +74,17 @@ export class AssociationDashboardSimpleController {
     @Param('associationId') associationId: string,
     @Query() filter: AssociationStatsFilterDto,
   ): Promise<AssociationDashboardResponseDto> {
-    this.logger.log(`=== DASHBOARD BACKEND DEBUG ===`);
-    this.logger.log(`Association ID reçu: ${associationId}`);
-    this.logger.log(`Filtres reçus:`, JSON.stringify(filter, null, 2));
+    this.logger.log(`Récupération du dashboard pour l'association: ${associationId}`);
 
     // Récupérer toutes les annonces de l'association
-    this.logger.log(`Appel de findByAssociationId pour: ${associationId}`);
     const announcements = await this.announcementService.findByAssociationId(associationId);
 
-    this.logger.log(`Nombre d'annonces trouvées: ${announcements.length}`);
-
-    if (announcements.length > 0) {
-      this.logger.log(`Première annonce:`, {
-        id: announcements[0].id,
-        nameEvent: announcements[0].nameEvent,
-        status: announcements[0].status,
-        associationId: announcements[0].associationId,
-        participants: announcements[0].participants?.length || 0,
-        volunteers: announcements[0].volunteers?.length || 0,
-      });
-
-      if (announcements.length > 1) {
-        this.logger.log(`Deuxième annonce:`, {
-          id: announcements[1].id,
-          nameEvent: announcements[1].nameEvent,
-          status: announcements[1].status,
-          associationId: announcements[1].associationId,
-        });
-      }
-    } else {
-      this.logger.warn(`AUCUNE ANNONCE TROUVÉE pour l'association: ${associationId}`);
-    }
-
-    this.logger.log(`Appel du service de statistiques...`);
-    const result = await this.associationStatsService.getAssociationDashboard(
+    // Calculer les statistiques
+    return await this.associationStatsService.getAssociationDashboard(
       associationId,
       filter,
       announcements,
     );
-
-    this.logger.log(`Résultat des statistiques:`, {
-      totalAnnouncements: result.announcementStats.totalAnnouncements,
-      totalParticipants: result.participantStats.totalUniqueParticipants,
-      totalVolunteers: result.volunteerStats.totalUniqueVolunteers,
-      engagementRate: result.engagementStats.overallEngagementRate,
-    });
-
-    this.logger.log(`=== FIN DASHBOARD BACKEND DEBUG ===`);
-    return result;
   }
 
   @Get(':associationId/announcements')
