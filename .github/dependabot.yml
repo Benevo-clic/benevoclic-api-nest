@@ -1,0 +1,125 @@
+# Configuration Dependabot pour BenevoClic API NestJS
+# Automatise les mises à jour des dépendances avec sécurité et contrôle
+
+version: 2
+updates:
+  # Mises à jour npm (dépendances principales)
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Europe/Paris'
+    open-pull-requests-limit: 10
+    reviewers:
+      - 'Benevo-clic'
+    assignees:
+      - 'Benevo-clic'
+    commit-message:
+      prefix: 'chore'
+      prefix-development: 'chore'
+      include: 'scope'
+    labels:
+      - 'dependencies'
+      - 'npm'
+      - 'api'
+    ignore:
+      # Ignorer les mises à jour majeures automatiquement
+      - dependency-name: '*'
+        update-types:
+          - 'version-update:semver-major'
+    # Autoriser les mises à jour mineures et patch automatiquement
+    allow:
+      - dependency-type: 'direct'
+        update-types:
+          - 'version-update:semver-minor'
+          - 'version-update:semver-patch'
+
+  # Mises à jour GitHub Actions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'tuesday'
+      time: '10:00'
+      timezone: 'Europe/Paris'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 'Benevo-clic'
+    assignees:
+      - 'Benevo-clic'
+    commit-message:
+      prefix: 'ci'
+      include: 'scope'
+    labels:
+      - 'dependencies'
+      - 'github-actions'
+      - 'api'
+    ignore:
+      # Ignorer les mises à jour majeures des actions critiques
+      - dependency-name: 'actions/checkout'
+        update-types:
+          - 'version-update:semver-major'
+      - dependency-name: 'actions/setup-node'
+        update-types:
+          - 'version-update:semver-major'
+
+  # Mises à jour Docker (si applicable)
+  - package-ecosystem: 'docker'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+      day: '1'
+      time: '11:00'
+      timezone: 'Europe/Paris'
+    open-pull-requests-limit: 3
+    reviewers:
+      - 'Benevo-clic'
+    assignees:
+      - 'Benevo-clic'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    labels:
+      - 'dependencies'
+      - 'docker'
+      - 'api'
+
+  # Configuration de sécurité (mises à jour quotidiennes)
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'daily'
+      time: '08:00'
+      timezone: 'Europe/Paris'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 'Benevo-clic'
+    assignees:
+      - 'Benevo-clic'
+    commit-message:
+      prefix: 'security'
+      include: 'scope'
+    labels:
+      - 'security'
+      - 'dependencies'
+      - 'npm'
+      - 'api'
+    # Mettre à jour uniquement les vulnérabilités de sécurité
+    allow:
+      - dependency-type: 'direct'
+        update-types:
+          - 'security'
+    # Ignorer les autres types de mises à jour
+    ignore:
+      - dependency-name: '*'
+        update-types:
+          - 'version-update:semver-major'
+          - 'version-update:semver-minor'
+          - 'version-update:semver-patch'
+
+# Configuration globale
+update-schedule: 'weekly'
+rebase-strategy: 'auto'
+target-branch: 'develop'
