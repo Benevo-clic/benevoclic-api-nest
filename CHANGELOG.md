@@ -6,6 +6,16 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
+## [0.11.0] - 2025-08-18
+
+### 🚀 Ajouté
+- extend roles for announcement management to include ADMIN
+
+### 📚 Documentation
+- add useful links to README for application, GitHub, monitoring, and communication
+
+---
+
 ## [0.10.0] - 2025-08-18
 
 ### 🚀 Ajouté
