@@ -456,6 +456,11 @@ export class AnnouncementService {
         dateAdded: this.nowParis.toISODate(),
       });
       announcement.nbVolunteers++;
+      announcement.status =
+        announcement.nbVolunteers >= announcement.maxVolunteers &&
+        announcement.nbParticipants >= announcement.maxParticipants
+          ? AnnouncementStatus.COMPLETED
+          : AnnouncementStatus.ACTIVE;
       await this.announcementRepository.updateVolunteer(id, announcement);
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
@@ -525,6 +530,12 @@ export class AnnouncementService {
       if (!(await this.isVolunteer(announcement, volunteerId))) {
         throw new BadRequestException('Volunteer not registered');
       }
+      announcement.status =
+        announcement.nbVolunteers - 1 >= announcement.maxVolunteers &&
+        announcement.nbParticipants >= announcement.maxParticipants
+          ? AnnouncementStatus.COMPLETED
+          : AnnouncementStatus.ACTIVE;
+      await this.announcementRepository.updateStatus(id, announcement.status);
       await this.announcementRepository.removeVolunteer(
         id,
         volunteerId,
@@ -610,6 +621,11 @@ export class AnnouncementService {
         dateAdded: this.nowParis.toISODate(),
       });
       announcement.nbParticipants++;
+      announcement.status =
+        announcement.nbVolunteers >= announcement.maxVolunteers &&
+        announcement.nbParticipants >= announcement.maxParticipants
+          ? AnnouncementStatus.COMPLETED
+          : AnnouncementStatus.ACTIVE;
       await this.announcementRepository.updateVolunteer(id, announcement);
       return participant;
     } catch (error) {
@@ -637,6 +653,12 @@ export class AnnouncementService {
       if (!(await this.isParticipant(announcement, participantId))) {
         throw new BadRequestException('Participant not registered');
       }
+      announcement.status =
+        announcement.nbVolunteers >= announcement.maxVolunteers &&
+        announcement.nbParticipants - 1 >= announcement.maxParticipants
+          ? AnnouncementStatus.COMPLETED
+          : AnnouncementStatus.ACTIVE;
+      await this.announcementRepository.updateStatus(id, announcement.status);
       await this.announcementRepository.removeParticipant(
         id,
         participantId,
