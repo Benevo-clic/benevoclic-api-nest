@@ -102,7 +102,7 @@ export class AnnouncementController {
 
   @Post('createAnnouncement')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ASSOCIATION)
+  @Roles(UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new announcement' })
   @ApiBody({ type: CreateAnnouncementDto })
@@ -144,7 +144,7 @@ export class AnnouncementController {
 
   @Post('filter/association')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ASSOCIATION)
+  @Roles(UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Filter announcements by association' })
   @ApiBody({ type: FilterAssociationAnnouncementDto })
@@ -165,7 +165,7 @@ export class AnnouncementController {
 
   @Get('association/:associationId')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ASSOCIATION, UserRole.VOLUNTEER)
+  @Roles(UserRole.ASSOCIATION, UserRole.VOLUNTEER, UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Find all announcements by association ID' })
   @ApiParam({
@@ -281,7 +281,7 @@ export class AnnouncementController {
 
   @Patch(':id')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ASSOCIATION)
+  @Roles(UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update an announcement' })
   @ApiParam({
@@ -309,7 +309,7 @@ export class AnnouncementController {
 
   @Delete(':id')
   @UseGuards(AuthGuard)
-  @Roles(UserRole.ASSOCIATION)
+  @Roles(UserRole.ASSOCIATION, UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Supprimer une annonce par son ID' })
   @ApiParam({
