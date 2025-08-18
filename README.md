@@ -5,6 +5,29 @@
 API REST moderne construite avec NestJS 11.0.7 pour la plateforme Benevoclic, connectant les associations avec des
 bénévoles. Architecture modulaire avec monitoring complet, authentification Firebase et base de données MongoDB.
 
+## 📌 Liens utiles
+
+### 🌐 Application
+
+- **Benevoclic** : https://www.benevoclic.fr
+
+### 💻 GitHub
+
+- **Front-end** : https://github.com/Benevo-clic/benevoclic-web
+- **Back-end** : https://github.com/Benevo-clic/benevoclic-api-nest
+- **Documentation** : https://github.com/Benevo-clic/benevoclic-docs
+
+### 📊 Monitoring
+
+- **Grafana (Dashboard)** : http://mon_ip:3001/dashboards
+- **Prometheus (Query)** : http://mon_ip:9090/query
+- **AlertManager (Alerts)** : http://mon_ip:9093/#/alerts
+- **API Health (Status)** : http://mon_ip:3000/health
+
+### 💬 Communication
+
+- **Discord (Support)** : https://discord.gg/F7NMNGT9
+
 ## 🛠️ Technologies
 
 - **Framework** : NestJS 11.0.7 + TypeScript
