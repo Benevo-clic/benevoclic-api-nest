@@ -6,6 +6,13 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
+## [0.13.0] - 2025-09-12
+
+### 🚀 Ajouté
+- update associationId for sample announcements and bump version to 0.12.0 (#105)
+
+---
+
 ## [0.12.0] - 2025-08-18
 
 ### 🚀 Ajouté
