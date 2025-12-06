@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { MongoConfig } from './mongo.config';
+import { PostgresConfig } from './postgres.config';
 
 @Module({
   imports: [
@@ -8,7 +9,7 @@ import { MongoConfig } from './mongo.config';
       isGlobal: true,
     }),
   ],
-  providers: [MongoConfig],
-  exports: [MongoConfig],
+  providers: [MongoConfig, PostgresConfig],
+  exports: [MongoConfig, PostgresConfig],
 })
-export class ConfigModule {}
+export class ConfigModule { }

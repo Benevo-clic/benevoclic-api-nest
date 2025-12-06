@@ -1,17 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SettingsRepository } from './settings.repository';
-import { MongoClient, ObjectId } from 'mongodb';
 import { VolunteerSettings } from '../entities/volunteer-settings.entity';
 import { AssociationSettings } from '../entities/association-settings.entity';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { NotFoundException } from '@nestjs/common';
 
 describe('SettingsRepository', () => {
   let repository: SettingsRepository;
-  let mockMongoClient: jest.Mocked<MongoClient>;
-  let mockVolunteerCollection: any;
-  let mockAssociationCollection: any;
+  let mockVolunteerRepository: Partial<Repository<VolunteerSettings>>;
+  let mockAssociationRepository: Partial<Repository<AssociationSettings>>;
 
-  const mockVolunteerSettings: VolunteerSettings & { _id: ObjectId } = {
-    _id: new ObjectId(),
+  const mockVolunteerSettings: VolunteerSettings = {
     userId: 'test-user-id',
     profileVisibility: true,
     locationSharing: false,
@@ -21,8 +21,7 @@ describe('SettingsRepository', () => {
     updatedAt: new Date(),
   };
 
-  const mockAssociationSettings: AssociationSettings & { _id: ObjectId } = {
-    _id: new ObjectId(),
+  const mockAssociationSettings: AssociationSettings = {
     associationId: 'test-association-id',
     profileVisibility: true,
     contactInfoVisibility: false,
@@ -40,40 +39,32 @@ describe('SettingsRepository', () => {
   };
 
   beforeEach(async () => {
-    mockVolunteerCollection = {
-      findOne: jest.fn(),
-      insertOne: jest.fn(),
-      updateOne: jest.fn(),
-      createIndex: jest.fn(),
+    mockVolunteerRepository = {
+      findOneBy: jest.fn(),
+      create: jest.fn(),
+      save: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
     };
 
-    mockAssociationCollection = {
-      findOne: jest.fn(),
-      insertOne: jest.fn(),
-      updateOne: jest.fn(),
-      createIndex: jest.fn(),
+    mockAssociationRepository = {
+      findOneBy: jest.fn(),
+      create: jest.fn(),
+      save: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
     };
-
-    mockMongoClient = {
-      db: jest.fn().mockReturnValue({
-        collection: jest.fn().mockImplementation((name: string) => {
-          if (name === 'volunteer_settings') {
-            return mockVolunteerCollection;
-          }
-          if (name === 'association_settings') {
-            return mockAssociationCollection;
-          }
-          return mockVolunteerCollection; // fallback
-        }),
-      }),
-    } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SettingsRepository,
         {
-          provide: 'MONGODB_CONNECTION',
-          useValue: mockMongoClient,
+          provide: getRepositoryToken(VolunteerSettings),
+          useValue: mockVolunteerRepository,
+        },
+        {
+          provide: getRepositoryToken(AssociationSettings),
+          useValue: mockAssociationRepository,
         },
       ],
     }).compile();
@@ -87,104 +78,87 @@ describe('SettingsRepository', () => {
 
   describe('findVolunteerSettingsByUserId', () => {
     it('should return volunteer settings when found', async () => {
-      mockVolunteerCollection.findOne.mockResolvedValue(mockVolunteerSettings);
+      (mockVolunteerRepository.findOneBy as jest.Mock).mockResolvedValue(mockVolunteerSettings);
 
       const result = await repository.findVolunteerSettingsByUserId('test-user-id');
 
       expect(result).toEqual(mockVolunteerSettings);
-      expect(mockVolunteerCollection.findOne).toHaveBeenCalledWith({ userId: 'test-user-id' });
+      expect(mockVolunteerRepository.findOneBy).toHaveBeenCalledWith({ userId: 'test-user-id' });
     });
 
     it('should return null when volunteer settings not found', async () => {
-      mockVolunteerCollection.findOne.mockResolvedValue(null);
+      (mockVolunteerRepository.findOneBy as jest.Mock).mockResolvedValue(null);
 
       const result = await repository.findVolunteerSettingsByUserId('test-user-id');
 
       expect(result).toBeNull();
-      expect(mockVolunteerCollection.findOne).toHaveBeenCalledWith({ userId: 'test-user-id' });
+      expect(mockVolunteerRepository.findOneBy).toHaveBeenCalledWith({ userId: 'test-user-id' });
     });
   });
 
   describe('createVolunteerSettings', () => {
     it('should create volunteer settings', async () => {
-      const settingsData = {
-        userId: 'test-user-id',
-        profileVisibility: true,
-        locationSharing: false,
-        activitySharing: true,
-        twoFactor: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      (mockVolunteerRepository.create as jest.Mock).mockReturnValue(mockVolunteerSettings);
+      (mockVolunteerRepository.save as jest.Mock).mockResolvedValue(mockVolunteerSettings);
 
-      mockVolunteerCollection.insertOne.mockResolvedValue({
-        insertedId: mockVolunteerSettings._id,
-      });
-      mockVolunteerCollection.findOne.mockResolvedValue(mockVolunteerSettings);
+      const result = await repository.createVolunteerSettings(mockVolunteerSettings);
 
-      const result = await repository.createVolunteerSettings(settingsData);
-
-      expect(result.userId).toBe(mockVolunteerSettings.userId);
-      expect(result.profileVisibility).toBe(mockVolunteerSettings.profileVisibility);
-      expect(result.locationSharing).toBe(mockVolunteerSettings.locationSharing);
-      expect(result.activitySharing).toBe(mockVolunteerSettings.activitySharing);
-      expect(result.twoFactor).toBe(mockVolunteerSettings.twoFactor);
-      expect(mockVolunteerCollection.insertOne).toHaveBeenCalledWith({
-        ...settingsData,
-        createdAt: expect.any(Date),
-        updatedAt: expect.any(Date),
-      });
+      expect(result).toEqual(mockVolunteerSettings);
+      expect(mockVolunteerRepository.create).toHaveBeenCalledWith(mockVolunteerSettings);
+      expect(mockVolunteerRepository.save).toHaveBeenCalledWith(mockVolunteerSettings);
     });
   });
 
   describe('upsertVolunteerSettings', () => {
-    it('should upsert volunteer settings', async () => {
-      const updateData = {
-        profileVisibility: false,
-        locationSharing: true,
-      };
+    it('should update existing volunteer settings', async () => {
+      const updateData = { profileVisibility: false };
+      (mockVolunteerRepository.findOneBy as jest.Mock).mockResolvedValue(mockVolunteerSettings);
+      (mockVolunteerRepository.update as jest.Mock).mockResolvedValue({ affected: 1 });
 
-      mockVolunteerCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
-      mockVolunteerCollection.findOne.mockResolvedValue({
+      await repository.upsertVolunteerSettings('test-user-id', updateData);
+
+      expect(mockVolunteerRepository.update).toHaveBeenCalledWith(
+        { userId: 'test-user-id' },
+        updateData,
+      );
+    });
+
+    it('should create new volunteer settings if not exists', async () => {
+      const updateData = { profileVisibility: false };
+      (mockVolunteerRepository.findOneBy as jest.Mock).mockResolvedValue(null);
+      (mockVolunteerRepository.save as jest.Mock).mockResolvedValue({
         ...mockVolunteerSettings,
         ...updateData,
       });
 
-      const result = await repository.upsertVolunteerSettings('test-user-id', updateData);
+      await repository.upsertVolunteerSettings('test-user-id', updateData);
 
-      expect(result.profileVisibility).toBe(false);
-      expect(result.locationSharing).toBe(true);
-      expect(mockVolunteerCollection.updateOne).toHaveBeenCalledWith(
-        { userId: 'test-user-id' },
-        {
-          $set: expect.objectContaining({
-            ...updateData,
-            updatedAt: expect.any(Date),
-          }),
-        },
-      );
+      expect(mockVolunteerRepository.save).toHaveBeenCalledWith({
+        userId: 'test-user-id',
+        ...updateData,
+      });
     });
   });
 
   describe('findAssociationSettingsByAssociationId', () => {
     it('should return association settings when found', async () => {
-      mockAssociationCollection.findOne.mockResolvedValue(mockAssociationSettings);
+      (mockAssociationRepository.findOneBy as jest.Mock).mockResolvedValue(mockAssociationSettings);
 
       const result = await repository.findAssociationSettingsByAssociationId('test-association-id');
 
       expect(result).toEqual(mockAssociationSettings);
-      expect(mockAssociationCollection.findOne).toHaveBeenCalledWith({
+      expect(mockAssociationRepository.findOneBy).toHaveBeenCalledWith({
         associationId: 'test-association-id',
       });
     });
 
     it('should return null when association settings not found', async () => {
-      mockAssociationCollection.findOne.mockResolvedValue(null);
+      (mockAssociationRepository.findOneBy as jest.Mock).mockResolvedValue(null);
 
       const result = await repository.findAssociationSettingsByAssociationId('test-association-id');
 
       expect(result).toBeNull();
-      expect(mockAssociationCollection.findOne).toHaveBeenCalledWith({
+      expect(mockAssociationRepository.findOneBy).toHaveBeenCalledWith({
         associationId: 'test-association-id',
       });
     });
@@ -192,75 +166,82 @@ describe('SettingsRepository', () => {
 
   describe('createAssociationSettings', () => {
     it('should create association settings', async () => {
-      const settingsData = {
-        associationId: 'test-association-id',
-        profileVisibility: true,
-        contactInfoVisibility: false,
-        eventVisibility: true,
-        volunteerListVisibility: false,
-        twoFactor: false,
-        loginNotifications: true,
-        siretVerification: true,
-        autoApproveVolunteers: false,
-        volunteerLimits: true,
-        participantLimits: true,
-        eventApproval: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      (mockAssociationRepository.create as jest.Mock).mockReturnValue(mockAssociationSettings);
+      (mockAssociationRepository.save as jest.Mock).mockResolvedValue(mockAssociationSettings);
 
-      mockAssociationCollection.insertOne.mockResolvedValue({
-        insertedId: mockAssociationSettings._id,
-      });
-      mockAssociationCollection.findOne.mockResolvedValue(mockAssociationSettings);
+      const result = await repository.createAssociationSettings(mockAssociationSettings);
 
-      const result = await repository.createAssociationSettings(settingsData);
-
-      expect(result.associationId).toBe(mockAssociationSettings.associationId);
-      expect(result.profileVisibility).toBe(mockAssociationSettings.profileVisibility);
-      expect(result.contactInfoVisibility).toBe(mockAssociationSettings.contactInfoVisibility);
-      expect(result.eventVisibility).toBe(mockAssociationSettings.eventVisibility);
-      expect(result.volunteerListVisibility).toBe(mockAssociationSettings.volunteerListVisibility);
-      expect(result.twoFactor).toBe(mockAssociationSettings.twoFactor);
-      expect(result.loginNotifications).toBe(mockAssociationSettings.loginNotifications);
-      expect(result.siretVerification).toBe(mockAssociationSettings.siretVerification);
-      expect(result.autoApproveVolunteers).toBe(mockAssociationSettings.autoApproveVolunteers);
-      expect(result.volunteerLimits).toBe(mockAssociationSettings.volunteerLimits);
-      expect(result.participantLimits).toBe(mockAssociationSettings.participantLimits);
-      expect(result.eventApproval).toBe(mockAssociationSettings.eventApproval);
-      expect(mockAssociationCollection.insertOne).toHaveBeenCalledWith({
-        ...settingsData,
-        createdAt: expect.any(Date),
-        updatedAt: expect.any(Date),
-      });
+      expect(result).toEqual(mockAssociationSettings);
+      expect(mockAssociationRepository.create).toHaveBeenCalledWith(mockAssociationSettings);
+      expect(mockAssociationRepository.save).toHaveBeenCalledWith(mockAssociationSettings);
     });
   });
 
   describe('upsertAssociationSettings', () => {
-    it('should upsert association settings', async () => {
-      const updateData = {
-        profileVisibility: false,
-        contactInfoVisibility: true,
-      };
+    it('should update existing association settings', async () => {
+      const updateData = { profileVisibility: false };
+      (mockAssociationRepository.findOneBy as jest.Mock).mockResolvedValue(mockAssociationSettings);
+      (mockAssociationRepository.update as jest.Mock).mockResolvedValue({ affected: 1 });
 
-      mockAssociationCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
-      mockAssociationCollection.findOne.mockResolvedValue({
+      await repository.upsertAssociationSettings('test-association-id', updateData);
+
+      expect(mockAssociationRepository.update).toHaveBeenCalledWith(
+        { associationId: 'test-association-id' },
+        updateData,
+      );
+    });
+
+    it('should create new association settings if not exists', async () => {
+      const updateData = { profileVisibility: false };
+      (mockAssociationRepository.findOneBy as jest.Mock).mockResolvedValue(null);
+      (mockAssociationRepository.save as jest.Mock).mockResolvedValue({
         ...mockAssociationSettings,
         ...updateData,
       });
 
-      const result = await repository.upsertAssociationSettings('test-association-id', updateData);
+      await repository.upsertAssociationSettings('test-association-id', updateData);
 
-      expect(result.profileVisibility).toBe(false);
-      expect(result.contactInfoVisibility).toBe(true);
-      expect(mockAssociationCollection.updateOne).toHaveBeenCalledWith(
-        { associationId: 'test-association-id' },
-        {
-          $set: expect.objectContaining({
-            ...updateData,
-            updatedAt: expect.any(Date),
-          }),
-        },
+      expect(mockAssociationRepository.save).toHaveBeenCalledWith({
+        associationId: 'test-association-id',
+        ...updateData,
+      });
+    });
+  });
+
+  describe('deleteVolunteerSettings', () => {
+    it('should delete volunteer settings', async () => {
+      (mockVolunteerRepository.delete as jest.Mock).mockResolvedValue({ affected: 1 });
+
+      await repository.deleteVolunteerSettings('test-user-id');
+
+      expect(mockVolunteerRepository.delete).toHaveBeenCalledWith({ userId: 'test-user-id' });
+    });
+
+    it('should throw NotFoundException if not found', async () => {
+      (mockVolunteerRepository.delete as jest.Mock).mockResolvedValue({ affected: 0 });
+
+      await expect(repository.deleteVolunteerSettings('test-user-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('deleteAssociationSettings', () => {
+    it('should delete association settings', async () => {
+      (mockAssociationRepository.delete as jest.Mock).mockResolvedValue({ affected: 1 });
+
+      await repository.deleteAssociationSettings('test-association-id');
+
+      expect(mockAssociationRepository.delete).toHaveBeenCalledWith({
+        associationId: 'test-association-id',
+      });
+    });
+
+    it('should throw NotFoundException if not found', async () => {
+      (mockAssociationRepository.delete as jest.Mock).mockResolvedValue({ affected: 0 });
+
+      await expect(repository.deleteAssociationSettings('test-association-id')).rejects.toThrow(
+        NotFoundException,
       );
     });
   });

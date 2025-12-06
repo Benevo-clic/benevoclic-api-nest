@@ -16,6 +16,8 @@ import { HealthModule } from './api/health/health.module';
 import { PrometheusModule } from './api/prometheus/prometheus.module';
 import { PrometheusMiddleware } from './common/middleware/prometheus.middleware';
 
+import { DateService } from './common/services/date.service';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -39,8 +41,9 @@ import { PrometheusMiddleware } from './common/middleware/prometheus.middleware'
     LoggerService,
     OrphanCleanupService,
     PrometheusMiddleware,
+    DateService,
   ],
   controllers: [OrphanCleanupController],
-  exports: [LoggerService, OrphanCleanupService],
+  exports: [LoggerService, OrphanCleanupService, DateService],
 })
-export class AppModule {}
+export class AppModule { }

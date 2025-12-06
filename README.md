@@ -400,6 +400,7 @@ curl -s http://localhost:9090/api/v1/query?query=rate\(http_request_duration_sec
 
 # Taux d'erreurs
 curl -s http://localhost:9090/api/v1/query?query=rate\(http_requests_total\{status=~\"5..\"\}\[5m\]\)/rate\(http_requests_total\[5m\]\)
+
 ```
 
 ### Alertes Configurées

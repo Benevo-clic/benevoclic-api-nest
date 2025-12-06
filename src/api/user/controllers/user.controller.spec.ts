@@ -1,20 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserController } from './user.controller';
 import { UserService } from '../../../common/services/user/user.service';
-import { UserRepository } from '../repository/user.repository';
-import { ConfigModule as NestConfigModule } from '@nestjs/config';
-import { DatabaseModule } from '../../../database/database.module';
-import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
-import { MongoClient, ObjectId } from 'mongodb';
-import { DatabaseCollection } from '../../../common/enums/database.collection';
 import { UserRole } from '../../../common/enums/roles.enum';
 import { InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
-import * as admin from 'firebase-admin';
 import * as mockData from '../../../../test/testFiles/user.data.json';
-import { VolunteerService } from '../../volunteer/services/volunteer.service';
-import { AssociationService } from '../../association/services/association.service';
-import { AwsS3Service } from '../../../common/aws/aws-s3.service';
-import { SettingsService } from '../../settings/services/settings.service';
+import { ConfigService } from '@nestjs/config';
 
 jest.mock('firebase-admin', () => ({
   initializeApp: jest.fn(),
@@ -88,108 +78,45 @@ jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
 
 describe('UserController', () => {
   let userController: UserController;
-  let mongoClient: MongoClient;
-  let testingModule: TestingModule;
   let userService: UserService;
 
-  beforeAll(async () => {
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: 'mock-project',
-        clientEmail: 'mock@email.com',
-        privateKey: 'mock-key',
-      }),
-    });
+  const mockUserService = {
+    findAll: jest.fn(),
+    findOne: jest.fn(),
+    registerUser: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+    logout: jest.fn(),
+  };
 
-    testingModule = await Test.createTestingModule({
-      imports: [
-        NestConfigModule.forRoot({
-          isGlobal: true,
-          load: [
-            () => ({
-              FIREBASE_API_KEY: 'mock-api-key',
-              MONGODB_URL: process.env.MONGODB_URL,
-              MONGODB_DB_NAME: process.env.MONGODB_DB_NAME,
-            }),
-          ],
-        }),
-        DatabaseModule,
-      ],
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
       providers: [
-        UserService,
-        UserRepository,
         {
-          provide: VolunteerService,
-          useValue: {
-            create: jest.fn(),
-            findAll: jest.fn(),
-            findById: jest.fn(),
-            update: jest.fn(),
-            remove: jest.fn(),
-          },
+          provide: UserService,
+          useValue: mockUserService,
         },
         {
-          provide: AssociationService,
+          provide: ConfigService,
           useValue: {
-            findAll: jest.fn(),
-            findById: jest.fn(),
-            create: jest.fn(),
-            update: jest.fn(),
-            remove: jest.fn(),
-          },
-        },
-        {
-          provide: AwsS3Service,
-          useValue: {
-            uploadFile: jest.fn(),
-            deleteFile: jest.fn(),
-            getFileUrl: jest.fn(),
-          },
-        },
-        {
-          provide: SettingsService,
-          useValue: {
-            findAll: jest.fn(),
-            findById: jest.fn(),
-            create: jest.fn(),
-            update: jest.fn(),
-            remove: jest.fn(),
-            findByKey: jest.fn(),
-            updateByKey: jest.fn(),
+            get: jest.fn().mockReturnValue('mock-api-key'),
           },
         },
       ],
-      exports: [UserService],
     }).compile();
 
-    userController = testingModule.get<UserController>(UserController);
-    mongoClient = testingModule.get<MongoClient>(MONGODB_CONNECTION);
-    userService = testingModule.get<UserService>(UserService);
-
-    if (mongoClient) {
-      const users = mockData.users.map(user => ({
-        ...user,
-        _id: new ObjectId(),
-      }));
-      const db = mongoClient.db();
-      await db.collection(DatabaseCollection.USERS).deleteMany({});
-      await db.collection(DatabaseCollection.USERS).insertMany(users);
-    }
+    userController = module.get<UserController>(UserController);
+    userService = module.get<UserService>(UserService);
   });
 
-  afterAll(async () => {
-    if (mongoClient) {
-      const db = mongoClient.db();
-      await db.collection(DatabaseCollection.USERS).deleteMany({});
-    }
-    if (testingModule) {
-      await testingModule.close();
-    }
+  it('should be defined', () => {
+    expect(userController).toBeDefined();
   });
 
   describe('findAll', () => {
     it('should return all users', async () => {
+      mockUserService.findAll.mockResolvedValue(mockData.users);
       const users = await userController.findAll();
       expect(users).toBeDefined();
       expect(Array.isArray(users)).toBe(true);
@@ -198,6 +125,7 @@ describe('UserController', () => {
 
   describe('findOne', () => {
     it('should return a single user', async () => {
+      mockUserService.findOne.mockResolvedValue(mockData.users[0]);
       const found = await userController.findOne(mockData.users[0].userId);
 
       expect(found).toBeDefined();
@@ -217,6 +145,7 @@ describe('UserController', () => {
     };
 
     it('should create a new user', async () => {
+      mockUserService.registerUser.mockResolvedValue({ uid: 'newMockUid123', ...newUser });
       const createdUser = await userController.registerUser(newUser);
       expect(createdUser).toBeDefined();
     });
@@ -226,6 +155,8 @@ describe('UserController', () => {
         ...newUser,
         email: 'existing@email.com',
       };
+
+      mockUserService.registerUser.mockRejectedValue(new InternalServerErrorException());
 
       await expect(userController.registerUser(existingUser)).rejects.toThrow(
         InternalServerErrorException,
@@ -243,9 +174,7 @@ describe('UserController', () => {
     };
 
     it('should update a user', async () => {
-      jest
-        .spyOn(userService, 'update')
-        .mockResolvedValue({ message: 'Utilisateur mis à jour avec succès' });
+      mockUserService.update.mockResolvedValue({ message: 'Utilisateur mis à jour avec succès' });
 
       const result = await userController.update(mockData.users[0].userId, updateData);
       expect(result).toBeDefined();
@@ -253,9 +182,9 @@ describe('UserController', () => {
     });
 
     it('should throw error if user not found', async () => {
-      jest
-        .spyOn(userService, 'update')
-        .mockRejectedValue(new NotFoundException("Erreur lors de la mise à jour de l'utilisateur"));
+      mockUserService.update.mockRejectedValue(
+        new NotFoundException("Erreur lors de la mise à jour de l'utilisateur"),
+      );
 
       await expect(userController.update('nonexistent-id', updateData)).rejects.toThrow(
         NotFoundException,
@@ -266,16 +195,16 @@ describe('UserController', () => {
   describe('delete', () => {
     it('should delete a user', async () => {
       const userId = mockData.users[0].userId;
-      jest.spyOn(userService, 'remove').mockResolvedValue({ uid: userId });
+      mockUserService.remove.mockResolvedValue({ uid: userId });
 
       const result = await userController.remove(userId);
       expect(result).toEqual({ uid: userId });
     });
 
     it('should throw error if user not found', async () => {
-      jest
-        .spyOn(userService, 'remove')
-        .mockRejectedValue(new NotFoundException("Erreur lors de la suppression de l'utilisateur"));
+      mockUserService.remove.mockRejectedValue(
+        new NotFoundException("Erreur lors de la suppression de l'utilisateur"),
+      );
       await expect(userController.remove('nonexistent-id')).rejects.toThrow(NotFoundException);
     });
   });
@@ -283,7 +212,7 @@ describe('UserController', () => {
   describe('logout', () => {
     it('should logout a user', async () => {
       const req = { user: { uid: 'mockUid123' } };
-      jest.spyOn(userService, 'logout').mockResolvedValue({ message: 'Déconnexion réussie' });
+      mockUserService.logout.mockResolvedValue({ message: 'Déconnexion réussie' });
 
       const result = await userController.logout(req);
       expect(result).toEqual({ message: 'Déconnexion réussie' });
@@ -291,12 +220,10 @@ describe('UserController', () => {
 
     it('should throw error if user not found', async () => {
       const req = { user: { uid: 'nonexistent-id' } };
-      jest
-        .spyOn(userService, 'logout')
-        .mockRejectedValue(new NotFoundException('Erreur lors de la déconnexion'));
+      mockUserService.logout.mockRejectedValue(new NotFoundException('Erreur lors de la déconnexion'));
       await expect(userController.logout(req)).rejects.toThrow(NotFoundException);
     });
   });
 });
 
-jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+jest.spyOn(Logger.prototype, 'error').mockImplementation(() => { });

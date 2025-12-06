@@ -1,67 +1,39 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
-import { MongoClient } from 'mongodb';
-import { DatabaseCollection } from '../../../common/enums/database.collection';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Volunteer } from '../entities/volunteer.entity';
 
 @Injectable()
-export class VolunteerRepository implements OnModuleInit {
+export class VolunteerRepository {
   constructor(
-    @Inject(MONGODB_CONNECTION)
-    private readonly mongoClient: MongoClient,
-  ) {}
-
-  private get collection() {
-    return this.mongoClient.db().collection<Volunteer>(DatabaseCollection.VOLUNTEER);
-  }
-
-  async onModuleInit() {
-    await this.collection.createIndex(
-      { volunteerId: 1 },
-      {
-        unique: true,
-        background: true,
-        name: 'idx_vol_volunteerId',
-        sparse: true,
-        collation: {
-          locale: 'en',
-          strength: 2,
-        },
-      },
-    );
-
-    await this.collection.createIndex(
-      { locationVolunteer: '2dsphere' },
-      {
-        name: 'idx_vol_location_geo',
-        background: true,
-        sparse: true,
-      },
-    );
-  }
+    @InjectRepository(Volunteer)
+    private readonly repository: Repository<Volunteer>,
+  ) { }
 
   async findById(uid: string) {
-    return await this.collection.findOne({ volunteerId: uid });
+    return await this.repository.findOneBy({ volunteerId: uid });
   }
 
   async create(volunteer: Volunteer) {
-    const volunteerInsertOneResult = await this.collection.insertOne(volunteer);
-    return volunteerInsertOneResult.insertedId ? volunteer : null;
+    const created = this.repository.create(volunteer);
+    return this.repository.save(created);
   }
 
   async findAll() {
-    return await this.collection.find().toArray();
+    return await this.repository.find();
   }
+
   async countAll(): Promise<number> {
-    return await this.collection.countDocuments();
+    return await this.repository.count();
   }
 
   async remove(id: string) {
-    return await this.collection.deleteOne({ volunteerId: id });
+    const result = await this.repository.delete({ volunteerId: id });
+    return { deletedCount: result.affected };
   }
 
   async update(id: string, volunteer: Partial<Volunteer>) {
-    await this.collection.updateOne({ volunteerId: id }, { $set: volunteer });
+    await this.repository.update({ volunteerId: id }, volunteer);
     return await this.findById(id);
   }
 }

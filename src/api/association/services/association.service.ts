@@ -15,19 +15,58 @@ import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.ser
 import { VolunteerAssociationFollowing } from '../type/association.type';
 import { FindAssociationDto } from '../dto/find-association.dto';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
-import { DateTime } from 'luxon';
+import { DateService } from '../../../common/services/date.service';
+import { NotificationsService } from '../../notifications/services/notifications.service';
 
 @Injectable()
 export class AssociationService {
   private readonly logger = new Logger(AssociationService.name);
   firebaseInstance: FirebaseAdminService = FirebaseAdminService.getInstance();
-  private readonly nowParis = DateTime.now().setZone('Europe/Paris');
 
   constructor(
     private readonly associationRepository: AssociationRepository,
     @Inject(forwardRef(() => AnnouncementService))
     private readonly announcementService: AnnouncementService,
-  ) {}
+    private readonly notificationsService: NotificationsService,
+    private readonly dateService: DateService,
+  ) { }
+
+  // ... (keeping existing methods until addVolunteer)
+
+  async addVolunteer(associationId: string, volunteerInfo: VolunteerAssociationFollowing) {
+    try {
+      const association: Association = await this.associationRepository.findById(associationId);
+      if (!association) {
+        throw new NotFoundException('Association not found');
+      }
+      const isExist = association.volunteers.find(
+        volunteer => volunteer.volunteerId === volunteerInfo.volunteerId,
+      );
+      if (isExist) {
+        throw new BadRequestException('Volunteer already exist');
+      }
+      association.volunteers.push({
+        volunteerId: volunteerInfo.volunteerId,
+        volunteerName: volunteerInfo.volunteerName,
+        dateAdded: this.dateService.toISODate(),
+      });
+      await this.associationRepository.update(associationId, association);
+
+      // Notify volunteer of membership acceptance
+      await this.notificationsService.notifyVolunteerOfMembershipAcceptance(
+        volunteerInfo.volunteerId,
+        association.associationName,
+        associationId,
+      );
+
+      return volunteerInfo;
+    } catch (error) {
+      this.logger.error(`Erreur lors de l'ajout du bénévole: ${associationId}`, error.stack);
+      throw error instanceof NotFoundException || error instanceof BadRequestException
+        ? error
+        : new InternalServerErrorException("Erreur lors de l'ajout du bénévole");
+    }
+  }
 
   async create(createAssociationDto: CreateAssociationDto) {
     try {
@@ -148,7 +187,8 @@ export class AssociationService {
 
   async registerVolunteer(associationId: string, volunteer: VolunteerAssociationFollowing) {
     try {
-      await this.removeVolunteerWaiting(associationId, volunteer.volunteerId);
+      // Don't notify rejection when moving to accepted list
+      await this.removeVolunteerWaiting(associationId, volunteer.volunteerId, false);
       await this.addVolunteer(associationId, volunteer);
       return volunteer;
     } catch (error) {
@@ -157,32 +197,7 @@ export class AssociationService {
     }
   }
 
-  async addVolunteer(associationId: string, volunteerInfo: VolunteerAssociationFollowing) {
-    try {
-      const association: Association = await this.associationRepository.findById(associationId);
-      if (!association) {
-        throw new NotFoundException('Association not found');
-      }
-      const isExist = association.volunteers.find(
-        volunteer => volunteer.volunteerId === volunteerInfo.volunteerId,
-      );
-      if (isExist) {
-        throw new BadRequestException('Volunteer already exist');
-      }
-      association.volunteers.push({
-        volunteerId: volunteerInfo.volunteerId,
-        volunteerName: volunteerInfo.volunteerName,
-        dateAdded: this.nowParis.toISODate(),
-      });
-      await this.associationRepository.update(associationId, association);
-      return volunteerInfo;
-    } catch (error) {
-      this.logger.error(`Erreur lors de l'ajout du bénévole: ${associationId}`, error.stack);
-      throw error instanceof NotFoundException || error instanceof BadRequestException
-        ? error
-        : new InternalServerErrorException("Erreur lors de l'ajout du bénévole");
-    }
-  }
+
 
   async addVolunteerWaiting(associationId: string, volunteerInfo: VolunteerAssociationFollowing) {
     try {
@@ -201,6 +216,14 @@ export class AssociationService {
         volunteerName: volunteerInfo.volunteerName,
       });
       await this.associationRepository.update(associationId, association);
+
+      // Notify association of membership request
+      await this.notificationsService.notifyAssociationOfMembershipRequest(
+        associationId,
+        volunteerInfo.volunteerName,
+        volunteerInfo.volunteerId,
+      );
+
       return volunteerInfo;
     } catch (error) {
       this.logger.error(
@@ -213,7 +236,7 @@ export class AssociationService {
     }
   }
 
-  async removeVolunteerWaiting(associationId: string, volunteerId: string) {
+  async removeVolunteerWaiting(associationId: string, volunteerId: string, shouldNotify: boolean = true) {
     try {
       const association: Association = await this.associationRepository.findById(associationId);
       if (!association) {
@@ -229,6 +252,16 @@ export class AssociationService {
         associationId,
         volunteerId,
       );
+
+      // Notify volunteer of membership request rejection ONLY if shouldNotify is true
+      if (shouldNotify) {
+        await this.notificationsService.notifyVolunteerOfMembershipRequestRejection(
+          volunteerId,
+          associationId,
+          association.associationName,
+        );
+      }
+
       return volunteerId;
     } catch (error) {
       this.logger.error(

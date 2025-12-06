@@ -1,168 +1,93 @@
-// src/api/settings/repository/settings.repository.ts
-import { Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
-import { Collection, MongoClient } from 'mongodb';
-import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { VolunteerSettings } from '../entities/volunteer-settings.entity';
 import { AssociationSettings } from '../entities/association-settings.entity';
 
 @Injectable()
-export class SettingsRepository implements OnModuleInit {
+export class SettingsRepository {
   private readonly logger = new Logger(SettingsRepository.name);
 
   constructor(
-    @Inject(MONGODB_CONNECTION)
-    private readonly mongoClient: MongoClient,
-  ) {}
-
-  private get db() {
-    return this.mongoClient.db();
-  }
-
-  private get volunteerSettingsCollection(): Collection<VolunteerSettings> {
-    return this.db.collection<VolunteerSettings>('volunteer_settings');
-  }
-
-  private get associationSettingsCollection(): Collection<AssociationSettings> {
-    return this.db.collection<AssociationSettings>('association_settings');
-  }
-
-  async onModuleInit() {
-    try {
-      await this.volunteerSettingsCollection.createIndex(
-        { userId: 1 },
-        { unique: true, background: true, name: 'idx_volunteer_settings_userId' },
-      );
-      await this.associationSettingsCollection.createIndex(
-        { associationId: 1 },
-        { unique: true, background: true, name: 'idx_association_settings_associationId' },
-      );
-    } catch (e) {
-      this.logger.error('Erreur création d’index settings', e as any);
-    }
-  }
+    @InjectRepository(VolunteerSettings)
+    private readonly volunteerRepository: Repository<VolunteerSettings>,
+    @InjectRepository(AssociationSettings)
+    private readonly associationRepository: Repository<AssociationSettings>,
+  ) { }
 
   // ---------- VOLUNTEER ----------
 
   async findVolunteerSettingsByUserId(userId: string) {
-    return this.volunteerSettingsCollection.findOne({ userId });
+    return this.volunteerRepository.findOneBy({ userId });
   }
 
   async createVolunteerSettings(settings: VolunteerSettings) {
-    const now = new Date();
-    const toInsert: VolunteerSettings = {
-      userId: settings.userId,
-      profileVisibility: settings.profileVisibility ?? true,
-      locationSharing: settings.locationSharing ?? false,
-      activitySharing: settings.activitySharing ?? true,
-      twoFactor: settings.twoFactor ?? false,
-      createdAt: now,
-      updatedAt: now,
-    };
-    const result = await this.volunteerSettingsCollection.insertOne(toInsert);
-    return { ...toInsert, _id: result.insertedId as any };
+    const created = this.volunteerRepository.create(settings);
+    return await this.volunteerRepository.save(created);
   }
 
   async updateVolunteerSettings(userId: string, settings: Partial<VolunteerSettings>) {
-    const now = new Date();
+    const res = await this.volunteerRepository.update({ userId }, settings);
 
-    const res = await this.volunteerSettingsCollection.updateOne(
-      { userId },
-      { $set: { ...settings, updatedAt: now } },
-    );
-
-    if (res.matchedCount === 0) {
+    if (res.affected === 0) {
       throw new NotFoundException('Volunteer settings not found');
     }
 
-    const doc = await this.volunteerSettingsCollection.findOne({ userId });
-    if (!doc) throw new NotFoundException('Volunteer settings not found');
-    return doc;
+    return await this.findVolunteerSettingsByUserId(userId);
   }
 
   async upsertVolunteerSettings(userId: string, settings: Partial<VolunteerSettings>) {
-    const now = new Date();
-
-    await this.volunteerSettingsCollection.updateOne(
-      { userId },
-      {
-        $set: { ...settings, updatedAt: now },
-      },
-    );
-
-    const doc = await this.volunteerSettingsCollection.findOne({ userId });
-    if (!doc) throw new Error('Upsert volunteer settings failed');
-    return doc;
+    const existing = await this.findVolunteerSettingsByUserId(userId);
+    if (existing) {
+      await this.volunteerRepository.update({ userId }, settings);
+    } else {
+      await this.volunteerRepository.save({ userId, ...settings });
+    }
+    return await this.findVolunteerSettingsByUserId(userId);
   }
 
   async deleteVolunteerSettings(userId: string) {
-    const res = await this.volunteerSettingsCollection.deleteOne({ userId });
-    if (res.deletedCount === 0) {
+    const res = await this.volunteerRepository.delete({ userId });
+    if (res.affected === 0) {
       throw new NotFoundException('Volunteer settings not found');
     }
     return res;
   }
 
+  // ---------- ASSOCIATION ----------
+
   async findAssociationSettingsByAssociationId(associationId: string) {
-    return this.associationSettingsCollection.findOne({ associationId });
+    return this.associationRepository.findOneBy({ associationId });
   }
 
   async createAssociationSettings(settings: AssociationSettings) {
-    const now = new Date();
-    const toInsert: AssociationSettings = {
-      associationId: settings.associationId,
-      profileVisibility: settings.profileVisibility ?? true,
-      contactInfoVisibility: settings.contactInfoVisibility ?? false,
-      eventVisibility: settings.eventVisibility ?? true,
-      volunteerListVisibility: settings.volunteerListVisibility ?? false,
-      twoFactor: settings.twoFactor ?? false,
-      loginNotifications: settings.loginNotifications ?? true,
-      siretVerification: settings.siretVerification ?? true,
-      autoApproveVolunteers: settings.autoApproveVolunteers ?? false,
-      volunteerLimits: settings.volunteerLimits ?? true,
-      participantLimits: settings.participantLimits ?? true,
-      eventApproval: settings.eventApproval ?? true,
-      createdAt: now,
-      updatedAt: now,
-    };
-    const result = await this.associationSettingsCollection.insertOne(toInsert);
-    return { ...toInsert, _id: result.insertedId as any };
+    const created = this.associationRepository.create(settings);
+    return await this.associationRepository.save(created);
   }
 
   async updateAssociationSettings(associationId: string, settings: Partial<AssociationSettings>) {
-    const now = new Date();
+    const res = await this.associationRepository.update({ associationId }, settings);
 
-    const res = await this.associationSettingsCollection.updateOne(
-      { associationId },
-      { $set: { ...settings, updatedAt: now } },
-    );
-
-    if (res.matchedCount === 0) {
+    if (res.affected === 0) {
       throw new NotFoundException('Association settings not found');
     }
 
-    const doc = await this.associationSettingsCollection.findOne({ associationId });
-    if (!doc) throw new NotFoundException('Association settings not found');
-    return doc;
+    return await this.findAssociationSettingsByAssociationId(associationId);
   }
 
   async upsertAssociationSettings(associationId: string, settings: Partial<AssociationSettings>) {
-    const now = new Date();
-
-    await this.associationSettingsCollection.updateOne(
-      { associationId },
-      {
-        $set: { ...settings, updatedAt: now },
-      },
-    );
-
-    const doc = await this.associationSettingsCollection.findOne({ associationId });
-    if (!doc) throw new Error('Upsert association settings failed');
-    return doc;
+    const existing = await this.findAssociationSettingsByAssociationId(associationId);
+    if (existing) {
+      await this.associationRepository.update({ associationId }, settings);
+    } else {
+      await this.associationRepository.save({ associationId, ...settings });
+    }
+    return await this.findAssociationSettingsByAssociationId(associationId);
   }
 
   async deleteAssociationSettings(associationId: string) {
-    const res = await this.associationSettingsCollection.deleteOne({ associationId });
-    if (res.deletedCount === 0) {
+    const res = await this.associationRepository.delete({ associationId });
+    if (res.affected === 0) {
       throw new NotFoundException('Association settings not found');
     }
     return res;

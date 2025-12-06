@@ -6,10 +6,13 @@ import { DatabaseModule } from '../../database/database.module';
 import { FavoritesAnnouncementModule } from '../favorites-announcement/favorites-announcement.module';
 import { AnnouncementModule } from '../announcement/announcement.module';
 import { AssociationModule } from '../association/association.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Volunteer } from './entities/volunteer.entity';
 
 @Module({
   imports: [
     DatabaseModule,
+    TypeOrmModule.forFeature([Volunteer]),
     forwardRef(() => FavoritesAnnouncementModule),
     forwardRef(() => AnnouncementModule),
     forwardRef(() => AssociationModule),
@@ -18,4 +21,4 @@ import { AssociationModule } from '../association/association.module';
   providers: [VolunteerService, VolunteerRepository],
   exports: [VolunteerService, VolunteerRepository],
 })
-export class VolunteerModule {}
+export class VolunteerModule { }

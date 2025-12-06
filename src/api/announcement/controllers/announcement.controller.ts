@@ -12,6 +12,7 @@ import {
   UseInterceptors,
   UsePipes,
   ValidationPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { AnnouncementService } from '../services/announcement.service';
 import { Public } from '../../../common/decorators/public.decorator';
@@ -51,7 +52,7 @@ import { UpdateVisibilityAnnouncementAssociationDTO } from '../dto/update-visibi
 export class AnnouncementController {
   private readonly logger = new Logger('AnnouncementController');
 
-  constructor(private readonly service: AnnouncementService) {}
+  constructor(private readonly service: AnnouncementService) { }
 
   @Public()
   @Get('allAnnouncements')
@@ -92,6 +93,9 @@ export class AnnouncementController {
   @ApiResponse({ status: 500, description: 'Erreur interne du serveur' })
   async findById(@Param('id') id: string): Promise<Announcement> {
     this.logger.log(`Récupération de l'annonce avec l'ID: ${id}`);
+    if (!id || id === 'undefined' || id === 'null') {
+      throw new BadRequestException('Invalid ID provided');
+    }
     try {
       return await this.service.findById(id);
     } catch (error) {

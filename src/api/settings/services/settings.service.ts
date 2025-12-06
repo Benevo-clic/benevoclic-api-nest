@@ -9,7 +9,7 @@ import { AssociationSettings } from '../entities/association-settings.entity';
 export class SettingsService {
   private readonly logger = new Logger(SettingsService.name);
 
-  constructor(private readonly repo: SettingsRepository) {}
+  constructor(private readonly repo: SettingsRepository) { }
 
   async getOrCreateVolunteerSettings(userId: string): Promise<VolunteerSettings> {
     try {
@@ -76,7 +76,7 @@ export class SettingsService {
   async deleteVolunteerSettings(userId: string): Promise<void> {
     try {
       const result = await this.repo.deleteVolunteerSettings(userId);
-      if (result.deletedCount === 0) {
+      if (result.affected === 0) {
         throw new InternalServerErrorException('Paramètres du volontaire non trouvés');
       }
       this.logger.log(`Settings volunteer supprimés pour ${userId}`);
@@ -139,7 +139,7 @@ export class SettingsService {
   async deleteAssociationSettings(associationId: string): Promise<void> {
     try {
       const result = await this.repo.deleteAssociationSettings(associationId);
-      if (result.deletedCount === 0) {
+      if (result.affected === 0) {
         throw new InternalServerErrorException('Paramètres de l’association non trouvés');
       }
       this.logger.log(`Settings association supprimés pour ${associationId}`);

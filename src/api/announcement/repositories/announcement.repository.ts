@@ -1,11 +1,10 @@
-import { BadRequestException, Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import { ClientSession, Collection, MongoClient, ObjectId } from 'mongodb';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Brackets, Repository } from 'typeorm';
 
 import { Announcement } from '../entities/announcement.entity';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
-import { DatabaseCollection } from '../../../common/enums/database.collection';
 import { FilterAnnouncementDto } from '../dto/filter-announcement.dto';
-import { sampleAnnouncements } from './__mocks__/announcement.init';
 import { DateTime } from 'luxon';
 import { FilterAssociationAnnouncementDto } from '../dto/filter-association-announcement.dto';
 
@@ -20,30 +19,26 @@ export interface FilterAnnouncementResponse {
 }
 
 @Injectable()
-export class AnnouncementRepository implements OnModuleInit {
+export class AnnouncementRepository {
   constructor(
-    @Inject('MONGODB_CONNECTION')
-    private readonly mongoClient: MongoClient,
-  ) {}
+    @InjectRepository(Announcement)
+    private readonly repository: Repository<Announcement>,
+  ) { }
 
-  private get collection() {
-    return this.mongoClient.db().collection<Announcement>(DatabaseCollection.ANNOUNCEMENT);
+  async findAll(): Promise<Announcement[]> {
+    return await this.repository.find();
   }
 
-  async findAll(): Promise<any[]> {
-    return await this.collection.find().toArray();
-  }
-
-  async findById(id: string): Promise<Announcement> {
-    return await this.collection.findOne({ _id: new ObjectId(id) });
+  async findById(id: string): Promise<Announcement | null> {
+    return await this.repository.findOneBy({ id });
   }
 
   async findByAssociationId(associationId: string): Promise<Announcement[]> {
-    return await this.collection.find({ associationId }).toArray();
+    return await this.repository.findBy({ associationId });
   }
 
   async filterAssociationAnnouncements(
-    filterAssociationAnnouncement: FilterAssociationAnnouncementDto,
+    filter: FilterAssociationAnnouncementDto,
   ): Promise<FilterAnnouncementResponse> {
     const {
       associationId,
@@ -62,63 +57,60 @@ export class AnnouncementRepository implements OnModuleInit {
       sort,
       page = 1,
       limit = 9,
-    } = filterAssociationAnnouncement;
+    } = filter;
+
+    const qb = this.repository.createQueryBuilder('announcement');
+    qb.where('announcement.associationId = :associationId', { associationId });
 
     const nowParis = DateTime.now().setZone('Europe/Paris');
-    const nowDate = nowParis.toJSDate();
-
-    const pipeline: any[] = [];
-
-    pipeline.push({
-      $match: { associationId: associationId },
-    });
-
-    pipeline.push({
-      $addFields: {
-        _dateEventAsDate: { $toDate: '$dateEvent' },
-        _datePublicationAsDate: { $toDate: '$datePublication' },
-      },
-    });
+    const todayIso = nowParis.toISODate();
+    const currentTime = nowParis.toFormat('HH:mm');
 
     if (stateEvent) {
-      const dateCond: any = {};
       switch (stateEvent) {
         case 'PAST':
-          dateCond._dateEventAsDate = { $lt: nowDate };
+          qb.andWhere('announcement.dateEvent < :todayIso', { todayIso });
           break;
         case 'UPCOMING':
-          dateCond._dateEventAsDate = { $gt: nowDate };
+          qb.andWhere('announcement.dateEvent > :todayIso', { todayIso });
           break;
         case 'NOW':
-          dateCond._dateEventAsDate = {
-            $gte: nowParis.startOf('day').toJSDate(),
-            $lte: nowParis.endOf('day').toJSDate(),
-          };
+          qb.andWhere('announcement.dateEvent = :todayIso', { todayIso });
           break;
       }
-      pipeline.push({ $match: dateCond });
     }
 
-    const must: any[] = [];
-
-    const textOr: any[] = [];
-    if (nameEvent) textOr.push({ nameEvent: { $regex: nameEvent, $options: 'i' } });
-    if (description) textOr.push({ description: { $regex: description, $options: 'i' } });
-    if (textOr.length) must.push({ $or: textOr });
-    if (status) must.push({ status });
-
-    if (hoursEventFrom || hoursEventTo) {
-      const obj: any = {};
-      if (hoursEventFrom) obj.$gte = hoursEventFrom;
-      if (hoursEventTo) obj.$lte = hoursEventTo;
-      must.push({ hoursEvent: obj });
+    if (nameEvent || description) {
+      qb.andWhere(
+        new Brackets(qb => {
+          if (nameEvent) {
+            qb.where('announcement.nameEvent ILIKE :nameEvent', { nameEvent: `%${nameEvent}%` });
+          }
+          if (description) {
+            qb.orWhere('announcement.description ILIKE :description', {
+              description: `%${description}%`,
+            });
+          }
+        }),
+      );
     }
 
-    if (dateEventFrom || dateEventTo) {
-      const obj: any = {};
-      if (dateEventFrom) obj.$gte = new Date(dateEventFrom);
-      if (dateEventTo) obj.$lte = new Date(dateEventTo);
-      must.push({ _dateEventAsDate: obj });
+    if (status) {
+      qb.andWhere('announcement.status = :status', { status });
+    }
+
+    if (hoursEventFrom) {
+      qb.andWhere('announcement.hoursEvent >= :hoursEventFrom', { hoursEventFrom });
+    }
+    if (hoursEventTo) {
+      qb.andWhere('announcement.hoursEvent <= :hoursEventTo', { hoursEventTo });
+    }
+
+    if (dateEventFrom) {
+      qb.andWhere('announcement.dateEvent >= :dateEventFrom', { dateEventFrom });
+    }
+    if (dateEventTo) {
+      qb.andWhere('announcement.dateEvent <= :dateEventTo', { dateEventTo });
     }
 
     if (publicationInterval) {
@@ -143,49 +135,49 @@ export class AnnouncementRepository implements OnModuleInit {
         default:
           throw new BadRequestException('Intervalle de publication invalide');
       }
-      must.push({ _datePublicationAsDate: { $gte: threshold } });
-    } else if (datePublicationFrom || datePublicationTo) {
-      const obj: any = {};
-      if (datePublicationFrom) obj.$gte = new Date(datePublicationFrom);
-      if (datePublicationTo) obj.$lte = new Date(datePublicationTo);
-      must.push({ _datePublicationAsDate: obj });
+      qb.andWhere('announcement.datePublication >= :threshold', {
+        threshold: threshold.toISOString(),
+      });
+    } else {
+      if (datePublicationFrom) {
+        qb.andWhere('announcement.datePublication >= :datePublicationFrom', {
+          datePublicationFrom,
+        });
+      }
+      if (datePublicationTo) {
+        qb.andWhere('announcement.datePublication <= :datePublicationTo', { datePublicationTo });
+      }
     }
 
     if (tags?.length) {
-      must.push({ tags: { $in: tags } });
+      qb.andWhere('announcement.tags && :tags', { tags });
     }
 
-    if (must.length) {
-      pipeline.push({ $match: { $and: must } });
+    if (sort) {
+      switch (sort) {
+        case 'dateEvent_asc':
+          qb.orderBy('announcement.dateEvent', 'ASC');
+          break;
+        case 'dateEvent_desc':
+          qb.orderBy('announcement.dateEvent', 'DESC');
+          break;
+        case 'datePublication_desc':
+        default:
+          qb.orderBy('announcement.datePublication', 'DESC');
+          break;
+      }
+    } else {
+      qb.orderBy('announcement.datePublication', 'DESC');
     }
 
-    let sortOption: Record<string, 1 | -1> = {};
-    switch (sort) {
-      case 'dateEvent_asc':
-        sortOption = { _dateEventAsDate: 1 };
-        break;
-      case 'dateEvent_desc':
-        sortOption = { _dateEventAsDate: -1 };
-        break;
-      case 'datePublication_desc':
-      default:
-        sortOption = { _datePublicationAsDate: -1 };
-        break;
-    }
-    pipeline.push({ $sort: sortOption });
-    pipeline.push({
-      $facet: {
-        docs: [{ $skip: (page - 1) * limit }, { $limit: limit }],
-        meta: [{ $count: 'total' }],
-      },
-    });
+    const total = await qb.getCount();
+    const docs = await qb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
 
-    pipeline.push({ $addFields: { total: { $arrayElemAt: ['$meta.total', 0] } } });
-    pipeline.push({ $project: { meta: 0 } });
-    const [result] = await this.collection.aggregate(pipeline).toArray();
-    const total = result?.total ?? 0;
     return {
-      annonces: result.docs,
+      annonces: docs,
       meta: {
         page,
         limit,
@@ -196,75 +188,68 @@ export class AnnouncementRepository implements OnModuleInit {
   }
 
   async create(announcement: Announcement): Promise<string> {
-    const result = await this.collection.insertOne({
-      ...announcement,
-    });
-
-    return result.insertedId.toString();
+    const created = this.repository.create(announcement);
+    const saved = await this.repository.save(created);
+    return saved.id;
   }
 
   async updateVolunteer(
     id: string,
     announcement: Partial<Announcement>,
   ): Promise<Partial<Announcement>> {
-    const collection = this.getCollection();
-    await collection.updateOne({ _id: new ObjectId(id) }, { $set: announcement });
+    await this.repository.update({ id }, announcement);
     return announcement;
   }
 
   async delete(id: string): Promise<boolean> {
-    const result = await this.collection.deleteOne({ _id: new ObjectId(id) });
-    return result.deletedCount === 1;
+    const result = await this.repository.delete({ id });
+    return result.affected === 1;
   }
 
   async deleteByAssociationId(associationId: string): Promise<boolean> {
-    const result = await this.collection.deleteMany({ associationId });
-    return result.deletedCount > 0;
+    const result = await this.repository.delete({ associationId });
+    return result.affected > 0;
   }
 
-  private getCollection(): Collection<Announcement> {
-    return this.collection;
-  }
-
-  async removeVolunteerWaiting(
-    id: string,
-    volunteerId: string,
-    options?: { session?: ClientSession },
-  ) {
-    await this.collection.updateOne(
-      { _id: new ObjectId(id) },
-      { $pull: { volunteersWaiting: { id: volunteerId } } },
-      options,
-    );
+  async removeVolunteerWaiting(id: string, volunteerId: string) {
+    const announcement = await this.findById(id);
+    if (announcement && announcement.volunteersWaiting) {
+      announcement.volunteersWaiting = announcement.volunteersWaiting.filter(
+        v => v.id !== volunteerId,
+      );
+      await this.repository.save(announcement);
+    }
   }
 
   async removeVolunteer(id: string, volunteerId: string, nbVolunteers: number) {
-    await this.collection.updateOne(
-      { _id: new ObjectId(id) },
-      { $pull: { volunteers: { id: volunteerId } }, $set: { nbVolunteers } },
-    );
+    const announcement = await this.findById(id);
+    if (announcement && announcement.volunteers) {
+      announcement.volunteers = announcement.volunteers.filter(v => v.id !== volunteerId);
+      announcement.nbVolunteers = nbVolunteers;
+      await this.repository.save(announcement);
+    }
   }
 
   async removeParticipant(id: string, participantId: string, nbParticipants: number) {
-    await this.collection.updateOne(
-      { _id: new ObjectId(id) },
-      { $pull: { participants: { id: participantId } }, $set: { nbParticipants } },
-    );
+    const announcement = await this.findById(id);
+    if (announcement && announcement.participants) {
+      announcement.participants = announcement.participants.filter(p => p.id !== participantId);
+      announcement.nbParticipants = nbParticipants;
+      await this.repository.save(announcement);
+    }
   }
 
   async updateStatus(id: string, status: AnnouncementStatus) {
-    await this.collection.updateOne({ _id: new ObjectId(id) }, { $set: { status } });
+    await this.repository.update({ id }, { status });
     return this.findById(id);
   }
 
   async update(id: string, updateData: Partial<Announcement>): Promise<void> {
-    await this.collection.updateOne(
-      { _id: new ObjectId(id) },
+    await this.repository.update(
+      { id },
       {
-        $set: {
-          ...updateData,
-          updatedAt: new Date(),
-        },
+        ...updateData,
+        // updatedAt: new Date(), // Entity doesn't have updatedAt currently?
       },
     );
   }
@@ -273,7 +258,7 @@ export class AnnouncementRepository implements OnModuleInit {
     associationId: string,
     associationName: string,
   ): Promise<void> {
-    await this.collection.updateMany({ associationId }, { $set: { associationName } });
+    await this.repository.update({ associationId }, { associationName });
   }
 
   async findVolunteerInAnnouncementByVolunteerId(volunteerId: string): Promise<Announcement[]> {
@@ -281,28 +266,31 @@ export class AnnouncementRepository implements OnModuleInit {
     const todayIso = nowParis.toISODate();
     const currentTime = nowParis.toFormat('HH:mm');
 
-    return this.collection
-      .find({
-        $and: [
-          {
-            $or: [{ 'volunteers.id': volunteerId }, { 'volunteersWaiting.id': volunteerId }],
-          },
-          {
-            $or: [
-              { dateEvent: { $gt: todayIso } },
-              {
-                dateEvent: todayIso,
-                hoursEvent: { $gte: currentTime },
-              },
-            ],
-          },
-          {
-            isHidden: { $ne: true },
-            status: { $ne: AnnouncementStatus.INACTIVE },
-          },
-        ],
-      })
-      .toArray();
+    return this.repository
+      .createQueryBuilder('announcement')
+      .where(
+        new Brackets(qb => {
+          qb.where('announcement.volunteers @> :volunteer', {
+            volunteer: JSON.stringify([{ id: volunteerId }]),
+          }).orWhere('announcement.volunteersWaiting @> :volunteer', {
+            volunteer: JSON.stringify([{ id: volunteerId }]),
+          });
+        }),
+      )
+      .andWhere(
+        new Brackets(qb => {
+          qb.where('announcement.dateEvent > :todayIso', { todayIso }).orWhere(
+            new Brackets(subQb => {
+              subQb
+                .where('announcement.dateEvent = :todayIso', { todayIso })
+                .andWhere('announcement.hoursEvent >= :currentTime', { currentTime });
+            }),
+          );
+        }),
+      )
+      .andWhere('announcement.isHidden != :isHidden', { isHidden: true })
+      .andWhere('announcement.status != :status', { status: AnnouncementStatus.INACTIVE })
+      .getMany();
   }
 
   async findPastAnnouncementsByParticipantId(participantId: string): Promise<Announcement[]> {
@@ -310,28 +298,31 @@ export class AnnouncementRepository implements OnModuleInit {
     const todayIso = nowParis.toISODate();
     const currentTime = nowParis.toFormat('HH:mm');
 
-    return this.collection
-      .find({
-        $and: [
-          {
-            $or: [{ 'participants.id': participantId }, { 'volunteers.id': participantId }],
-          },
-          {
-            $or: [
-              { dateEvent: { $lt: todayIso } },
-              {
-                dateEvent: todayIso,
-                hoursEvent: { $lte: currentTime },
-              },
-            ],
-          },
-          {
-            isHidden: { $ne: true },
-            status: { $ne: AnnouncementStatus.INACTIVE },
-          },
-        ],
-      })
-      .toArray();
+    return this.repository
+      .createQueryBuilder('announcement')
+      .where(
+        new Brackets(qb => {
+          qb.where('announcement.participants @> :participant', {
+            participant: JSON.stringify([{ id: participantId }]),
+          }).orWhere('announcement.volunteers @> :participant', {
+            participant: JSON.stringify([{ id: participantId }]),
+          });
+        }),
+      )
+      .andWhere(
+        new Brackets(qb => {
+          qb.where('announcement.dateEvent < :todayIso', { todayIso }).orWhere(
+            new Brackets(subQb => {
+              subQb
+                .where('announcement.dateEvent = :todayIso', { todayIso })
+                .andWhere('announcement.hoursEvent <= :currentTime', { currentTime });
+            }),
+          );
+        }),
+      )
+      .andWhere('announcement.isHidden != :isHidden', { isHidden: true })
+      .andWhere('announcement.status != :status', { status: AnnouncementStatus.INACTIVE })
+      .getMany();
   }
 
   async findParticipantInParticipantsByParticipantId(
@@ -341,175 +332,85 @@ export class AnnouncementRepository implements OnModuleInit {
     const todayIso = nowParis.toISODate();
     const currentTime = nowParis.toFormat('HH:mm');
 
-    return this.collection
-      .find({
-        $and: [
-          { 'participants.id': participantId },
-          {
-            $or: [
-              { dateEvent: { $gt: todayIso } },
-              {
-                dateEvent: todayIso,
-                hoursEvent: { $gte: currentTime },
-              },
-            ],
-          },
-          {
-            isHidden: { $ne: true },
-            status: { $ne: AnnouncementStatus.INACTIVE },
-          },
-        ],
+    return this.repository
+      .createQueryBuilder('announcement')
+      .where('announcement.participants @> :participant', {
+        participant: JSON.stringify([{ id: participantId }]),
       })
-      .toArray();
+      .andWhere(
+        new Brackets(qb => {
+          qb.where('announcement.dateEvent > :todayIso', { todayIso }).orWhere(
+            new Brackets(subQb => {
+              subQb
+                .where('announcement.dateEvent = :todayIso', { todayIso })
+                .andWhere('announcement.hoursEvent >= :currentTime', { currentTime });
+            }),
+          );
+        }),
+      )
+      .andWhere('announcement.isHidden != :isHidden', { isHidden: true })
+      .andWhere('announcement.status != :status', { status: AnnouncementStatus.INACTIVE })
+      .getMany();
   }
 
   async removeVolunteerEverywhere(volunteerId: string): Promise<number> {
-    const result = await this.collection.updateMany({}, [
-      {
-        $set: {
-          hadInVolunteers: { $in: [volunteerId, '$volunteers.id'] },
-        },
-      },
-      {
-        $set: {
-          volunteers: {
-            $filter: {
-              input: '$volunteers',
-              cond: { $ne: ['$$this.id', volunteerId] },
-            },
-          },
-          volunteersWaiting: {
-            $filter: {
-              input: '$volunteersWaiting',
-              cond: { $ne: ['$$this.id', volunteerId] },
-            },
-          },
-        },
-      },
-      {
-        $set: {
-          nbVolunteers: {
-            $cond: ['$hadInVolunteers', { $subtract: ['$nbVolunteers', 1] }, '$nbVolunteers'],
-          },
-        },
-      },
-      { $unset: 'hadInVolunteers' },
-    ]);
+    const announcements = await this.repository
+      .createQueryBuilder('announcement')
+      .where('announcement.volunteers @> :volunteer', {
+        volunteer: JSON.stringify([{ id: volunteerId }]),
+      })
+      .orWhere('announcement.volunteersWaiting @> :volunteer', {
+        volunteer: JSON.stringify([{ id: volunteerId }]),
+      })
+      .getMany();
 
-    return result.modifiedCount;
+    let modifiedCount = 0;
+    for (const announcement of announcements) {
+      let changed = false;
+      if (announcement.volunteers) {
+        const initialLen = announcement.volunteers.length;
+        announcement.volunteers = announcement.volunteers.filter(v => v.id !== volunteerId);
+        if (announcement.volunteers.length !== initialLen) {
+          announcement.nbVolunteers = (announcement.nbVolunteers || 0) - 1;
+          changed = true;
+        }
+      }
+      if (announcement.volunteersWaiting) {
+        const initialLen = announcement.volunteersWaiting.length;
+        announcement.volunteersWaiting = announcement.volunteersWaiting.filter(
+          v => v.id !== volunteerId,
+        );
+        if (announcement.volunteersWaiting.length !== initialLen) changed = true;
+      }
+      if (changed) {
+        await this.repository.save(announcement);
+        modifiedCount++;
+      }
+    }
+    return modifiedCount;
   }
 
   async removeParticipantEverywhere(participantId: string): Promise<number> {
-    const pipeline = [
-      {
-        $set: {
-          hadInParticipants: { $in: [participantId, '$participants.id'] },
-        },
-      },
-      {
-        $set: {
-          participants: {
-            $filter: {
-              input: '$participants',
-              cond: { $ne: ['$$this.id', participantId] },
-            },
-          },
-        },
-      },
-      {
-        $set: {
-          nbParticipants: {
-            $cond: ['$hadInParticipants', { $subtract: ['$nbParticipants', 1] }, '$nbParticipants'],
-          },
-        },
-      },
-      {
-        $unset: 'hadInParticipants',
-      },
-    ];
+    const announcements = await this.repository
+      .createQueryBuilder('announcement')
+      .where('announcement.participants @> :participant', {
+        participant: JSON.stringify([{ id: participantId }]),
+      })
+      .getMany();
 
-    const result = await this.collection.updateMany({}, pipeline);
-    return result.modifiedCount;
-  }
-
-  async onModuleInit() {
-    await this.collection.createIndex(
-      { associationId: 1 },
-      {
-        name: 'idx_ann_associationId',
-        background: true,
-        sparse: false,
-      },
-    );
-
-    await this.collection.createIndex(
-      { nameEvent: 'text', description: 'text' },
-      {
-        name: 'idx_ann_nameEvent_description_text',
-        background: true,
-        weights: { nameEvent: 10, description: 5 },
-        default_language: 'none',
-      },
-    );
-    await this.collection.createIndex(
-      { datePublication: 1 },
-      {
-        name: 'idx_ann_datePublication',
-        background: true,
-        sparse: true,
-      },
-    );
-    await this.collection.createIndex(
-      { dateEvent: 1 },
-      {
-        name: 'idx_ann_dateEvent',
-        background: true,
-        sparse: true,
-      },
-    );
-    await this.collection.createIndex(
-      { hoursEvent: 1 },
-      {
-        name: 'idx_ann_hoursEvent',
-        background: true,
-        sparse: true,
-      },
-    );
-
-    await this.collection.createIndex(
-      { tags: 1 },
-      {
-        name: 'idx_ann_tags',
-        background: true,
-        sparse: true,
-      },
-    );
-
-    const volunteerPaths = ['participants.id', 'volunteers.id', 'volunteersWaiting.id'];
-    for (const path of volunteerPaths) {
-      await this.collection.createIndex(
-        { [path]: 1 },
-        {
-          name: `idx_ann_${path.replace('.', '_')}`,
-          background: true,
-          sparse: true,
-        },
-      );
+    let modifiedCount = 0;
+    for (const announcement of announcements) {
+      if (announcement.participants) {
+        const initialLen = announcement.participants.length;
+        announcement.participants = announcement.participants.filter(p => p.id !== participantId);
+        if (announcement.participants.length !== initialLen) {
+          announcement.nbParticipants = (announcement.nbParticipants || 0) - 1;
+          await this.repository.save(announcement);
+          modifiedCount++;
+        }
+      }
     }
-    await this.collection.createIndex(
-      { locationAnnouncement: '2dsphere' },
-      {
-        name: 'idx_ann_location_geo',
-        background: true,
-        sparse: true,
-      },
-    );
-    await this.initMockData();
-  }
-
-  async initMockData() {
-    await this.collection.deleteMany({});
-    await this.collection.insertMany(sampleAnnouncements as any[]);
+    return modifiedCount;
   }
 
   async findWithAggregation(dto: FilterAnnouncementDto): Promise<FilterAnnouncementResponse> {
@@ -534,83 +435,83 @@ export class AnnouncementRepository implements OnModuleInit {
       limit = 9,
     } = dto;
 
-    const pipeline: any[] = [];
+    const qb = this.repository.createQueryBuilder('announcement');
 
     if (latitude !== undefined && longitude !== undefined && radius) {
-      pipeline.push({
-        $geoNear: {
-          near: { type: 'Point', coordinates: [longitude, latitude] },
-          distanceField: 'dist.calculated',
-          maxDistance: radius,
-          spherical: true,
-        },
-      });
-      pipeline.push({
-        $match: {
-          isHidden: { $ne: true },
-          status: { $ne: AnnouncementStatus.INACTIVE },
-        },
-      });
-    } else {
-      pipeline.push({
-        $match: {
-          isHidden: { $ne: true },
-          status: { $ne: AnnouncementStatus.INACTIVE },
-        },
-      });
+      const earthRadius = 6371; // km
+      const radiusKm = radius / 1000;
+
+      qb.andWhere(
+        `(:earthRadius * acos(
+          cos(radians(:latitude)) * 
+          cos(radians((announcement."locationAnnouncement"->'coordinates'->>1)::float)) * 
+          cos(radians((announcement."locationAnnouncement"->'coordinates'->>0)::float) - radians(:longitude)) + 
+          sin(radians(:latitude)) * 
+          sin(radians((announcement."locationAnnouncement"->'coordinates'->>1)::float))
+        )) <= :radiusKm`,
+        { latitude, longitude, radiusKm, earthRadius },
+      );
     }
 
-    pipeline.push({
-      $addFields: {
-        _dateEventAsDate: { $toDate: '$dateEvent' },
-        _datePublicationAsDate: { $toDate: '$datePublication' },
-      },
-    });
-
-    const must: any[] = [];
+    qb.andWhere('announcement.isHidden != :isHidden', { isHidden: true });
+    qb.andWhere('announcement.status != :status', { status: AnnouncementStatus.INACTIVE });
 
     const nowParis = DateTime.now().setZone('Europe/Paris');
     const todayIso = nowParis.toISODate();
     const currentTime = nowParis.toFormat('HH:mm');
 
-    must.push({
-      $or: [
-        { dateEvent: { $gt: todayIso } },
-        {
-          dateEvent: todayIso,
-          hoursEvent: { $gte: currentTime },
-        },
-      ],
-    });
+    qb.andWhere(
+      new Brackets(qb => {
+        qb.where('announcement.dateEvent > :todayIso', { todayIso }).orWhere(
+          new Brackets(subQb => {
+            subQb
+              .where('announcement.dateEvent = :todayIso', { todayIso })
+              .andWhere('announcement.hoursEvent >= :currentTime', { currentTime });
+          }),
+        );
+      }),
+    );
 
-    const textOr: any[] = [];
-    if (nameEvent) textOr.push({ nameEvent: { $regex: nameEvent, $options: 'i' } });
-    if (description) textOr.push({ description: { $regex: description, $options: 'i' } });
-    if (associationName)
-      textOr.push({ associationName: { $regex: associationName, $options: 'i' } });
-
-    if (textOr.length) {
-      must.push({ $or: textOr });
+    if (nameEvent || description || associationName) {
+      qb.andWhere(
+        new Brackets(qb => {
+          if (nameEvent) {
+            qb.where('announcement.nameEvent ILIKE :nameEvent', { nameEvent: `%${nameEvent}%` });
+          }
+          if (description) {
+            qb.orWhere('announcement.description ILIKE :description', {
+              description: `%${description}%`,
+            });
+          }
+          if (associationName) {
+            qb.orWhere('announcement.associationName ILIKE :associationName', {
+              associationName: `%${associationName}%`,
+            });
+          }
+        }),
+      );
     }
 
-    if (status) must.push({ status });
+    if (status) {
+      qb.andWhere('announcement.status = :status', { status });
+    }
 
     if (tags?.length) {
-      must.push({ tags: { $in: tags } });
+      qb.andWhere('announcement.tags && :tags', { tags });
     }
 
-    if (hoursEventFrom || hoursEventTo) {
-      const obj: any = {};
-      if (hoursEventFrom) obj.$gte = hoursEventFrom;
-      if (hoursEventTo) obj.$lte = hoursEventTo;
-      must.push({ hoursEvent: obj });
+    if (hoursEventFrom) {
+      qb.andWhere('announcement.hoursEvent >= :hoursEventFrom', { hoursEventFrom });
+    }
+    if (hoursEventTo) {
+      qb.andWhere('announcement.hoursEvent <= :hoursEventTo', { hoursEventTo });
     }
 
-    if (dateEventFrom || dateEventTo) {
-      const obj: any = {};
-      if (dateEventFrom) obj.$gte = new Date(dateEventFrom);
-      if (dateEventTo) obj.$lte = new Date(dateEventTo);
-      must.push({ _dateEventAsDate: obj });
+    if (dateEventFrom) {
+      qb.andWhere('announcement.dateEvent >= :dateEventFrom', { dateEventFrom });
+    }
+    if (dateEventTo) {
+      qb.andWhere('announcement.dateEvent <= :dateEventTo', { dateEventTo });
     }
 
     if (publicationInterval) {
@@ -635,47 +536,45 @@ export class AnnouncementRepository implements OnModuleInit {
         default:
           throw new BadRequestException('Intervalle de publication invalide');
       }
-      must.push({ _datePublicationAsDate: { $gte: threshold } });
-    } else if (datePublicationFrom || datePublicationTo) {
-      const obj: any = {};
-      if (datePublicationFrom) obj.$gte = new Date(datePublicationFrom);
-      if (datePublicationTo) obj.$lte = new Date(datePublicationTo);
-      must.push({ _datePublicationAsDate: obj });
+      qb.andWhere('announcement.datePublication >= :threshold', {
+        threshold: threshold.toISOString(),
+      });
+    } else {
+      if (datePublicationFrom) {
+        qb.andWhere('announcement.datePublication >= :datePublicationFrom', {
+          datePublicationFrom,
+        });
+      }
+      if (datePublicationTo) {
+        qb.andWhere('announcement.datePublication <= :datePublicationTo', { datePublicationTo });
+      }
     }
 
-    if (must.length) {
-      pipeline.push({ $match: { $and: must } });
+    if (sort) {
+      switch (sort) {
+        case 'dateEvent_asc':
+          qb.orderBy('announcement.dateEvent', 'ASC');
+          break;
+        case 'dateEvent_desc':
+          qb.orderBy('announcement.dateEvent', 'DESC');
+          break;
+        case 'datePublication_desc':
+        default:
+          qb.orderBy('announcement.datePublication', 'DESC');
+          break;
+      }
+    } else {
+      qb.orderBy('announcement.datePublication', 'DESC');
     }
 
-    let sortOption: Record<string, 1 | -1> = {};
-    switch (sort) {
-      case 'dateEvent_asc':
-        sortOption = { _dateEventAsDate: 1 };
-        break;
-      case 'dateEvent_desc':
-        sortOption = { _dateEventAsDate: -1 };
-        break;
-      case 'datePublication_desc':
-      default:
-        sortOption = { _datePublicationAsDate: -1 };
-        break;
-    }
-    pipeline.push({ $sort: sortOption });
-
-    pipeline.push({
-      $facet: {
-        docs: [{ $skip: (page - 1) * limit }, { $limit: limit }],
-        meta: [{ $count: 'total' }],
-      },
-    });
-    pipeline.push({ $addFields: { total: { $arrayElemAt: ['$meta.total', 0] } } });
-    pipeline.push({ $project: { meta: 0 } });
-
-    const [result] = await this.collection.aggregate(pipeline).toArray();
-    const total = result?.total ?? 0;
+    const total = await qb.getCount();
+    const docs = await qb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
 
     return {
-      annonces: result.docs,
+      annonces: docs,
       meta: {
         page,
         limit,
@@ -685,14 +584,14 @@ export class AnnouncementRepository implements OnModuleInit {
     };
   }
 
+  async initMockData() {
+    // Optional: implement if needed for tests
+  }
   async updateAssociationVisibilityByAssociationId(
     associationId: string,
     visibility: boolean,
   ): Promise<number> {
-    const result = await this.collection.updateMany(
-      { associationId },
-      { $set: { isHidden: visibility } },
-    );
-    return result.modifiedCount;
+    const result = await this.repository.update({ associationId }, { isHidden: visibility });
+    return result.affected || 0;
   }
 }

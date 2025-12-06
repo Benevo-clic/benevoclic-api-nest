@@ -1,14 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FavoritesAnnouncementRepository } from './favorites-announcement.repository';
-import { MongoClient } from 'mongodb';
-import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
-import { DatabaseCollection } from '../../../common/enums/database.collection';
 import { FavoritesAnnouncement } from '../entities/favorites-announcement.entity';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 describe('FavoritesAnnouncementRepository', () => {
   let repository: FavoritesAnnouncementRepository;
-  let mockMongoClient: jest.Mocked<MongoClient>;
-  let mockCollection: jest.Mocked<any>;
+  let mockTypeOrmRepository: Partial<Repository<FavoritesAnnouncement>>;
+  let mockQueryBuilder: any;
 
   const mockFavoritesAnnouncement: FavoritesAnnouncement = {
     volunteerId: 'volunteer-123',
@@ -16,36 +15,34 @@ describe('FavoritesAnnouncementRepository', () => {
   };
 
   beforeEach(async () => {
-    mockCollection = {
-      findOne: jest.fn(),
-      insertOne: jest.fn(),
-      find: jest.fn(),
-      deleteOne: jest.fn(),
-      deleteMany: jest.fn(),
-      toArray: jest.fn(),
+    mockQueryBuilder = {
+      delete: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      execute: jest.fn().mockResolvedValue({ affected: 1 }),
     };
 
-    mockMongoClient = {
-      db: jest.fn().mockReturnValue({
-        collection: jest.fn().mockReturnValue(mockCollection),
-      }),
-    } as any;
+    mockTypeOrmRepository = {
+      findOneBy: jest.fn(),
+      create: jest.fn(),
+      save: jest.fn(),
+      find: jest.fn(),
+      delete: jest.fn(),
+      findBy: jest.fn(),
+      createQueryBuilder: jest.fn(() => mockQueryBuilder),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FavoritesAnnouncementRepository,
         {
-          provide: MONGODB_CONNECTION,
-          useValue: mockMongoClient,
+          provide: getRepositoryToken(FavoritesAnnouncement),
+          useValue: mockTypeOrmRepository,
         },
       ],
     }).compile();
 
     repository = module.get<FavoritesAnnouncementRepository>(FavoritesAnnouncementRepository);
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -54,282 +51,131 @@ describe('FavoritesAnnouncementRepository', () => {
 
   describe('findByVolunteerIdAndAnnouncementId', () => {
     it('should find a favorite announcement by volunteer ID and announcement ID', async () => {
-      const volunteerId = 'volunteer-123';
-      const announcementId = 'announcement-456';
-      const expectedResult = { ...mockFavoritesAnnouncement };
-      mockCollection.findOne.mockResolvedValue(expectedResult);
+      (mockTypeOrmRepository.findOneBy as jest.Mock).mockResolvedValue(mockFavoritesAnnouncement);
 
       const result = await repository.findByVolunteerIdAndAnnouncementId(
-        volunteerId,
-        announcementId,
+        'volunteer-123',
+        'announcement-456',
       );
 
-      expect(mockMongoClient.db).toHaveBeenCalled();
-      expect(mockMongoClient.db().collection).toHaveBeenCalledWith(DatabaseCollection.FAVORITES);
-      expect(mockCollection.findOne).toHaveBeenCalledWith(
-        {
-          volunteerId: { $eq: volunteerId },
-          announcementId: { $eq: announcementId },
-        },
-        { projection: { _id: 0, __v: 0 } },
-      );
-      expect(result).toEqual(expectedResult);
+      expect(mockTypeOrmRepository.findOneBy).toHaveBeenCalledWith({
+        volunteerId: 'volunteer-123',
+        announcementId: 'announcement-456',
+      });
+      expect(result).toEqual(mockFavoritesAnnouncement);
     });
 
-    it('should return null when favorite announcement is not found', async () => {
-      const volunteerId = 'volunteer-123';
-      const announcementId = 'announcement-456';
-      mockCollection.findOne.mockResolvedValue(null);
-
-      const result = await repository.findByVolunteerIdAndAnnouncementId(
-        volunteerId,
-        announcementId,
-      );
-
-      expect(mockCollection.findOne).toHaveBeenCalledWith(
-        {
-          volunteerId: { $eq: volunteerId },
-          announcementId: { $eq: announcementId },
-        },
-        { projection: { _id: 0, __v: 0 } },
-      );
-      expect(result).toBeNull();
+    it('should throw error if inputs are not strings', async () => {
+      await expect(
+        repository.findByVolunteerIdAndAnnouncementId(123 as any, 'announcement-456'),
+      ).rejects.toThrow('Invalid input: volunteerId and announcementId must be strings');
     });
   });
 
   describe('create', () => {
-    it('should create a new favorite announcement successfully', async () => {
-      const mockInsertResult = {
-        insertedId: 'new-id-123',
-        acknowledged: true,
-      };
-      mockCollection.insertOne.mockResolvedValue(mockInsertResult);
+    it('should create a new favorite announcement', async () => {
+      (mockTypeOrmRepository.create as jest.Mock).mockReturnValue(mockFavoritesAnnouncement);
+      (mockTypeOrmRepository.save as jest.Mock).mockResolvedValue(mockFavoritesAnnouncement);
 
       const result = await repository.create(mockFavoritesAnnouncement);
 
-      expect(mockCollection.insertOne).toHaveBeenCalledWith(mockFavoritesAnnouncement);
+      expect(mockTypeOrmRepository.create).toHaveBeenCalledWith(mockFavoritesAnnouncement);
+      expect(mockTypeOrmRepository.save).toHaveBeenCalledWith(mockFavoritesAnnouncement);
       expect(result).toEqual(mockFavoritesAnnouncement);
-    });
-
-    it('should return null when insertion fails', async () => {
-      const mockInsertResult = {
-        insertedId: null,
-        acknowledged: false,
-      };
-      mockCollection.insertOne.mockResolvedValue(mockInsertResult);
-
-      const result = await repository.create(mockFavoritesAnnouncement);
-
-      expect(mockCollection.insertOne).toHaveBeenCalledWith(mockFavoritesAnnouncement);
-      expect(result).toBeNull();
     });
   });
 
   describe('findAll', () => {
     it('should return all favorite announcements', async () => {
-      const mockFavorites = [
-        { volunteerId: 'volunteer-1', announcementId: 'announcement-1' },
-        { volunteerId: 'volunteer-2', announcementId: 'announcement-2' },
-      ];
-      const mockCursor = {
-        toArray: jest.fn().mockResolvedValue(mockFavorites),
-      };
-      mockCollection.find.mockReturnValue(mockCursor);
+      const mockFavorites = [mockFavoritesAnnouncement];
+      (mockTypeOrmRepository.find as jest.Mock).mockResolvedValue(mockFavorites);
 
       const result = await repository.findAll();
 
-      expect(mockCollection.find).toHaveBeenCalledWith();
-      expect(mockCursor.toArray).toHaveBeenCalled();
+      expect(mockTypeOrmRepository.find).toHaveBeenCalled();
       expect(result).toEqual(mockFavorites);
-    });
-
-    it('should return empty array when no favorites exist', async () => {
-      const mockCursor = {
-        toArray: jest.fn().mockResolvedValue([]),
-      };
-      mockCollection.find.mockReturnValue(mockCursor);
-
-      const result = await repository.findAll();
-
-      expect(mockCollection.find).toHaveBeenCalledWith();
-      expect(mockCursor.toArray).toHaveBeenCalled();
-      expect(result).toEqual([]);
     });
   });
 
   describe('removeByVolunteerIdAndAnnouncementId', () => {
-    it('should remove a favorite announcement by volunteer ID and announcement ID', async () => {
-      const volunteerId = 'volunteer-123';
-      const announcementId = 'announcement-456';
-      const mockDeleteResult = {
-        deletedCount: 1,
-        acknowledged: true,
-      };
-      mockCollection.deleteOne.mockResolvedValue(mockDeleteResult);
+    it('should remove a favorite announcement', async () => {
+      (mockTypeOrmRepository.delete as jest.Mock).mockResolvedValue({ affected: 1 });
 
       const result = await repository.removeByVolunteerIdAndAnnouncementId(
-        volunteerId,
-        announcementId,
+        'volunteer-123',
+        'announcement-456',
       );
 
-      expect(mockCollection.deleteOne).toHaveBeenCalledWith({ volunteerId, announcementId });
-      expect(result).toEqual(mockDeleteResult);
-    });
-
-    it('should return result with deletedCount 0 when no document is found', async () => {
-      const volunteerId = 'volunteer-123';
-      const announcementId = 'announcement-456';
-      const mockDeleteResult = {
-        deletedCount: 0,
-        acknowledged: true,
-      };
-      mockCollection.deleteOne.mockResolvedValue(mockDeleteResult);
-
-      const result = await repository.removeByVolunteerIdAndAnnouncementId(
-        volunteerId,
-        announcementId,
-      );
-
-      expect(mockCollection.deleteOne).toHaveBeenCalledWith({ volunteerId, announcementId });
-      expect(result).toEqual(mockDeleteResult);
+      expect(mockTypeOrmRepository.delete).toHaveBeenCalledWith({
+        volunteerId: 'volunteer-123',
+        announcementId: 'announcement-456',
+      });
+      expect(result).toEqual({ deletedCount: 1 });
     });
   });
 
   describe('removeByVolunteerId', () => {
-    it('should remove all favorite announcements for a specific volunteer', async () => {
-      const volunteerId = 'volunteer-123';
-      const mockDeleteResult = {
-        deletedCount: 3,
-        acknowledged: true,
-      };
-      mockCollection.deleteMany.mockResolvedValue(mockDeleteResult);
+    it('should remove favorites by volunteer ID', async () => {
+      (mockTypeOrmRepository.delete as jest.Mock).mockResolvedValue({ affected: 2 });
 
-      const result = await repository.removeByVolunteerId(volunteerId);
+      const result = await repository.removeByVolunteerId('volunteer-123');
 
-      expect(mockCollection.deleteMany).toHaveBeenCalledWith({ volunteerId });
-      expect(result).toEqual(mockDeleteResult);
-    });
-
-    it('should return result with deletedCount 0 when no documents are found', async () => {
-      const volunteerId = 'volunteer-123';
-      const mockDeleteResult = {
-        deletedCount: 0,
-        acknowledged: true,
-      };
-      mockCollection.deleteMany.mockResolvedValue(mockDeleteResult);
-
-      const result = await repository.removeByVolunteerId(volunteerId);
-
-      expect(mockCollection.deleteMany).toHaveBeenCalledWith({ volunteerId });
-      expect(result).toEqual(mockDeleteResult);
+      expect(mockTypeOrmRepository.delete).toHaveBeenCalledWith({ volunteerId: 'volunteer-123' });
+      expect(result).toEqual({ deletedCount: 2 });
     });
   });
 
   describe('removeByAnnouncementId', () => {
-    it('should remove all favorite announcements for a specific announcement', async () => {
-      const announcementId = 'announcement-456';
-      const mockDeleteResult = {
-        deletedCount: 2,
-        acknowledged: true,
-      };
-      mockCollection.deleteMany.mockResolvedValue(mockDeleteResult);
+    it('should remove favorites by announcement ID', async () => {
+      (mockTypeOrmRepository.delete as jest.Mock).mockResolvedValue({ affected: 2 });
 
-      const result = await repository.removeByAnnouncementId(announcementId);
+      const result = await repository.removeByAnnouncementId('announcement-456');
 
-      expect(mockCollection.deleteMany).toHaveBeenCalledWith({ announcementId });
-      expect(result).toEqual(mockDeleteResult);
+      expect(mockTypeOrmRepository.delete).toHaveBeenCalledWith({
+        announcementId: 'announcement-456',
+      });
+      expect(result).toEqual({ deletedCount: 2 });
     });
+  });
 
-    it('should return result with deletedCount 0 when no documents are found', async () => {
-      const announcementId = 'announcement-456';
-      const mockDeleteResult = {
-        deletedCount: 0,
-        acknowledged: true,
-      };
-      mockCollection.deleteMany.mockResolvedValue(mockDeleteResult);
+  describe('removeByAssociationId', () => {
+    it('should remove favorites by association ID', async () => {
+      const result = await repository.removeByAssociationId('association-123');
 
-      const result = await repository.removeByAnnouncementId(announcementId);
-
-      expect(mockCollection.deleteMany).toHaveBeenCalledWith({ announcementId });
-      expect(result).toEqual(mockDeleteResult);
+      expect(mockTypeOrmRepository.createQueryBuilder).toHaveBeenCalled();
+      expect(mockQueryBuilder.delete).toHaveBeenCalled();
+      expect(mockQueryBuilder.from).toHaveBeenCalledWith(FavoritesAnnouncement);
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        expect.stringContaining('announcementId IN'),
+        { associationId: 'association-123' },
+      );
+      expect(result).toEqual({ deletedCount: 1 });
     });
   });
 
   describe('findAllByVolunteerId', () => {
-    it('should return all favorite announcements for a specific volunteer', async () => {
-      const volunteerId = 'volunteer-123';
-      const mockFavorites = [
-        { volunteerId: 'volunteer-123', announcementId: 'announcement-1' },
-        { volunteerId: 'volunteer-123', announcementId: 'announcement-2' },
-      ];
-      const mockCursor = {
-        toArray: jest.fn().mockResolvedValue(mockFavorites),
-      };
-      mockCollection.find.mockReturnValue(mockCursor);
+    it('should return favorites by volunteer ID', async () => {
+      const mockFavorites = [mockFavoritesAnnouncement];
+      (mockTypeOrmRepository.findBy as jest.Mock).mockResolvedValue(mockFavorites);
 
-      const result = await repository.findAllByVolunteerId(volunteerId);
+      const result = await repository.findAllByVolunteerId('volunteer-123');
 
-      expect(mockCollection.find).toHaveBeenCalledWith({ volunteerId });
-      expect(mockCursor.toArray).toHaveBeenCalled();
+      expect(mockTypeOrmRepository.findBy).toHaveBeenCalledWith({ volunteerId: 'volunteer-123' });
       expect(result).toEqual(mockFavorites);
-    });
-
-    it('should return empty array when no favorites exist for volunteer', async () => {
-      const volunteerId = 'volunteer-123';
-      const mockCursor = {
-        toArray: jest.fn().mockResolvedValue([]),
-      };
-      mockCollection.find.mockReturnValue(mockCursor);
-
-      const result = await repository.findAllByVolunteerId(volunteerId);
-
-      expect(mockCollection.find).toHaveBeenCalledWith({ volunteerId });
-      expect(mockCursor.toArray).toHaveBeenCalled();
-      expect(result).toEqual([]);
     });
   });
 
   describe('findAllByAnnouncementId', () => {
-    it('should return all favorite announcements for a specific announcement', async () => {
-      const announcementId = 'announcement-456';
-      const mockFavorites = [
-        { volunteerId: 'volunteer-1', announcementId: 'announcement-456' },
-        { volunteerId: 'volunteer-2', announcementId: 'announcement-456' },
-      ];
-      const mockCursor = {
-        toArray: jest.fn().mockResolvedValue(mockFavorites),
-      };
-      mockCollection.find.mockReturnValue(mockCursor);
+    it('should return favorites by announcement ID', async () => {
+      const mockFavorites = [mockFavoritesAnnouncement];
+      (mockTypeOrmRepository.findBy as jest.Mock).mockResolvedValue(mockFavorites);
 
-      const result = await repository.findAllByAnnouncementId(announcementId);
+      const result = await repository.findAllByAnnouncementId('announcement-456');
 
-      expect(mockCollection.find).toHaveBeenCalledWith({ announcementId });
-      expect(mockCursor.toArray).toHaveBeenCalled();
+      expect(mockTypeOrmRepository.findBy).toHaveBeenCalledWith({
+        announcementId: 'announcement-456',
+      });
       expect(result).toEqual(mockFavorites);
-    });
-
-    it('should return empty array when no favorites exist for announcement', async () => {
-      const announcementId = 'announcement-456';
-      const mockCursor = {
-        toArray: jest.fn().mockResolvedValue([]),
-      };
-      mockCollection.find.mockReturnValue(mockCursor);
-
-      const result = await repository.findAllByAnnouncementId(announcementId);
-
-      expect(mockCollection.find).toHaveBeenCalledWith({ announcementId });
-      expect(mockCursor.toArray).toHaveBeenCalled();
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe('collection getter', () => {
-    it('should return the correct collection', () => {
-      const collection = (repository as any).collection;
-
-      expect(mockMongoClient.db).toHaveBeenCalled();
-      expect(mockMongoClient.db().collection).toHaveBeenCalledWith(DatabaseCollection.FAVORITES);
-      expect(collection).toBe(mockCollection);
     });
   });
 });

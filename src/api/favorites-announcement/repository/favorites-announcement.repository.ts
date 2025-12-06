@@ -1,62 +1,66 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
-import { MongoClient } from 'mongodb';
-import { DatabaseCollection } from '../../../common/enums/database.collection';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { FavoritesAnnouncement } from '../entities/favorites-announcement.entity';
 
 @Injectable()
 export class FavoritesAnnouncementRepository {
   constructor(
-    @Inject(MONGODB_CONNECTION)
-    private readonly mongoClient: MongoClient,
-  ) {}
-
-  private get collection() {
-    return this.mongoClient.db().collection<FavoritesAnnouncement>(DatabaseCollection.FAVORITES);
-  }
+    @InjectRepository(FavoritesAnnouncement)
+    private readonly repository: Repository<FavoritesAnnouncement>,
+  ) { }
 
   async findByVolunteerIdAndAnnouncementId(volunteerId: string, announcementId: string) {
     if (typeof volunteerId !== 'string' || typeof announcementId !== 'string') {
       throw new Error('Invalid input: volunteerId and announcementId must be strings');
     }
-    return await this.collection.findOne(
-      { volunteerId: { $eq: volunteerId }, announcementId: { $eq: announcementId } },
-      { projection: { _id: 0, __v: 0 } },
-    );
+    return await this.repository.findOneBy({ volunteerId, announcementId });
   }
 
   async create(favoritesAnnouncement: FavoritesAnnouncement) {
-    const favoritesAnnouncementInsertOneResult = await this.collection.insertOne({
-      ...favoritesAnnouncement,
-    });
-    return favoritesAnnouncementInsertOneResult.insertedId ? favoritesAnnouncement : null;
+    const created = this.repository.create(favoritesAnnouncement);
+    return await this.repository.save(created);
   }
 
   async findAll() {
-    return await this.collection.find().toArray();
+    return await this.repository.find();
   }
 
   async removeByVolunteerIdAndAnnouncementId(volunteerId: string, announcementId: string) {
-    return await this.collection.deleteOne({ volunteerId, announcementId });
+    const result = await this.repository.delete({ volunteerId, announcementId });
+    return { deletedCount: result.affected };
   }
 
   async removeByVolunteerId(volunteerId: string) {
-    return await this.collection.deleteMany({ volunteerId });
+    const result = await this.repository.delete({ volunteerId });
+    return { deletedCount: result.affected };
   }
 
   async removeByAssociationId(associationId: string) {
-    return await this.collection.deleteMany({ associationId });
+    // Delete favorites where announcementId belongs to the association
+    // Using a subquery
+    const result = await this.repository
+      .createQueryBuilder()
+      .delete()
+      .from(FavoritesAnnouncement)
+      .where(
+        'announcementId IN (SELECT id FROM announcements WHERE "associationId" = :associationId)',
+        { associationId },
+      )
+      .execute();
+    return { deletedCount: result.affected };
   }
 
   async removeByAnnouncementId(announcementId: string) {
-    return await this.collection.deleteMany({ announcementId });
+    const result = await this.repository.delete({ announcementId });
+    return { deletedCount: result.affected };
   }
 
   async findAllByVolunteerId(volunteerId: string) {
-    return await this.collection.find({ volunteerId }).toArray();
+    return await this.repository.findBy({ volunteerId });
   }
 
   async findAllByAnnouncementId(announcementId: string) {
-    return await this.collection.find({ announcementId }).toArray();
+    return await this.repository.findBy({ announcementId });
   }
 }

@@ -8,6 +8,7 @@ import { PrometheusModule } from './prometheus/prometheus.module';
 import { SupportModule } from './support/support.module';
 import { AdminModule } from './admin/admin.module';
 import { SettingsModule } from './settings/settings.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { SettingsModule } from './settings/settings.module';
     SupportModule,
     AdminModule,
     SettingsModule,
+    NotificationsModule,
   ],
 })
-export class ApiModule {}
+export class ApiModule { }

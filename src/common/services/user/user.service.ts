@@ -41,7 +41,7 @@ export class UserService {
     private readonly associationService: AssociationService,
     private readonly awsS3Service: AwsS3Service,
     private readonly settingsService: SettingsService,
-  ) {}
+  ) { }
 
   async updateLocation(id: string, location: Location) {
     try {
@@ -121,6 +121,32 @@ export class UserService {
       }
       let avatarFileKey = '';
       const user = await this.userRepository.findByUid(currentUser.uid);
+      if (!user) {
+        this.logger.warn(
+          `Utilisateur non trouvé dans la base de données locale, synchronisation depuis Firebase: ${currentUser.uid}`,
+        );
+        const firebaseUser = await this.firebaseInstance.getUserByEmail(currentUser.email);
+        const role = firebaseUser.customClaims?.role || UserRole.VOLUNTEER;
+
+        await this.userRepository.create({
+          _id: firebaseUser.uid,
+          email: firebaseUser.email,
+          role: role,
+          disabled: firebaseUser.disabled,
+          isVerified: firebaseUser.emailVerified,
+          lastSignInTime: firebaseUser.metadata.lastRefreshTime,
+          isCompleted: false,
+          createdAt: firebaseUser.metadata.creationTime,
+        });
+
+        // Re-fetch the user after creation
+        const newUser = await this.userRepository.findByUid(currentUser.uid);
+        return {
+          ...newUser,
+          avatarFileKey: '',
+        };
+      }
+
       if (user.avatarFileKey !== '') {
         avatarFileKey = await this.getAvatarFileUrl(currentUser.uid);
       }

@@ -8,6 +8,7 @@ import { SettingsService } from '../../settings/services/settings.service';
 import { Logger } from '@nestjs/common';
 import { FilterAssociationAnnouncementDto } from '../dto/filter-association-announcement.dto';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
+import { NotificationsService } from '../../notifications/services/notifications.service';
 
 jest.mock('luxon', () => ({
   DateTime: {
@@ -98,6 +99,13 @@ describe('AnnouncementService', () => {
           useValue: {
             getAssociationSettings: jest.fn(),
             getVolunteerSettings: jest.fn(),
+          },
+        },
+        {
+          provide: NotificationsService,
+          useValue: {
+            notifyAssociationOfVolunteerRequest: jest.fn(),
+            notifyAssociationOfParticipantRequest: jest.fn(),
           },
         },
       ],
@@ -226,6 +234,7 @@ describe('AnnouncementService', () => {
         favoritesAnnouncementService as any,
         awsS3Service as any,
         {} as any, // settingsService
+        {} as any, // notificationsService
       );
       await expect(serviceTest.delete(id)).resolves.toBeUndefined();
       expect(favoritesAnnouncementService.removeByAnnouncementId).toHaveBeenCalledWith(id);
@@ -252,6 +261,7 @@ describe('AnnouncementService', () => {
         favoritesAnnouncementService as any,
         awsS3Service as any,
         {} as any, // settingsService
+        {} as any, // notificationsService
       );
       await expect(serviceTest.delete(id)).rejects.toThrow(
         "Erreur lors de la suppression de l'annonce",
@@ -285,6 +295,7 @@ describe('AnnouncementService', () => {
         favoritesAnnouncementService as any,
         awsS3Service as any,
         {} as any, // settingsService
+        {} as any, // notificationsService
       );
 
       await expect(serviceTest.deleteByAssociationId(associationId)).resolves.toBeUndefined();
@@ -316,6 +327,7 @@ describe('AnnouncementService', () => {
         favoritesAnnouncementService as any,
         awsS3Service as any,
         {} as any, // settingsService
+        {} as any, // notificationsService
       );
 
       await expect(serviceTest.deleteByAssociationId(associationId)).resolves.toBeUndefined();
@@ -343,6 +355,7 @@ describe('AnnouncementService', () => {
         favoritesAnnouncementService as any,
         awsS3Service as any,
         {} as any, // settingsService
+        {} as any, // notificationsService
       );
       await expect(serviceTest.deleteByAssociationId(associationId)).rejects.toThrow(
         "Erreur lors de la suppression des annonces de l'association",

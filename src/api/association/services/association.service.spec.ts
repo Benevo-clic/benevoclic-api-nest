@@ -8,6 +8,8 @@ import { FirebaseAdminService } from '../../../common/firebase/firebaseAdmin.ser
 import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
 import { DateTime } from 'luxon';
+import { NotificationsService } from '../../notifications/services/notifications.service';
+import { DateService } from '../../../common/services/date.service';
 
 jest.mock('../../../common/firebase/firebaseAdmin.service', () => {
   const mockFirebaseAdmin = {
@@ -21,7 +23,7 @@ jest.mock('../../../common/firebase/firebaseAdmin.service', () => {
   };
 });
 
-jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+jest.spyOn(Logger.prototype, 'error').mockImplementation(() => { });
 
 describe('AssociationService', () => {
   let associationService: AssociationService;
@@ -74,6 +76,23 @@ describe('AssociationService', () => {
           useValue: {
             deleteByAssociationId: jest.fn().mockResolvedValue(undefined),
             updateAnnouncementAssociationName: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: NotificationsService,
+          useValue: {
+            notifyAssociationOfVolunteerRequest: jest.fn(),
+            notifyAssociationOfParticipantRequest: jest.fn(),
+            notifyVolunteerOfMembershipAcceptance: jest.fn(),
+            notifyVolunteerOfMembershipRequestRejection: jest.fn(),
+            notifyAssociationOfMembershipRequest: jest.fn(),
+          },
+        },
+        {
+          provide: DateService,
+          useValue: {
+            now: jest.fn().mockReturnValue(DateTime.now()),
+            toISODate: jest.fn().mockReturnValue('2025-01-01'),
           },
         },
       ],

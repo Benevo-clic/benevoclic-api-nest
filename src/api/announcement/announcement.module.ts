@@ -8,18 +8,24 @@ import { FavoritesAnnouncementModule } from '../favorites-announcement/favorites
 import { VolunteerModule } from '../volunteer/volunteer.module';
 import { AssociationModule } from '../association/association.module';
 import { SettingsModule } from '../settings/settings.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Announcement } from './entities/announcement.entity';
 
 @Module({
   imports: [
     DatabaseModule,
+    TypeOrmModule.forFeature([Announcement]),
     UserModule,
     forwardRef(() => VolunteerModule),
     forwardRef(() => FavoritesAnnouncementModule),
     forwardRef(() => AssociationModule),
     SettingsModule,
+    forwardRef(() => NotificationsModule),
   ],
   providers: [AnnouncementRepository, AnnouncementService],
   controllers: [AnnouncementController],
   exports: [AnnouncementService, AnnouncementRepository],
 })
-export class AnnouncementModule {}
+export class AnnouncementModule { }
+

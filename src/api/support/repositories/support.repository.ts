@@ -1,12 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { Collection, MongoClient, ObjectId } from 'mongodb';
-import { DatabaseCollection } from '../../../common/enums/database.collection';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Report } from '../entities/report.entity';
 import { CreateReportDto } from '../dto/create-report.dto';
 import { UpdateReportDto } from '../dto/update-report.dto';
 import { FilterReportDto } from '../dto/filter-report.dto';
-import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
-import { ReportPriority, ReportStatus } from '../interfaces/support.interface';
+import { ReportPriority, ReportStatus, ReportType } from '../interfaces/support.interface';
 
 export interface FilterReportResponse {
   reports: Report[];
@@ -20,92 +19,97 @@ export interface FilterReportResponse {
 
 @Injectable()
 export class SupportRepository {
-  private collection: Collection<Report>;
-
-  constructor(@Inject(MONGODB_CONNECTION) private readonly mongoClient: MongoClient) {
-    this.collection = this.mongoClient.db().collection<Report>(DatabaseCollection.SUPPORT);
-  }
+  constructor(
+    @InjectRepository(Report)
+    private readonly repository: Repository<Report>,
+  ) { }
 
   async create(report: CreateReportDto): Promise<Report> {
-    const newReport: Report = {
+    const newReport = this.repository.create({
       ...report,
       status: ReportStatus.PENDING,
       priority: ReportPriority.MEDIUM,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    const result = await this.collection.insertOne(newReport);
-    return { ...newReport, id: result.insertedId.toString() };
+    });
+    return await this.repository.save(newReport);
   }
 
   async findAll(): Promise<Report[]> {
-    return await this.collection.find().sort({ createdAt: -1 }).toArray();
+    return await this.repository.find({
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findById(id: string): Promise<Report | null> {
-    try {
-      return await this.collection.findOne({ _id: new ObjectId(id) });
-    } catch (error) {
-      return null;
-    }
+    return await this.repository.findOneBy({ id });
   }
 
   async findByUserId(userId: string): Promise<Report[]> {
-    return await this.collection.find({ userId }).sort({ createdAt: -1 }).toArray();
+    return await this.repository.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findByAnnouncementId(announcementId: string): Promise<Report[]> {
-    return await this.collection.find({ announcementId }).sort({ createdAt: -1 }).toArray();
+    return await this.repository.find({
+      where: { announcementId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async update(id: string, updateData: UpdateReportDto): Promise<Report | null> {
-    try {
-      const result = await this.collection.findOneAndUpdate(
-        { _id: new ObjectId(id) },
-        {
-          $set: {
-            ...updateData,
-            updatedAt: new Date(),
-          },
-        },
-        { returnDocument: 'after' },
-      );
-      return result as Report | null;
-    } catch (error) {
-      return null;
-    }
+    const report = await this.findById(id);
+    if (!report) return null;
+
+    await this.repository.update(id, updateData);
+    return await this.findById(id);
   }
 
   async delete(id: string): Promise<void> {
-    try {
-      await this.collection.deleteOne({ _id: new ObjectId(id) });
-    } catch (error) {}
+    await this.repository.delete(id);
   }
 
   async filterReports(filterDto: FilterReportDto): Promise<FilterReportResponse> {
-    const filter: any = {};
+    const query = this.repository.createQueryBuilder('report');
 
-    if (filterDto.type) filter.type = filterDto.type;
-    if (filterDto.status) filter.status = filterDto.status;
-    if (filterDto.priority) filter.priority = filterDto.priority;
-    if (filterDto.userId) filter.userId = filterDto.userId;
-    if (filterDto.announcementId) filter.announcementId = filterDto.announcementId;
-
-    if (filterDto.createdAtFrom || filterDto.createdAtTo) {
-      filter.createdAt = {};
-      if (filterDto.createdAtFrom) filter.createdAt.$gte = new Date(filterDto.createdAtFrom);
-      if (filterDto.createdAtTo) filter.createdAt.$lte = new Date(filterDto.createdAtTo);
+    if (filterDto.type) {
+      query.andWhere('report.type = :type', { type: filterDto.type });
     }
+    if (filterDto.status) {
+      query.andWhere('report.status = :status', { status: filterDto.status });
+    }
+    if (filterDto.priority) {
+      query.andWhere('report.priority = :priority', { priority: filterDto.priority });
+    }
+    if (filterDto.userId) {
+      query.andWhere('report.userId = :userId', { userId: filterDto.userId });
+    }
+    if (filterDto.announcementId) {
+      query.andWhere('report.announcementId = :announcementId', {
+        announcementId: filterDto.announcementId,
+      });
+    }
+
+    if (filterDto.createdAtFrom) {
+      query.andWhere('report.createdAt >= :createdAtFrom', {
+        createdAtFrom: new Date(filterDto.createdAtFrom),
+      });
+    }
+    if (filterDto.createdAtTo) {
+      query.andWhere('report.createdAt <= :createdAtTo', {
+        createdAtTo: new Date(filterDto.createdAtTo),
+      });
+    }
+
+    query.orderBy('report.createdAt', 'DESC');
 
     const page = parseInt(filterDto.page as string) || 1;
     const limit = parseInt(filterDto.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const [reports, total] = await Promise.all([
-      this.collection.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray(),
-      this.collection.countDocuments(filter),
-    ]);
+    query.skip(skip).take(limit);
+
+    const [reports, total] = await query.getManyAndCount();
 
     return {
       reports,
@@ -119,33 +123,43 @@ export class SupportRepository {
   }
 
   async getStats(): Promise<any> {
-    const stats = await this.collection
-      .aggregate([
-        {
-          $group: {
-            _id: null,
-            total: { $sum: 1 },
-            pending: { $sum: { $cond: [{ $eq: ['$status', 'PENDING'] }, 1, 0] } },
-            inProgress: { $sum: { $cond: [{ $eq: ['$status', 'IN_PROGRESS'] }, 1, 0] } },
-            resolved: { $sum: { $cond: [{ $eq: ['$status', 'RESOLVED'] }, 1, 0] } },
-            rejected: { $sum: { $cond: [{ $eq: ['$status', 'REJECTED'] }, 1, 0] } },
-            announcementReports: { $sum: { $cond: [{ $eq: ['$type', 'ANNOUNCEMENT'] }, 1, 0] } },
-            technicalReports: { $sum: { $cond: [{ $eq: ['$type', 'TECHNICAL'] }, 1, 0] } },
-          },
-        },
-      ])
-      .toArray();
+    const stats = await this.repository
+      .createQueryBuilder('report')
+      .select('COUNT(*)', 'total')
+      .addSelect(
+        `SUM(CASE WHEN report.status = '${ReportStatus.PENDING}' THEN 1 ELSE 0 END)`,
+        'pending',
+      )
+      .addSelect(
+        `SUM(CASE WHEN report.status = '${ReportStatus.IN_PROGRESS}' THEN 1 ELSE 0 END)`,
+        'inProgress',
+      )
+      .addSelect(
+        `SUM(CASE WHEN report.status = '${ReportStatus.RESOLVED}' THEN 1 ELSE 0 END)`,
+        'resolved',
+      )
+      .addSelect(
+        `SUM(CASE WHEN report.status = '${ReportStatus.REJECTED}' THEN 1 ELSE 0 END)`,
+        'rejected',
+      )
+      .addSelect(
+        `SUM(CASE WHEN report.type = '${ReportType.ANNOUNCEMENT}' THEN 1 ELSE 0 END)`,
+        'announcementReports',
+      )
+      .addSelect(
+        `SUM(CASE WHEN report.type = '${ReportType.TECHNICAL}' THEN 1 ELSE 0 END)`,
+        'technicalReports',
+      )
+      .getRawOne();
 
-    return (
-      stats[0] || {
-        total: 0,
-        pending: 0,
-        inProgress: 0,
-        resolved: 0,
-        rejected: 0,
-        announcementReports: 0,
-        technicalReports: 0,
-      }
-    );
+    return {
+      total: parseInt(stats.total) || 0,
+      pending: parseInt(stats.pending) || 0,
+      inProgress: parseInt(stats.inProgress) || 0,
+      resolved: parseInt(stats.resolved) || 0,
+      rejected: parseInt(stats.rejected) || 0,
+      announcementReports: parseInt(stats.announcementReports) || 0,
+      technicalReports: parseInt(stats.technicalReports) || 0,
+    };
   }
 }

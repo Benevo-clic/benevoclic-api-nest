@@ -26,6 +26,7 @@ import { FilterAssociationAnnouncementDto } from '../dto/filter-association-anno
 import { InfoVolunteerDto } from '../../association/dto/info-volunteer.dto';
 import { DateTime } from 'luxon';
 import { SettingsService } from '../../settings/services/settings.service';
+import { NotificationsService } from '../../notifications/services/notifications.service';
 
 @Injectable()
 export class AnnouncementService {
@@ -40,7 +41,9 @@ export class AnnouncementService {
     private readonly favoritesAnnouncementService: FavoritesAnnouncementService,
     private readonly awsS3Service: AwsS3Service,
     private readonly settingsService: SettingsService,
-  ) {}
+    @Inject(forwardRef(() => NotificationsService))
+    private readonly notificationsService: NotificationsService,
+  ) { }
 
   async findAll(): Promise<Announcement[]> {
     try {
@@ -423,6 +426,11 @@ export class AnnouncementService {
       const announcement = await this.announcementRepository.findById(id);
       const settings = await this.getAssociationSettings(announcement.associationId);
 
+      // Block registration if event is not ACTIVE
+      if (announcement.status !== AnnouncementStatus.ACTIVE) {
+        throw new BadRequestException('Cannot register for this event - event is not active');
+      }
+
       if (this.isCompletedVolunteer(announcement, settings.volunteerLimits)) {
         throw new BadRequestException('Announcement is already completed');
       }
@@ -456,12 +464,24 @@ export class AnnouncementService {
         dateAdded: this.nowParis.toISODate(),
       });
       announcement.nbVolunteers++;
-      announcement.status =
-        announcement.nbVolunteers >= announcement.maxVolunteers &&
-        announcement.nbParticipants >= announcement.maxParticipants
-          ? AnnouncementStatus.COMPLETED
-          : AnnouncementStatus.ACTIVE;
+
+      // Auto-complete only if BOTH limits are set (not -1) AND both are full
+      const volunteersFull = announcement.maxVolunteers !== -1 && announcement.nbVolunteers >= announcement.maxVolunteers;
+      const participantsFull = announcement.maxParticipants !== -1 && announcement.nbParticipants >= announcement.maxParticipants;
+
+      if (volunteersFull && participantsFull) {
+        announcement.status = AnnouncementStatus.COMPLETED;
+      }
+
       await this.announcementRepository.updateVolunteer(id, announcement);
+
+      // Notify volunteer of acceptance
+      await this.notificationsService.notifyVolunteerOfAcceptance(
+        volunteer.id,
+        announcement.nameEvent,
+        id,
+        announcement.associationName,
+      );
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       this.logger.error(`Erreur lors de l'ajout du bénévole: ${id}`, error.stack);
@@ -473,6 +493,11 @@ export class AnnouncementService {
     try {
       const announcement = await this.announcementRepository.findById(id);
       const settings = await this.getAssociationSettings(announcement.associationId);
+
+      // Block registration if event is not ACTIVE
+      if (announcement.status !== AnnouncementStatus.ACTIVE) {
+        throw new BadRequestException('Cannot register for this event - event is not active');
+      }
 
       if (
         (await this.isVolunteer(announcement, volunteer.id)) ||
@@ -486,6 +511,19 @@ export class AnnouncementService {
       }
       announcement.volunteersWaiting.push(volunteer);
       await this.announcementRepository.updateVolunteer(id, announcement);
+
+      // Send notification to association
+      try {
+        await this.notificationsService.notifyAssociationOfVolunteerRequest(
+          announcement.associationId,
+          announcement.nameEvent,
+          announcement.id,
+          volunteer.name,
+        );
+      } catch (notifError) {
+        this.logger.warn('Failed to send notification', notifError);
+      }
+
       return volunteer;
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
@@ -511,6 +549,15 @@ export class AnnouncementService {
       }
 
       await this.announcementRepository.removeVolunteerWaiting(id, volunteerId);
+
+      // Notify volunteer of rejection (if not auto-approved, assuming manual rejection)
+      await this.notificationsService.notifyVolunteerOfRejection(
+        volunteerId,
+        announcement.nameEvent,
+        id,
+        announcement.associationName,
+      );
+
       return volunteerId;
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
@@ -530,11 +577,15 @@ export class AnnouncementService {
       if (!(await this.isVolunteer(announcement, volunteerId))) {
         throw new BadRequestException('Volunteer not registered');
       }
-      announcement.status =
-        announcement.nbVolunteers - 1 >= announcement.maxVolunteers &&
-        announcement.nbParticipants >= announcement.maxParticipants
-          ? AnnouncementStatus.COMPLETED
-          : AnnouncementStatus.ACTIVE;
+
+      // Recalculate status after removal - only set COMPLETED if BOTH limits are set and full
+      const volunteersFull = announcement.maxVolunteers !== -1 && (announcement.nbVolunteers - 1) >= announcement.maxVolunteers;
+      const participantsFull = announcement.maxParticipants !== -1 && announcement.nbParticipants >= announcement.maxParticipants;
+
+      announcement.status = (volunteersFull && participantsFull)
+        ? AnnouncementStatus.COMPLETED
+        : AnnouncementStatus.ACTIVE;
+
       await this.announcementRepository.updateStatus(id, announcement.status);
       await this.announcementRepository.removeVolunteer(
         id,
@@ -610,6 +661,11 @@ export class AnnouncementService {
       const announcement = await this.announcementRepository.findById(id);
       const settings = await this.getAssociationSettings(announcement.associationId);
 
+      // Block registration if event is not ACTIVE
+      if (announcement.status !== AnnouncementStatus.ACTIVE) {
+        throw new BadRequestException('Cannot register for this event - event is not active');
+      }
+
       if (await this.isCompletedParticipant(announcement, settings.participantLimits)) {
         throw new BadRequestException('Announcement is already completed');
       }
@@ -621,12 +677,29 @@ export class AnnouncementService {
         dateAdded: this.nowParis.toISODate(),
       });
       announcement.nbParticipants++;
-      announcement.status =
-        announcement.nbVolunteers >= announcement.maxVolunteers &&
-        announcement.nbParticipants >= announcement.maxParticipants
-          ? AnnouncementStatus.COMPLETED
-          : AnnouncementStatus.ACTIVE;
+
+      // Auto-complete only if BOTH limits are set (not -1) AND both are full
+      const volunteersFull = announcement.maxVolunteers !== -1 && announcement.nbVolunteers >= announcement.maxVolunteers;
+      const participantsFull = announcement.maxParticipants !== -1 && announcement.nbParticipants >= announcement.maxParticipants;
+
+      if (volunteersFull && participantsFull) {
+        announcement.status = AnnouncementStatus.COMPLETED;
+      }
+
       await this.announcementRepository.updateVolunteer(id, announcement);
+
+      // Send notification to association
+      try {
+        await this.notificationsService.notifyAssociationOfParticipantRequest(
+          announcement.associationId,
+          announcement.nameEvent,
+          announcement.id,
+          participant.name,
+        );
+      } catch (notifError) {
+        this.logger.warn('Failed to send notification', notifError);
+      }
+
       return participant;
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
@@ -653,11 +726,15 @@ export class AnnouncementService {
       if (!(await this.isParticipant(announcement, participantId))) {
         throw new BadRequestException('Participant not registered');
       }
-      announcement.status =
-        announcement.nbVolunteers >= announcement.maxVolunteers &&
-        announcement.nbParticipants - 1 >= announcement.maxParticipants
-          ? AnnouncementStatus.COMPLETED
-          : AnnouncementStatus.ACTIVE;
+
+      // Recalculate status after removal - only set COMPLETED if BOTH limits are set and full
+      const volunteersFull = announcement.maxVolunteers !== -1 && announcement.nbVolunteers >= announcement.maxVolunteers;
+      const participantsFull = announcement.maxParticipants !== -1 && (announcement.nbParticipants - 1) >= announcement.maxParticipants;
+
+      announcement.status = (volunteersFull && participantsFull)
+        ? AnnouncementStatus.COMPLETED
+        : AnnouncementStatus.ACTIVE;
+
       await this.announcementRepository.updateStatus(id, announcement.status);
       await this.announcementRepository.removeParticipant(
         id,

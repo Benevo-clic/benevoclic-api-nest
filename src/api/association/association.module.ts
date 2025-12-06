@@ -7,15 +7,22 @@ import { AssociationStatsSimpleService } from './services/association-stats-simp
 import { DatabaseModule } from '../../database/database.module';
 import { AnnouncementModule } from '../announcement/announcement.module';
 import { VolunteerModule } from '../volunteer/volunteer.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Association } from './entities/association.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
+
+import { DateService } from '../../common/services/date.service';
 
 @Module({
   imports: [
     DatabaseModule,
+    TypeOrmModule.forFeature([Association]),
     forwardRef(() => AnnouncementModule),
     forwardRef(() => VolunteerModule),
+    forwardRef(() => NotificationsModule),
   ],
   controllers: [AssociationController, AssociationDashboardSimpleController],
-  providers: [AssociationService, AssociationRepository, AssociationStatsSimpleService],
+  providers: [AssociationService, AssociationRepository, AssociationStatsSimpleService, DateService],
   exports: [AssociationService, AssociationStatsSimpleService],
 })
-export class AssociationModule {}
+export class AssociationModule { }

@@ -1,53 +1,18 @@
-import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
-import { MongoClient } from 'mongodb';
-import { MONGODB_CONNECTION } from '../../../database/mongodb.provider';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { DatabaseCollection } from '../../../common/enums/database.collection';
 
 @Injectable()
-export class UserRepository implements OnModuleInit {
+export class UserRepository {
   constructor(
-    @Inject(MONGODB_CONNECTION)
-    private readonly mongoClient: MongoClient,
-  ) {}
-
-  private get collection() {
-    return this.mongoClient.db().collection<User>(DatabaseCollection.USERS);
-  }
-
-  async onModuleInit() {
-    await this.collection.createIndex(
-      { userId: 1 },
-      {
-        unique: true,
-        background: true,
-        name: 'idx_users_userId',
-        sparse: true,
-        collation: {
-          locale: 'en',
-          strength: 2,
-        },
-      },
-    );
-
-    await this.collection.createIndex(
-      { email: 1 },
-      {
-        unique: true,
-        background: true,
-        name: 'idx_users_email',
-        sparse: true,
-        collation: {
-          locale: 'en',
-          strength: 2,
-        },
-      },
-    );
-  }
+    @InjectRepository(User)
+    private readonly repository: Repository<User>,
+  ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const user: User = {
+    const user = this.repository.create({
       userId: createUserDto._id,
       email: createUserDto.email,
       role: createUserDto.role,
@@ -59,69 +24,65 @@ export class UserRepository implements OnModuleInit {
       isCompleted: createUserDto.isCompleted,
       createdAt: createUserDto.createdAt,
       updatedAt: new Date(),
-    };
-    await this.collection.insertOne(user);
-    return user;
+    });
+    return this.repository.save(user);
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.collection.findOne({ email });
+    return this.repository.findOneBy({ email });
   }
 
   async findByUid(id: string): Promise<User | null> {
-    return this.collection.findOne({ userId: id });
+    return this.repository.findOneBy({ userId: id });
   }
 
   async findAll() {
-    return this.collection.find().toArray();
+    return this.repository.find();
   }
 
   async updateConnectionStatus(id: string, isOnline: boolean, lastSignInTime = ''): Promise<void> {
-    await this.collection.updateOne(
+    await this.repository.update(
       { userId: id },
       {
-        $set: {
-          isOnline: isOnline,
-          lastConnection: lastSignInTime === '' ? new Date().toISOString() : lastSignInTime,
-          updatedAt: new Date(),
-        },
+        isOnline: isOnline,
+        lastConnection: lastSignInTime === '' ? new Date().toISOString() : lastSignInTime,
+        updatedAt: new Date(),
       },
     );
   }
 
   async updateIsComplete(id: string, isComplete: boolean): Promise<void> {
-    await this.collection.updateOne(
+    await this.repository.update(
       { userId: id },
       {
-        $set: {
-          isCompleted: isComplete,
-          updatedAt: new Date(),
-        },
+        isCompleted: isComplete,
+        updatedAt: new Date(),
       },
     );
   }
 
   async findAllOnlineUsers(): Promise<User[]> {
-    return this.collection.find({ isOnline: true }).toArray();
+    return this.repository.findBy({ isOnline: true });
   }
 
   async remove(id: string): Promise<void> {
-    await this.collection.deleteOne({ userId: id });
+    await this.repository.delete({ userId: id });
   }
 
   async getUserImageProfileById(id: string): Promise<string | null> {
-    const user = await this.collection.findOne({ userId: id }, { projection: { imageProfile: 1 } });
+    const user = await this.repository.findOne({
+      where: { userId: id },
+      select: ['imageProfile'],
+    });
     return user?.imageProfile?.data || null;
   }
 
   async update(id: string, updateData: Partial<User>): Promise<void> {
-    await this.collection.updateOne(
+    await this.repository.update(
       { userId: id },
       {
-        $set: {
-          ...updateData,
-          updatedAt: new Date(),
-        },
+        ...updateData,
+        updatedAt: new Date(),
       },
     );
   }
