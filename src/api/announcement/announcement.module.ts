@@ -27,5 +27,4 @@ import { Announcement } from './entities/announcement.entity';
   controllers: [AnnouncementController],
   exports: [AnnouncementService, AnnouncementRepository],
 })
-export class AnnouncementModule { }
-
+export class AnnouncementModule {}

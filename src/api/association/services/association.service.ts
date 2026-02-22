@@ -29,7 +29,7 @@ export class AssociationService {
     private readonly announcementService: AnnouncementService,
     private readonly notificationsService: NotificationsService,
     private readonly dateService: DateService,
-  ) { }
+  ) {}
 
   // ... (keeping existing methods until addVolunteer)
 
@@ -197,8 +197,6 @@ export class AssociationService {
     }
   }
 
-
-
   async addVolunteerWaiting(associationId: string, volunteerInfo: VolunteerAssociationFollowing) {
     try {
       const association: Association = await this.associationRepository.findById(associationId);
@@ -236,7 +234,11 @@ export class AssociationService {
     }
   }
 
-  async removeVolunteerWaiting(associationId: string, volunteerId: string, shouldNotify: boolean = true) {
+  async removeVolunteerWaiting(
+    associationId: string,
+    volunteerId: string,
+    shouldNotify: boolean = true,
+  ) {
     try {
       const association: Association = await this.associationRepository.findById(associationId);
       if (!association) {

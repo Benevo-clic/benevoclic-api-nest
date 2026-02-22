@@ -41,7 +41,7 @@ export class UserService {
     private readonly associationService: AssociationService,
     private readonly awsS3Service: AwsS3Service,
     private readonly settingsService: SettingsService,
-  ) { }
+  ) {}
 
   async updateLocation(id: string, location: Location) {
     try {

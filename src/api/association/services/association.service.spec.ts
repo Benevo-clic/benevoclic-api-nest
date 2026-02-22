@@ -23,7 +23,7 @@ jest.mock('../../../common/firebase/firebaseAdmin.service', () => {
   };
 });
 
-jest.spyOn(Logger.prototype, 'error').mockImplementation(() => { });
+jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
 
 describe('AssociationService', () => {
   let associationService: AssociationService;

@@ -8,7 +8,7 @@ export class VolunteerRepository {
   constructor(
     @InjectRepository(Volunteer)
     private readonly repository: Repository<Volunteer>,
-  ) { }
+  ) {}
 
   async findById(uid: string) {
     return await this.repository.findOneBy({ volunteerId: uid });

@@ -19,4 +19,4 @@ import { FavoritesAnnouncement } from './entities/favorites-announcement.entity'
   providers: [FavoritesAnnouncementService, FavoritesAnnouncementRepository],
   exports: [FavoritesAnnouncementService],
 })
-export class FavoritesAnnouncementModule { }
+export class FavoritesAnnouncementModule {}

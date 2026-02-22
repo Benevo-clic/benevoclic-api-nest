@@ -9,7 +9,7 @@ import { AssociationSettings } from '../entities/association-settings.entity';
 export class SettingsService {
   private readonly logger = new Logger(SettingsService.name);
 
-  constructor(private readonly repo: SettingsRepository) { }
+  constructor(private readonly repo: SettingsRepository) {}
 
   async getOrCreateVolunteerSettings(userId: string): Promise<VolunteerSettings> {
     try {

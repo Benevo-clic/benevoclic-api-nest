@@ -52,7 +52,7 @@ import { UpdateVisibilityAnnouncementAssociationDTO } from '../dto/update-visibi
 export class AnnouncementController {
   private readonly logger = new Logger('AnnouncementController');
 
-  constructor(private readonly service: AnnouncementService) { }
+  constructor(private readonly service: AnnouncementService) {}
 
   @Public()
   @Get('allAnnouncements')

@@ -12,4 +12,4 @@ import { PostgresConfig } from './postgres.config';
   providers: [MongoConfig, PostgresConfig],
   exports: [MongoConfig, PostgresConfig],
 })
-export class ConfigModule { }
+export class ConfigModule {}

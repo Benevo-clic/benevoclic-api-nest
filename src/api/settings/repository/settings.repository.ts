@@ -13,7 +13,7 @@ export class SettingsRepository {
     private readonly volunteerRepository: Repository<VolunteerSettings>,
     @InjectRepository(AssociationSettings)
     private readonly associationRepository: Repository<AssociationSettings>,
-  ) { }
+  ) {}
 
   // ---------- VOLUNTEER ----------
 

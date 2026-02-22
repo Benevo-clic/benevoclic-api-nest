@@ -22,7 +22,7 @@ export const mockAnnouncements: Announcement[] = [
     nbVolunteers: 0,
     nbParticipants: 0,
     isHidden: false,
-  },
+  } as unknown as Announcement,
   {
     id: '507f1f77bcf86cd799439012',
     nameEvent: 'Event 2',
@@ -43,7 +43,7 @@ export const mockAnnouncements: Announcement[] = [
     nbVolunteers: 0,
     nbParticipants: 0,
     isHidden: false,
-  },
+  } as unknown as Announcement,
   {
     id: '507f1f77bcf86cd799439013',
     nameEvent: 'Event 3',
@@ -64,7 +64,7 @@ export const mockAnnouncements: Announcement[] = [
     nbVolunteers: 0,
     nbParticipants: 0,
     isHidden: false,
-  },
+  } as unknown as Announcement,
   {
     id: '507f1f77bcf86cd799439014',
     nameEvent: 'Event 4',
@@ -85,5 +85,5 @@ export const mockAnnouncements: Announcement[] = [
     nbVolunteers: 0,
     nbParticipants: 0,
     isHidden: false,
-  },
+  } as unknown as Announcement,
 ];

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AssociationController } from './association.controller';
 import { AssociationService } from '../services/association.service';
 import { AnnouncementService } from '../../announcement/services/announcement.service';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import * as mockData from '../../../../test/testFiles/association.data.json';
 
 jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
@@ -18,7 +18,6 @@ jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
 
 describe('AssociationController', () => {
   let controller: AssociationController;
-  let associationService: AssociationService;
 
   const mockAssociationService = {
     findAll: jest.fn(),
@@ -60,7 +59,6 @@ describe('AssociationController', () => {
     }).compile();
 
     controller = module.get<AssociationController>(AssociationController);
-    associationService = module.get<AssociationService>(AssociationService);
   });
 
   it('should be defined', () => {
@@ -240,9 +238,7 @@ describe('AssociationController', () => {
   describe('getAllAssociationsVolunteerFromWaitingList', () => {
     it('should return all associations where the volunteer is in the waiting list', async () => {
       const volunteerId = 'volunteer123';
-      const expectedAssociations = [
-        { associationId: 'asso1', associationName: 'Asso 1' },
-      ];
+      const expectedAssociations = [{ associationId: 'asso1', associationName: 'Asso 1' }];
       mockAssociationService.getAllAssociationsVolunteerFromWaitingList.mockResolvedValue(
         expectedAssociations,
       );

@@ -75,7 +75,9 @@ describe('AssociationRepository', () => {
 
       const result = await repository.findById('nonexistent');
 
-      expect(mockTypeOrmRepository.findOneBy).toHaveBeenCalledWith({ associationId: 'nonexistent' });
+      expect(mockTypeOrmRepository.findOneBy).toHaveBeenCalledWith({
+        associationId: 'nonexistent',
+      });
       expect(result).toBeNull();
     });
   });
@@ -164,7 +166,10 @@ describe('AssociationRepository', () => {
 
     describe('removeVolunteerWaitingFromAssociation', () => {
       it('should remove a waiting volunteer from an association', async () => {
-        const association = { ...mockAssociation, volunteersWaiting: [{ volunteerId: 'vol123' }] } as any;
+        const association = {
+          ...mockAssociation,
+          volunteersWaiting: [{ volunteerId: 'vol123' }],
+        } as any;
         (mockTypeOrmRepository.findOneBy as jest.Mock).mockResolvedValue(association);
         (mockTypeOrmRepository.save as jest.Mock).mockResolvedValue(association);
 

@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, AfterLoad } from 'typeorm';
 import { Location, LocationGeoJson } from '../../../common/type/usersInfo.type';
 import { InfoVolunteer } from '../../association/type/association.type';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
@@ -7,6 +7,13 @@ import { AnnouncementStatus } from '../interfaces/announcement.interface';
 export class Announcement {
   @PrimaryGeneratedColumn('uuid')
   id?: string;
+
+  _id?: string;
+
+  @AfterLoad()
+  updateId() {
+    this._id = this.id;
+  }
 
   @Column()
   description: string;

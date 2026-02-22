@@ -78,7 +78,6 @@ jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
 
 describe('UserController', () => {
   let userController: UserController;
-  let userService: UserService;
 
   const mockUserService = {
     findAll: jest.fn(),
@@ -107,7 +106,6 @@ describe('UserController', () => {
     }).compile();
 
     userController = module.get<UserController>(UserController);
-    userService = module.get<UserService>(UserService);
   });
 
   it('should be defined', () => {
@@ -220,10 +218,12 @@ describe('UserController', () => {
 
     it('should throw error if user not found', async () => {
       const req = { user: { uid: 'nonexistent-id' } };
-      mockUserService.logout.mockRejectedValue(new NotFoundException('Erreur lors de la déconnexion'));
+      mockUserService.logout.mockRejectedValue(
+        new NotFoundException('Erreur lors de la déconnexion'),
+      );
       await expect(userController.logout(req)).rejects.toThrow(NotFoundException);
     });
   });
 });
 
-jest.spyOn(Logger.prototype, 'error').mockImplementation(() => { });
+jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});

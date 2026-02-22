@@ -22,7 +22,7 @@ export class SupportRepository {
   constructor(
     @InjectRepository(Report)
     private readonly repository: Repository<Report>,
-  ) { }
+  ) {}
 
   async create(report: CreateReportDto): Promise<Report> {
     const newReport = this.repository.create({

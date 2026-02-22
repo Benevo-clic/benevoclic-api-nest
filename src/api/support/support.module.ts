@@ -12,4 +12,4 @@ import { Report } from './entities/report.entity';
   providers: [SupportService, SupportRepository, DiscordWebhookService],
   exports: [SupportService],
 })
-export class SupportModule { }
+export class SupportModule {}

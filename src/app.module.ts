@@ -46,4 +46,4 @@ import { DateService } from './common/services/date.service';
   controllers: [OrphanCleanupController],
   exports: [LoggerService, OrphanCleanupService, DateService],
 })
-export class AppModule { }
+export class AppModule {}

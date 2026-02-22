@@ -8,7 +8,7 @@ export class FavoritesAnnouncementRepository {
   constructor(
     @InjectRepository(FavoritesAnnouncement)
     private readonly repository: Repository<FavoritesAnnouncement>,
-  ) { }
+  ) {}
 
   async findByVolunteerIdAndAnnouncementId(volunteerId: string, announcementId: string) {
     if (typeof volunteerId !== 'string' || typeof announcementId !== 'string') {

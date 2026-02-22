@@ -43,7 +43,7 @@ export class AnnouncementService {
     private readonly settingsService: SettingsService,
     @Inject(forwardRef(() => NotificationsService))
     private readonly notificationsService: NotificationsService,
-  ) { }
+  ) {}
 
   async findAll(): Promise<Announcement[]> {
     try {
@@ -102,7 +102,9 @@ export class AnnouncementService {
         announcement.associationLogo = await this.userService.getAvatarFileUrl(
           announcement.associationId,
         );
-        announcement.announcementImage = await this.getAvatarFileUrl(announcement?._id);
+        announcement.announcementImage = await this.getAvatarFileUrl(
+          announcement.id || announcement._id,
+        );
       }),
     );
     return announcements;
@@ -114,7 +116,9 @@ export class AnnouncementService {
         announcement.associationLogo = await this.userService.getAvatarFileUrl(
           announcement.associationId,
         );
-        announcement.announcementImage = await this.getAvatarFileUrl(announcement?._id);
+        announcement.announcementImage = await this.getAvatarFileUrl(
+          announcement.id || announcement._id,
+        );
       }),
     );
     return announcements;
@@ -262,7 +266,7 @@ export class AnnouncementService {
         status: announcement.status,
         nbVolunteers: 0,
         maxVolunteers: !settings.volunteerLimits ? -1 : announcement.maxParticipants,
-      });
+      } as unknown as Announcement);
     } catch (error) {
       this.logger.error("Erreur lors de la création de l'annonce", error.stack);
       throw new InternalServerErrorException("Erreur lors de la création de l'annonce");
@@ -466,8 +470,12 @@ export class AnnouncementService {
       announcement.nbVolunteers++;
 
       // Auto-complete only if BOTH limits are set (not -1) AND both are full
-      const volunteersFull = announcement.maxVolunteers !== -1 && announcement.nbVolunteers >= announcement.maxVolunteers;
-      const participantsFull = announcement.maxParticipants !== -1 && announcement.nbParticipants >= announcement.maxParticipants;
+      const volunteersFull =
+        announcement.maxVolunteers !== -1 &&
+        announcement.nbVolunteers >= announcement.maxVolunteers;
+      const participantsFull =
+        announcement.maxParticipants !== -1 &&
+        announcement.nbParticipants >= announcement.maxParticipants;
 
       if (volunteersFull && participantsFull) {
         announcement.status = AnnouncementStatus.COMPLETED;
@@ -579,12 +587,17 @@ export class AnnouncementService {
       }
 
       // Recalculate status after removal - only set COMPLETED if BOTH limits are set and full
-      const volunteersFull = announcement.maxVolunteers !== -1 && (announcement.nbVolunteers - 1) >= announcement.maxVolunteers;
-      const participantsFull = announcement.maxParticipants !== -1 && announcement.nbParticipants >= announcement.maxParticipants;
+      const volunteersFull =
+        announcement.maxVolunteers !== -1 &&
+        announcement.nbVolunteers - 1 >= announcement.maxVolunteers;
+      const participantsFull =
+        announcement.maxParticipants !== -1 &&
+        announcement.nbParticipants >= announcement.maxParticipants;
 
-      announcement.status = (volunteersFull && participantsFull)
-        ? AnnouncementStatus.COMPLETED
-        : AnnouncementStatus.ACTIVE;
+      announcement.status =
+        volunteersFull && participantsFull
+          ? AnnouncementStatus.COMPLETED
+          : AnnouncementStatus.ACTIVE;
 
       await this.announcementRepository.updateStatus(id, announcement.status);
       await this.announcementRepository.removeVolunteer(
@@ -679,8 +692,12 @@ export class AnnouncementService {
       announcement.nbParticipants++;
 
       // Auto-complete only if BOTH limits are set (not -1) AND both are full
-      const volunteersFull = announcement.maxVolunteers !== -1 && announcement.nbVolunteers >= announcement.maxVolunteers;
-      const participantsFull = announcement.maxParticipants !== -1 && announcement.nbParticipants >= announcement.maxParticipants;
+      const volunteersFull =
+        announcement.maxVolunteers !== -1 &&
+        announcement.nbVolunteers >= announcement.maxVolunteers;
+      const participantsFull =
+        announcement.maxParticipants !== -1 &&
+        announcement.nbParticipants >= announcement.maxParticipants;
 
       if (volunteersFull && participantsFull) {
         announcement.status = AnnouncementStatus.COMPLETED;
@@ -728,12 +745,17 @@ export class AnnouncementService {
       }
 
       // Recalculate status after removal - only set COMPLETED if BOTH limits are set and full
-      const volunteersFull = announcement.maxVolunteers !== -1 && announcement.nbVolunteers >= announcement.maxVolunteers;
-      const participantsFull = announcement.maxParticipants !== -1 && (announcement.nbParticipants - 1) >= announcement.maxParticipants;
+      const volunteersFull =
+        announcement.maxVolunteers !== -1 &&
+        announcement.nbVolunteers >= announcement.maxVolunteers;
+      const participantsFull =
+        announcement.maxParticipants !== -1 &&
+        announcement.nbParticipants - 1 >= announcement.maxParticipants;
 
-      announcement.status = (volunteersFull && participantsFull)
-        ? AnnouncementStatus.COMPLETED
-        : AnnouncementStatus.ACTIVE;
+      announcement.status =
+        volunteersFull && participantsFull
+          ? AnnouncementStatus.COMPLETED
+          : AnnouncementStatus.ACTIVE;
 
       await this.announcementRepository.updateStatus(id, announcement.status);
       await this.announcementRepository.removeParticipant(

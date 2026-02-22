@@ -230,12 +230,14 @@ describe('FavoritesAnnouncementService', () => {
       ];
       const mockAnnouncement1 = {
         id: 'announcement-1',
+        _id: 'announcement-1',
         nameEvent: 'Event 1',
         description: 'Description 1',
         associationId: 'association-1',
       };
       const mockAnnouncement2 = {
         id: 'announcement-2',
+        _id: 'announcement-2',
         nameEvent: 'Event 2',
         description: 'Description 2',
         associationId: 'association-2',
@@ -270,6 +272,7 @@ describe('FavoritesAnnouncementService', () => {
       const mockFavorites = [{ volunteerId: 'volunteer-123', announcementId: 'announcement-1' }];
       const mockAnnouncement1 = {
         id: 'announcement-1',
+        _id: 'announcement-1',
         nameEvent: 'Event 1',
         description: 'Description 1',
         associationId: 'association-1',

@@ -2,18 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AnnouncementRepository } from './announcement.repository';
 import { Announcement } from '../entities/announcement.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { Repository } from 'typeorm';
 import { mockAnnouncements } from './__mocks__/announcement.mock';
-import {
-  basicFilterDto,
-  geoFilterDto,
-  tagFilterDto,
-  dateFilterDto,
-  statusFilterDto,
-  associationNameFilterDto,
-  hoursEventFilterDto,
-  publicationIntervalFilterDto,
-} from '../dto/__mocks__/filter-announcement.mock';
+import { basicFilterDto } from '../dto/__mocks__/filter-announcement.mock';
 import { AnnouncementStatus } from '../interfaces/announcement.interface';
 import { FilterAssociationAnnouncementDto } from '../dto/filter-association-announcement.dto';
 
@@ -134,7 +125,10 @@ describe('AnnouncementRepository', () => {
       const updateDto = { nameEvent: 'Updated' };
       (mockTypeOrmRepository.update as jest.Mock).mockResolvedValue({ affected: 1 });
       await repository.update(id, updateDto);
-      expect(mockTypeOrmRepository.update).toHaveBeenCalledWith({ id }, expect.objectContaining(updateDto));
+      expect(mockTypeOrmRepository.update).toHaveBeenCalledWith(
+        { id },
+        expect.objectContaining(updateDto),
+      );
     });
   });
 
@@ -195,7 +189,10 @@ describe('AnnouncementRepository', () => {
       const result = await repository.filterAssociationAnnouncements(filterDto);
 
       expect(mockTypeOrmRepository.createQueryBuilder).toHaveBeenCalledWith('announcement');
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('announcement.associationId = :associationId', { associationId: 'assoc-1' });
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'announcement.associationId = :associationId',
+        { associationId: 'assoc-1' },
+      );
       expect(result.meta.total).toBe(2);
     });
   });
@@ -240,7 +237,11 @@ describe('AnnouncementRepository', () => {
   describe('removeVolunteerEverywhere', () => {
     it('should remove volunteer from all announcements', async () => {
       const volunteerId = 'vol-1';
-      const announcement = { ...mockAnnouncements[0], volunteers: [{ id: volunteerId }], volunteersWaiting: [] } as any;
+      const announcement = {
+        ...mockAnnouncements[0],
+        volunteers: [{ id: volunteerId }],
+        volunteersWaiting: [],
+      } as any;
       mockQueryBuilder.getMany.mockResolvedValue([announcement]);
       (mockTypeOrmRepository.save as jest.Mock).mockResolvedValue(announcement);
 
@@ -255,7 +256,10 @@ describe('AnnouncementRepository', () => {
   describe('removeParticipantEverywhere', () => {
     it('should remove participant from all announcements', async () => {
       const participantId = 'part-1';
-      const announcement = { ...mockAnnouncements[0], participants: [{ id: participantId }] } as any;
+      const announcement = {
+        ...mockAnnouncements[0],
+        participants: [{ id: participantId }],
+      } as any;
       mockQueryBuilder.getMany.mockResolvedValue([announcement]);
       (mockTypeOrmRepository.save as jest.Mock).mockResolvedValue(announcement);
 
@@ -271,7 +275,10 @@ describe('AnnouncementRepository', () => {
     it('should remove volunteer from waiting list', async () => {
       const id = '1';
       const volunteerId = 'vol-1';
-      const announcement = { ...mockAnnouncements[0], volunteersWaiting: [{ id: volunteerId }] } as any;
+      const announcement = {
+        ...mockAnnouncements[0],
+        volunteersWaiting: [{ id: volunteerId }],
+      } as any;
       (mockTypeOrmRepository.findOneBy as jest.Mock).mockResolvedValue(announcement);
       (mockTypeOrmRepository.save as jest.Mock).mockResolvedValue(announcement);
 
@@ -301,7 +308,10 @@ describe('AnnouncementRepository', () => {
     it('should remove participant from list', async () => {
       const id = '1';
       const participantId = 'part-1';
-      const announcement = { ...mockAnnouncements[0], participants: [{ id: participantId }] } as any;
+      const announcement = {
+        ...mockAnnouncements[0],
+        participants: [{ id: participantId }],
+      } as any;
       (mockTypeOrmRepository.findOneBy as jest.Mock).mockResolvedValue(announcement);
       (mockTypeOrmRepository.save as jest.Mock).mockResolvedValue(announcement);
 
@@ -346,7 +356,10 @@ describe('AnnouncementRepository', () => {
 
       await repository.updateAssociationNameByAssociationId(associationId, name);
 
-      expect(mockTypeOrmRepository.update).toHaveBeenCalledWith({ associationId }, { associationName: name });
+      expect(mockTypeOrmRepository.update).toHaveBeenCalledWith(
+        { associationId },
+        { associationName: name },
+      );
     });
   });
 
@@ -356,9 +369,15 @@ describe('AnnouncementRepository', () => {
       const visibility = true;
       (mockTypeOrmRepository.update as jest.Mock).mockResolvedValue({ affected: 1 });
 
-      const result = await repository.updateAssociationVisibilityByAssociationId(associationId, visibility);
+      const result = await repository.updateAssociationVisibilityByAssociationId(
+        associationId,
+        visibility,
+      );
 
-      expect(mockTypeOrmRepository.update).toHaveBeenCalledWith({ associationId }, { isHidden: visibility });
+      expect(mockTypeOrmRepository.update).toHaveBeenCalledWith(
+        { associationId },
+        { isHidden: visibility },
+      );
       expect(result).toBe(1);
     });
   });

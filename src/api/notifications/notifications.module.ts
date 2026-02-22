@@ -8,16 +8,9 @@ import { NotificationsGateway } from './gateways/notifications.gateway';
 import { UserModule } from '../user/user.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Notification]),
-        forwardRef(() => UserModule),
-    ],
-    controllers: [NotificationsController],
-    providers: [
-        NotificationsRepository,
-        NotificationsService,
-        NotificationsGateway,
-    ],
-    exports: [NotificationsService],
+  imports: [TypeOrmModule.forFeature([Notification]), forwardRef(() => UserModule)],
+  controllers: [NotificationsController],
+  providers: [NotificationsRepository, NotificationsService, NotificationsGateway],
+  exports: [NotificationsService],
 })
-export class NotificationsModule { }
+export class NotificationsModule {}

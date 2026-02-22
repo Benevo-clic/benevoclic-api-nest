@@ -21,4 +21,4 @@ import { Volunteer } from './entities/volunteer.entity';
   providers: [VolunteerService, VolunteerRepository],
   exports: [VolunteerService, VolunteerRepository],
 })
-export class VolunteerModule { }
+export class VolunteerModule {}

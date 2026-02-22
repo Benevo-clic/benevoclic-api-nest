@@ -24,4 +24,4 @@ import { SettingsModule } from '../settings/settings.module';
   providers: [UserService, UserRepository, AwsS3Service],
   exports: [UserService, UserRepository, AwsS3Service],
 })
-export class UserModule { }
+export class UserModule {}

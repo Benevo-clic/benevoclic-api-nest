@@ -22,7 +22,12 @@ import { DateService } from '../../common/services/date.service';
     forwardRef(() => NotificationsModule),
   ],
   controllers: [AssociationController, AssociationDashboardSimpleController],
-  providers: [AssociationService, AssociationRepository, AssociationStatsSimpleService, DateService],
+  providers: [
+    AssociationService,
+    AssociationRepository,
+    AssociationStatsSimpleService,
+    DateService,
+  ],
   exports: [AssociationService, AssociationStatsSimpleService],
 })
-export class AssociationModule { }
+export class AssociationModule {}

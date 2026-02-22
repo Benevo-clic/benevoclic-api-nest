@@ -17,7 +17,6 @@ jest.mock('../../../common/firebase/firebaseAdmin.service', () => ({
 
 describe('VolunteerController', () => {
   let volunteerController: VolunteerController;
-  let volunteerService: VolunteerService;
 
   const mockVolunteerService = {
     findAll: jest.fn(),
@@ -39,7 +38,6 @@ describe('VolunteerController', () => {
     }).compile();
 
     volunteerController = module.get<VolunteerController>(VolunteerController);
-    volunteerService = module.get<VolunteerService>(VolunteerService);
   });
 
   it('should be defined', () => {

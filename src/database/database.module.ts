@@ -1,9 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '../config/config.module';
-import { MongoConfig } from '../config/mongo.config';
 import { PostgresConfig } from '../config/postgres.config';
-import { mongodbProvider } from './mongodb.provider';
 
 @Module({
   imports: [
@@ -14,7 +12,5 @@ import { mongodbProvider } from './mongodb.provider';
       inject: [PostgresConfig],
     }),
   ],
-  providers: [MongoConfig, mongodbProvider],
-  exports: [mongodbProvider],
 })
-export class DatabaseModule { }
+export class DatabaseModule {}

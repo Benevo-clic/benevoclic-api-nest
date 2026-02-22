@@ -12,7 +12,7 @@ export class AssociationRepository {
   constructor(
     @InjectRepository(Association)
     private readonly repository: Repository<Association>,
-  ) { }
+  ) {}
 
   async update(id: string, updateData: Partial<Association>): Promise<void> {
     await this.repository.update({ associationId: id }, updateData);
@@ -74,7 +74,8 @@ export class AssociationRepository {
     }
 
     return (
-      association.volunteersWaiting?.find(volunteer => volunteer.volunteerId === volunteerId) || null
+      association.volunteersWaiting?.find(volunteer => volunteer.volunteerId === volunteerId) ||
+      null
     );
   }
 
@@ -103,7 +104,7 @@ export class AssociationRepository {
     }
   }
 
-  async findByEmail(email: string) {
+  async findByEmail(_email: string) {
     // Note: Association entity does not have email column in the original code,
     // but the repository had this method. If email is not stored, this returns null.
     // If we added email column, we can query it.

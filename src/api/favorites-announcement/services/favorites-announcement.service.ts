@@ -109,7 +109,7 @@ export class FavoritesAnnouncementService {
 
       return announcements
         .filter((a): a is Announcement => a != null && a.status !== 'INACTIVE')
-        .map(a => ({ ...a, isFavorite: true }));
+        .map(a => ({ ...a, _id: a.id, isFavorite: true }) as Announcement & { isFavorite: true });
     } catch (error) {
       this.logger.error(
         'Erreur lors de la récupération des favoris du bénévole',
@@ -150,7 +150,8 @@ export class FavoritesAnnouncementService {
         await this.favoritesAnnouncementRepository.findAllByVolunteerId(volunteerId);
       return await Promise.all(
         favorites.map(async favorite => {
-          return await this.announcementService.findById(favorite.announcementId);
+          const announcement = await this.announcementService.findById(favorite.announcementId);
+          return { ...announcement, _id: announcement.id } as Announcement;
         }),
       );
     } catch (error) {

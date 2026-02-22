@@ -23,7 +23,7 @@ export class AnnouncementRepository {
   constructor(
     @InjectRepository(Announcement)
     private readonly repository: Repository<Announcement>,
-  ) { }
+  ) {}
 
   async findAll(): Promise<Announcement[]> {
     return await this.repository.find();
@@ -64,7 +64,6 @@ export class AnnouncementRepository {
 
     const nowParis = DateTime.now().setZone('Europe/Paris');
     const todayIso = nowParis.toISODate();
-    const currentTime = nowParis.toFormat('HH:mm');
 
     if (stateEvent) {
       switch (stateEvent) {
