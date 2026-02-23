@@ -196,7 +196,8 @@ export class AnnouncementRepository {
     id: string,
     announcement: Partial<Announcement>,
   ): Promise<Partial<Announcement>> {
-    await this.repository.update({ id }, announcement);
+    const { _id, ...updateData } = announcement;
+    await this.repository.update({ id }, updateData);
     return announcement;
   }
 
